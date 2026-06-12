@@ -61,7 +61,7 @@ def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: l
     scale = layer.get("scale", 1.0)
     if not isinstance(scale, (int, float)) or scale <= 0:
         errors.append(f"Layer `{layer_id}` has invalid scale: {scale}")
-    for field in ("draggable", "locked"):
+    for field in ("draggable", "locked", "flipX"):
         if field in layer and not isinstance(layer[field], bool):
             errors.append(f"Layer `{layer_id}` has invalid {field}: {layer[field]}")
 

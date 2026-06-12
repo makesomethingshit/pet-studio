@@ -20,6 +20,7 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - Run creation, validation, preview, registry, and state-bridge scripts yourself when the local workspace allows it.
 - Report outcomes as artifacts and next choices: created kit path, validation result, preview path, registered project id, layout file path, and any remaining missing asset.
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
+- Before generating helper/sub-pet base art, show the user 2-3 compact concept directions that explicitly reference the selected style source, then wait for the user's choice. Do not silently choose a helper creature, mascot, or coworker form, because helper style mismatch is hard to repair after atlas generation.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
 - Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, and project window position persistence. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
 
@@ -73,6 +74,7 @@ python project-room-kit/scripts/create_project_room_kit.py `
 - Room intake clears edge-connected near-white margin pixels to transparency while preserving the `384x240` canvas; do not crop the room source.
 - Static layers must not contain transparent RGB residue.
 - Prop layers should declare placement relative to the pet: `background`, `behind-pet`, `front-of-pet`, or `foreground`. Default generated props are `behindPet` so the main pet renders in front of furniture.
+- Layers may set `flipX: true` for a runtime/preview/fallback horizontal mirror. Use it for simple orientation fixes only; do not use it to paper over asymmetric text, logos, lighting direction, or identity drift.
 - Live runtime keeps room, prop, main pet, and helper pet as independent Canvas entities. Props and pets are draggable; room/background layers are locked by default.
 
 ## Project Registry

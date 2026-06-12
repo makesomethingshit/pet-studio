@@ -207,7 +207,7 @@ class ProjectRoomWidget:
             image = crop_atlas_frame(source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"]))
         else:
             image = source
-        scaled = scale_visible_layer(image, entity.scale * self.scale)
+        scaled = scale_visible_layer(image, entity.scale * self.scale, entity.flip_x)
         return clear_transparent_rgb(scaled)
 
     def draw_entity(self, entity: SceneEntity, frame_index: int) -> None:
@@ -397,6 +397,7 @@ class ProjectRoomWidget:
                         anchor_name=entity.anchor_name,
                         anchor=anchor,
                         scale=entity.scale,
+                        flip_x=entity.flip_x,
                         z=entity.z,
                         placement=entity.placement,
                         visible_when=entity.visible_when,
@@ -420,6 +421,7 @@ class ProjectRoomWidget:
                     anchor_name=entity.anchor_name,
                     anchor=entity.anchor,
                     scale=entity.scale,
+                    flip_x=entity.flip_x,
                     z=int(z) if entity.id == entity_id else entity.z,
                     placement=entity.placement,
                     visible_when=entity.visible_when,

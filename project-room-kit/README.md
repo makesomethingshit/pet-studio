@@ -81,6 +81,8 @@ Which pet should this room kit match?
 
 The recommended path is option 2 for a new room kit, and option 1 when the user already likes a current pet.
 
+Helper and sub-pet base art needs one more confirmation step. Before generating helper art, present a few compact concept directions tied to the selected style source, then wait for the user's choice. A helper that is structurally valid but visually from another style family should be treated as a failed concept, not as a production-ready helper.
+
 Every asset should have a sidecar metadata file:
 
 ```text
@@ -176,6 +178,8 @@ Prop placement is stored in the manifest as a semantic `placement` plus a comput
 - `foreground`: near-camera accents above the pet layer
 
 Live scene-host runs also use `draggable` and `locked` layer flags. Room/background layers are locked by default; props and pets are draggable by default. Project-specific moved anchors are saved outside the kit in the widget layout file, so the kit remains a reusable asset package. Runtime-only pet UX, including speech bubbles and context menus, is handled by the scene host and is not baked into preview or fallback assets.
+
+Any layer can also set `flipX: true` to mirror that entity horizontally in live widget rendering, preview rendering, and fallback baking. This is useful when a prop or helper faces the wrong side of the room. Keep it to orientation fixes; regenerate the art when mirroring would reverse readable text, logos, asymmetric lighting, or character identity.
 
 When `--register-project` is used, the new kit is also added to a project assignment registry so the widget can launch it with `--project-id`. The `production-report.json` also records a `projectLink` block with the project id, registry path, kit path, and workspace paths.
 

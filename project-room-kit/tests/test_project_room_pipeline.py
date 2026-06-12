@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "project-room-kit" / "scripts" / "create_project_room_kit.py"
 VALIDATOR = ROOT / "project-room-kit" / "scripts" / "validate_project_room_kit.py"
 ASSET_HELPERS = ROOT / "project-room-kit" / "scripts" / "project_room_assets.py"
+BAKE_SCRIPT = ROOT / "project-room-kit" / "scripts" / "bake_project_room_pet.py"
 
 
 STATE_FRAMES = {
@@ -483,6 +484,55 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                 first_frame_area = image.crop((92, 28, 92 + 384, 28 + 240))
                 self.assertIsNotNone(first_label_gutter.getbbox())
                 self.assertIsNotNone(first_frame_area.getbbox())
+
+    def test_scale_visible_layer_can_flip_asymmetric_layer(self) -> None:
+        spec = importlib.util.spec_from_file_location("bake_project_room_pet", BAKE_SCRIPT)
+        self.assertIsNotNone(spec)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+
+        layer = Image.new("RGBA", (4, 2), (0, 0, 0, 0))
+        layer.putpixel((0, 0), (255, 0, 0, 255))
+        layer.putpixel((3, 0), (0, 0, 255, 255))
+
+        flipped = module.scale_visible_layer(layer, 1.0, flip_x=True)
+
+        self.assertEqual(flipped.getpixel((0, 0)), (0, 0, 255, 255))
+        self.assertEqual(flipped.getpixel((3, 0)), (255, 0, 0, 255))
+
+    def test_validator_rejects_non_boolean_flip_x(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = self.run_cli("--out-dir", str(out), "--pet-package", str(pet), "--room-image", str(room))
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+
+            manifest_path = out / "kit" / "project-room.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["layers"][0]["flipX"] = "yes"
+            write_json(manifest_path, manifest)
+
+            validation = subprocess.run(
+                [
+                    sys.executable,
+                    str(VALIDATOR),
+                    "--kit",
+                    str(manifest_path),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(validation.returncode, 0)
+            self.assertIn("invalid flipX", validation.stderr + validation.stdout)
 
     def test_rejects_unknown_prop_placement_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

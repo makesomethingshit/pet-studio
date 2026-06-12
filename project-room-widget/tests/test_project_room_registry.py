@@ -94,6 +94,18 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertEqual(entities[-1].id, "desk")
         self.assertEqual(next(layer for layer in kit["layers"] if layer["id"] == "desk")["z"], original_desk_z)
 
+    def test_scene_entities_read_layer_flip_x(self) -> None:
+        from project_room_scene import scene_entities_from_kit
+
+        kit = self.load_demo_kit()
+        desk_layer = next(layer for layer in kit["layers"] if layer["id"] == "desk")
+        desk_layer["flipX"] = True
+
+        entities = scene_entities_from_kit(kit)
+        desk = next(entity for entity in entities if entity.id == "desk")
+
+        self.assertTrue(desk.flip_x)
+
     def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
         from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor, save_project_z_order
 

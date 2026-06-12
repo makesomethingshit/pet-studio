@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 STATE_ROWS = {
@@ -56,8 +56,10 @@ def paste_with_bottom_anchor(base: Image.Image, layer: Image.Image, anchor: dict
     base.alpha_composite(visible, (x, y))
 
 
-def scale_visible_layer(layer: Image.Image, scale: float) -> Image.Image:
+def scale_visible_layer(layer: Image.Image, scale: float, flip_x: bool = False) -> Image.Image:
     visible = trim_visible(layer)
+    if flip_x:
+        visible = ImageOps.mirror(visible)
     if scale == 1:
         return visible
     width = max(1, int(round(visible.width * scale)))
@@ -70,8 +72,9 @@ def paste_scaled_with_bottom_anchor(
     layer: Image.Image,
     anchor: dict[str, int],
     scale: float,
+    flip_x: bool = False,
 ) -> None:
-    visible = scale_visible_layer(layer, scale)
+    visible = scale_visible_layer(layer, scale, flip_x)
     x = int(anchor["x"] - visible.width / 2)
     y = int(anchor["y"] - visible.height)
     base.alpha_composite(visible, (x, y))
@@ -182,17 +185,18 @@ def build_source_frame(
         anchor_name = layer.get("anchor", "cell-bottom-center")
         anchor = kit["anchors"][anchor_name]
         scale = float(layer.get("scale", 1.0))
+        flip_x = bool(layer.get("flipX", False))
 
         if role == "mainPet":
             row_state = state_config.get("mainPetRow", state)
             frame = crop_atlas_frame(source, row_state, frame_index, cell_width, cell_height)
-            paste_scaled_with_bottom_anchor(canvas, frame, anchor, scale)
+            paste_scaled_with_bottom_anchor(canvas, frame, anchor, scale, flip_x)
         elif role == "helperPet":
             row_state = state_config.get("helperPetRow", state)
             frame = crop_atlas_frame(source, row_state, frame_index, cell_width, cell_height)
-            paste_scaled_with_bottom_anchor(canvas, frame, anchor, scale)
+            paste_scaled_with_bottom_anchor(canvas, frame, anchor, scale, flip_x)
         else:
-            paste_scaled_with_bottom_anchor(canvas, source, anchor, scale)
+            paste_scaled_with_bottom_anchor(canvas, source, anchor, scale, flip_x)
 
     return canvas
 

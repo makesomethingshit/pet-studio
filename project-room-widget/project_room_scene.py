@@ -40,6 +40,7 @@ class SceneEntity:
     anchor_name: str
     anchor: dict[str, int]
     scale: float
+    flip_x: bool
     z: int
     placement: str | None
     visible_when: tuple[str, ...]
@@ -314,6 +315,7 @@ def scene_entities_from_kit(kit: dict, layout: dict | None = None) -> list[Scene
                 anchor_name=layer.get("anchor", "cell-bottom-center"),
                 anchor=layer_anchor(kit, layer, layout),
                 scale=float(layer.get("scale", 1.0)),
+                flip_x=bool(layer.get("flipX", False)),
                 z=int(layer_z),
                 placement=layer.get("placement"),
                 visible_when=visible_when,
