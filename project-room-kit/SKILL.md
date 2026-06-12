@@ -11,6 +11,17 @@ Use this skill to create and run modular project-room pets. The real source is a
 
 Keep assets style-locked. Do not mix downloaded asset packs or generated images unless their sidecar metadata and visual QA match the selected style source.
 
+## Agent Behavior
+
+Guide the user through the workflow instead of handing them command lists. Treat commands in this skill as tools for Codex to run, not instructions for the user to type.
+
+- Inspect the workspace first and infer project id from `project-room-widget/project-room-projects.json` when possible.
+- Ask only for missing creative inputs: style source, room image, prop images, theme, display name, or whether fallback baking is wanted.
+- Run creation, validation, preview, registry, and state-bridge scripts yourself when the local workspace allows it.
+- Report outcomes as artifacts and next choices: created kit path, validation result, preview path, registered project id, and any remaining missing asset.
+- If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
+- Keep manual shell commands as fallback/debug details, not the main user experience.
+
 ## First Choice
 
 Before generating or registering room/prop/helper assets, choose the style source:
@@ -31,7 +42,7 @@ The selected source controls perspective, palette, outline weight, room size, pe
 6. Register the kit into a project registry when it should be selectable by project id.
 7. Use `project-room-widget/project_room_widget.py` from the repository runtime, or copy the generated kit into another widget host.
 
-## Production Command
+## Manual/Debug Command
 
 ```powershell
 python project-room-kit/scripts/create_project_room_kit.py `

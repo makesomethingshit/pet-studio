@@ -52,6 +52,8 @@ Skill is valid!
 
 ## Create A Project Room Kit
 
+When used as a Codex skill, Codex should guide this flow and run the scripts directly. The commands below are for manual debugging or for users who want to run the pipeline themselves.
+
 ```powershell
 python project-room-kit\scripts\create_project_room_kit.py `
   --out-dir runs\my-project-room `
@@ -72,6 +74,8 @@ python project-room-kit\scripts\create_project_room_kit.py `
 This creates a layered room kit, prompt pack, validation report, full-size previews, and optional hatch-pet fallback package.
 
 ## Run The Widget
+
+Codex can launch, render, or update the widget state for the user. These examples show the underlying commands.
 
 Launch the included demo project:
 
