@@ -252,15 +252,19 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
     anchors = {
         "cell-bottom-center": {"x": 96, "y": 190},
         "room": {"x": 192, "y": 240},
-        "owner": {"x": 138, "y": 206},
+        "owner": {"x": 96, "y": 206},
         "helper": {"x": 285, "y": 204},
     }
 
     for index, prop_id in enumerate(prop_ids):
         anchor_name = prop_id
         placement = prop_placements.get(prop_id, "behindPet")
-        x = min(330, 215 + index * 42)
-        y = max(196, 216 - (index % 2) * 10)
+        if placement == "foreground":
+            x = min(344, 325 + index * 18)
+            y = 218
+        else:
+            x = min(330, 215 + index * 42)
+            y = max(196, 216 - (index % 2) * 10)
         anchors[anchor_name] = {"x": x, "y": y}
         layers.append(
             {

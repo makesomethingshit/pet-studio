@@ -180,6 +180,10 @@ class ProjectRoomWidget:
         self.canvas.bind("<Double-Button-1>", self.cycle_state)
         self.canvas.bind("<Button-3>", self.show_context_menu)
         self.root.bind("<Escape>", lambda _event: self.root.destroy())
+        self.root.bind("<Control-plus>", lambda _event: self.adjust_scale(1.1))
+        self.root.bind("<Control-equal>", lambda _event: self.adjust_scale(1.1))
+        self.root.bind("<Control-minus>", lambda _event: self.adjust_scale(1 / 1.1))
+        self.root.bind("<Control-0>", lambda _event: self.reset_scale())
         self.redraw_scene()
 
         if click_through:
@@ -237,16 +241,18 @@ class ProjectRoomWidget:
         owner = self.entities_by_id.get("main-owner")
         if not text or owner is None:
             return
+        canvas_width = max(1, int(self.canvas.cget("width")))
         x = int(round(owner.anchor["x"] * self.scale))
-        y = int(round((owner.anchor["y"] - 116) * self.scale))
-        max_width = max(120, int(round(160 * self.scale)))
-        font_size = max(9, int(round(10 * self.scale)))
+        y = int(round((owner.anchor["y"] - 122) * self.scale))
+        margin = max(10, int(round(12 * self.scale)))
+        max_width = min(max(120, int(round(170 * self.scale))), max(80, canvas_width - margin * 2))
+        font_size = max(9, int(round(10.5 * self.scale)))
         text_item = self.canvas.create_text(
             x,
             y,
             text=text,
             width=max_width,
-            fill="#24313a",
+            fill="#2d241e",
             font=("Segoe UI", font_size, "normal"),
             anchor=tk.S,
             tags=("bubble",),
@@ -254,31 +260,64 @@ class ProjectRoomWidget:
         bbox = self.canvas.bbox(text_item)
         if bbox is None:
             return
-        pad = max(6, int(round(7 * self.scale)))
-        left, top, right, bottom = bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad
-        rect = self.canvas.create_rectangle(
-            left,
-            top,
-            right,
-            bottom,
-            fill="#fffdf4",
-            outline="#24313a",
-            width=max(1, int(round(1.5 * self.scale))),
+        if bbox[0] < margin:
+            self.canvas.move(text_item, margin - bbox[0], 0)
+            bbox = self.canvas.bbox(text_item)
+        if bbox and bbox[2] > canvas_width - margin:
+            self.canvas.move(text_item, canvas_width - margin - bbox[2], 0)
+            bbox = self.canvas.bbox(text_item)
+        if bbox is None:
+            return
+        pad_x = max(9, int(round(10 * self.scale)))
+        pad_y = max(6, int(round(7 * self.scale)))
+        radius = max(8, int(round(9 * self.scale)))
+        left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
+        tail_anchor = max(left + radius + 6, min(x, right - radius - 6))
+        tail = self.canvas.create_polygon(
+            tail_anchor - 7,
+            bottom - 1,
+            tail_anchor + 6,
+            bottom - 1,
+            tail_anchor - 2,
+            bottom + max(7, int(round(8 * self.scale))),
+            fill="#fff8ea",
+            outline="#6f5845",
             tags=("bubble",),
         )
-        tail = self.canvas.create_polygon(
-            x - 7,
+        rect = self.canvas.create_polygon(
+            left + radius,
+            top,
+            right - radius,
+            top,
+            right,
+            top,
+            right,
+            top + radius,
+            right,
+            bottom - radius,
+            right,
             bottom,
-            x + 4,
+            right - radius,
             bottom,
-            x - 4,
-            bottom + 9,
-            fill="#fffdf4",
-            outline="#24313a",
+            left + radius,
+            bottom,
+            left,
+            bottom,
+            left,
+            bottom - radius,
+            left,
+            top + radius,
+            left,
+            top,
+            smooth=True,
+            splinesteps=12,
+            fill="#fff8ea",
+            outline="#6f5845",
+            width=max(1, int(round(1.4 * self.scale))),
             tags=("bubble",),
         )
         self.canvas.tag_lower(rect, text_item)
-        self.canvas.tag_lower(tail, text_item)
+        self.canvas.tag_lower(tail, rect)
         self.bubble_items.extend([rect, tail, text_item])
 
     def update_pet_frames(self) -> None:
@@ -402,6 +441,11 @@ class ProjectRoomWidget:
         menu.add_command(label="Cycle state", command=lambda: self.cycle_state(event))
         if self.project_id and self.layout_file:
             menu.add_command(label="Reset layout", command=self.reset_layout)
+        menu.add_separator()
+        menu.add_command(label="Larger", command=lambda: self.adjust_scale(1.1))
+        menu.add_command(label="Smaller", command=lambda: self.adjust_scale(1 / 1.1))
+        menu.add_command(label="Reset size", command=self.reset_scale)
+        menu.add_separator()
         menu.add_command(label="Hide bubble" if self.bubble_visible else "Show bubble", command=self.toggle_bubble)
         menu.add_separator()
         menu.add_command(label="Close", command=self.root.destroy)
@@ -422,6 +466,24 @@ class ProjectRoomWidget:
     def toggle_bubble(self) -> None:
         self.bubble_visible = not self.bubble_visible
         self.redraw_scene()
+
+    def set_scale(self, scale: float) -> None:
+        next_scale = max(0.6, min(2.0, round(scale, 3)))
+        if next_scale == self.scale:
+            return
+        self.scale = next_scale
+        source_canvas = self.kit.get("sourceCanvas", self.kit["cell"])
+        canvas_width = max(1, int(round(int(source_canvas["width"]) * self.scale)))
+        canvas_height = max(1, int(round(int(source_canvas["height"]) * self.scale)))
+        self.canvas.configure(width=canvas_width, height=canvas_height)
+        self.redraw_scene()
+        self.save_window_position()
+
+    def adjust_scale(self, multiplier: float) -> None:
+        self.set_scale(self.scale * multiplier)
+
+    def reset_scale(self) -> None:
+        self.set_scale(1.0)
 
     def save_window_position(self) -> None:
         if not self.project_id or not self.window_file:

@@ -30,13 +30,14 @@ def render_contact_sheet(
     canvas_width = int(kit.get("sourceCanvas", kit["cell"])["width"])
     canvas_height = int(kit.get("sourceCanvas", kit["cell"])["height"])
     label_height = 22
+    label_gutter = 36
     gap = 10
     columns = 3
     rows = 3
     sheet = Image.new(
         "RGBA",
         (
-            columns * canvas_width + (columns - 1) * gap,
+            label_gutter + columns * canvas_width + (columns - 1) * gap,
             rows * (canvas_height + label_height) + (rows - 1) * gap,
         ),
         (255, 255, 255, 0),
@@ -46,7 +47,7 @@ def render_contact_sheet(
     for index, state in enumerate(STATE_ROWS):
         column = index % columns
         row = index // columns
-        x = column * (canvas_width + gap)
+        x = label_gutter + column * (canvas_width + gap)
         y = row * (canvas_height + label_height + gap)
         frame = build_source_frame(kit_dir, kit, state, 0, layer_assets, warnings)
         sheet.alpha_composite(frame, (x, y + label_height))

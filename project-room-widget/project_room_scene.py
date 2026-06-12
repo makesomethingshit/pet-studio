@@ -138,6 +138,7 @@ def context_menu_labels(project_id: str | None, bubble_visible: bool = True) -> 
     labels = ["Cycle state"]
     if project_id:
         labels.append("Reset layout")
+    labels.extend(["Larger", "Smaller", "Reset size"])
     labels.append("Hide bubble" if bubble_visible else "Show bubble")
     labels.append("Close")
     return tuple(labels)

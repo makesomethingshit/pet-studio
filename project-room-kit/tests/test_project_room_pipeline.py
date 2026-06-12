@@ -336,6 +336,64 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertLess(layers["desk"]["z"], layers["main-owner"]["z"])
             self.assertGreater(layers["plant"]["z"], layers["main-owner"]["z"])
 
+    def test_foreground_props_default_to_pet_clear_right_floor_anchor(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            book_stack = work / "book-stack.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+            make_prop(book_stack)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--prop",
+                f"book-stack={book_stack}",
+                "--prop-placement",
+                "book-stack=foreground",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            manifest = json.loads((out / "kit" / "project-room.json").read_text(encoding="utf-8"))
+
+            self.assertEqual(manifest["anchors"]["owner"], {"x": 96, "y": 206})
+            self.assertGreaterEqual(manifest["anchors"]["book-stack"]["x"], 320)
+            self.assertGreaterEqual(manifest["anchors"]["book-stack"]["y"], 216)
+
+    def test_contact_sheet_reserves_left_gutter_for_state_labels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--render-contact",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            with Image.open(out / "room-contact.png") as image:
+                self.assertEqual(image.size[0], 3 * 384 + 2 * 10 + 36)
+
     def test_rejects_unknown_prop_placement_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

@@ -9,6 +9,7 @@ from pathlib import Path
 
 DEFAULT_REGISTRY = Path(__file__).with_name("project-room-projects.json")
 DEFAULT_STATE_FILE = Path(__file__).with_name("project-room-state.json")
+DEFAULT_ACTIVE_PROJECT_FILE = Path(__file__).with_name("project-room-active.json")
 STATE_ALIASES = {
     "done": "jumping",
     "blocked": "failed",
@@ -143,6 +144,28 @@ def select_project(registry_path: str | Path | None, project_id: str) -> Project
             raise ProjectRegistryError(f"Project `{project_id}` is disabled")
         return project
     raise ProjectRegistryError(f"Unknown project id: {project_id}")
+
+
+def read_active_project_id(active_project_file: str | Path | None) -> str | None:
+    if not active_project_file:
+        return None
+    path = Path(active_project_file).expanduser()
+    if not path.exists():
+        return None
+    data = load_json(path)
+    project_id = data.get("projectId")
+    if project_id is None:
+        return None
+    if not isinstance(project_id, str) or not project_id.strip():
+        raise ProjectRegistryError("Active project file `projectId` must be a non-empty string")
+    return project_id.strip()
+
+
+def select_active_project(registry_path: str | Path | None, active_project_file: str | Path | None) -> ProjectAssignment | None:
+    project_id = read_active_project_id(active_project_file)
+    if not project_id:
+        return None
+    return select_project(registry_path, project_id)
 
 
 def path_contains(parent: Path, child: Path) -> bool:

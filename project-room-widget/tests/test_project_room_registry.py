@@ -13,6 +13,7 @@ WIDGET_DIR = ROOT / "project-room-widget"
 WIDGET_SCRIPT = WIDGET_DIR / "project_room_widget.py"
 STATE_SCRIPT = WIDGET_DIR / "set_project_state.py"
 ADAPTER_SCRIPT = WIDGET_DIR / "codex_state_adapter.py"
+ACTIVE_SCRIPT = WIDGET_DIR / "set_active_project.py"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
@@ -102,7 +103,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         labels = context_menu_labels(project_id="gakju-demo")
 
-        self.assertEqual(labels, ("Cycle state", "Reset layout", "Hide bubble", "Close"))
+        self.assertEqual(labels, ("Cycle state", "Reset layout", "Larger", "Smaller", "Reset size", "Hide bubble", "Close"))
         self.assertNotEqual(labels[0], "Close")
 
 
@@ -451,6 +452,261 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             data = json.loads(state_file.read_text(encoding="utf-8"))
             self.assertEqual(data["projectId"], "manual-project")
             self.assertEqual(data["state"], "done")
+
+    def test_codex_state_adapter_accepts_json_event_payload(self) -> None:
+        from project_room_registry import read_project_state
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            state_file = work / "project-room-state.json"
+            event_file = work / "event.json"
+            write_json(
+                event_file,
+                {
+                    "event": "block",
+                    "message": "Waiting on approval",
+                    "projectId": "gakju-demo",
+                    "updatedAt": "2026-06-13T00:00:00Z",
+                    "threadId": "thread-local",
+                    "worktreeId": "worktree-local",
+                },
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--event-json",
+                    str(event_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "blocked")
+            self.assertEqual(data["message"], "Waiting on approval")
+            self.assertEqual(data["updatedAt"], "2026-06-13T00:00:00Z")
+            self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), "failed")
+
+    def test_codex_state_adapter_accepts_stdin_event_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            state_file = work / "project-room-state.json"
+            payload = json.dumps({"event": "done", "message": "Finished", "projectId": "gakju-demo"})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--event-json",
+                    "-",
+                ],
+                cwd=ROOT,
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "done")
+
+    def test_codex_state_adapter_active_project_resolves_workspace_ambiguity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            workspace = work / "workspace"
+            workspace.mkdir()
+            state_file = work / "project-room-state.json"
+            active_file = work / "project-room-active.json"
+            config = work / "projects.json"
+            base_project = {
+                "displayName": "Demo",
+                "kitPath": str(ROOT / "runs" / "gakju-imagegen-room-v1" / "kit"),
+                "petPackagePath": str(ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner"),
+                "defaultState": "idle",
+                "theme": "quiet archive nook",
+                "enabled": True,
+                "workspacePaths": [str(workspace)],
+            }
+            write_json(
+                config,
+                {
+                    "schemaVersion": 1,
+                    "projects": [
+                        {"projectId": "first", **base_project},
+                        {"projectId": "second", **base_project},
+                    ],
+                },
+            )
+            write_json(active_file, {"schemaVersion": 1, "projectId": "second", "workspacePath": str(workspace)})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--state-file",
+                    str(state_file),
+                    "--active-project-file",
+                    str(active_file),
+                    "--cwd",
+                    str(workspace),
+                    "--event",
+                    "start",
+                    "--message",
+                    "Pinned project",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "second")
+            self.assertEqual(data["state"], "running")
+
+    def test_codex_state_adapter_payload_project_id_overrides_active_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            state_file = work / "project-room-state.json"
+            active_file = work / "project-room-active.json"
+            write_json(active_file, {"schemaVersion": 1, "projectId": "active-project"})
+            payload = json.dumps({"event": "review", "message": "Manual override", "projectId": "payload-project"})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--active-project-file",
+                    str(active_file),
+                    "--event-json",
+                    "-",
+                ],
+                cwd=ROOT,
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "payload-project")
+            self.assertEqual(data["state"], "review")
+
+    def test_codex_state_adapter_rejects_unknown_active_project_without_writing_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            config = self.make_config(work / "projects.json")
+            state_file = work / "project-room-state.json"
+            active_file = work / "project-room-active.json"
+            write_json(active_file, {"schemaVersion": 1, "projectId": "missing"})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--state-file",
+                    str(state_file),
+                    "--active-project-file",
+                    str(active_file),
+                    "--event",
+                    "start",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Unknown project id", result.stderr + result.stdout)
+            self.assertFalse(state_file.exists())
+
+    def test_codex_state_adapter_rejects_disabled_active_project_without_writing_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            config = self.make_config(work / "projects.json", enabled=False)
+            state_file = work / "project-room-state.json"
+            active_file = work / "project-room-active.json"
+            write_json(active_file, {"schemaVersion": 1, "projectId": "gakju-demo"})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--state-file",
+                    str(state_file),
+                    "--active-project-file",
+                    str(active_file),
+                    "--event",
+                    "start",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("disabled", result.stderr + result.stdout)
+            self.assertFalse(state_file.exists())
+
+    def test_set_active_project_cli_writes_enabled_project_pin(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            config = self.make_config(work / "projects.json")
+            active_file = work / "project-room-active.json"
+            workspace = work / "workspace"
+            workspace.mkdir()
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ACTIVE_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--active-project-file",
+                    str(active_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--cwd",
+                    str(workspace),
+                    "--updated-at",
+                    "2026-06-13T00:00:00Z",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(active_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["schemaVersion"], 1)
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["workspacePath"], str(workspace.resolve()))
+            self.assertEqual(data["updatedAt"], "2026-06-13T00:00:00Z")
 
     def test_codex_state_adapter_reports_workspace_inference_failure(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
