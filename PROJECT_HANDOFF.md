@@ -1,6 +1,6 @@
 # Pet Studio / Project Room Handoff
 
-Last updated: 2026-06-12
+Last updated: 2026-06-13
 
 ## One-Line Summary
 
@@ -34,6 +34,7 @@ Important files:
 - `kit/project-room.json`: layered room manifest.
 - `kit/style-lock.json`: style contract.
 - `scripts/validate_project_room_kit.py`: validates kit metadata, dimensions, style, perspective, room features, prop size, and pet atlas size.
+- `scripts/project_room_assets.py`: clears edge-connected near-white room margins to transparent alpha while preserving `384x240` room size.
 - `scripts/register_pet_package.py`: registers an existing hatch-pet package as a layer.
 - `scripts/render_project_room_preview.py`: renders full-size room previews.
 - `scripts/bake_project_room_pet.py`: optional diagnostic/fallback hatch-pet preview only.
@@ -47,6 +48,7 @@ Current format decisions:
 - Prop layers now declare semantic placement relative to the pet: `background`, `behindPet`, `frontOfPet`, or `foreground`. Renderers still execute by `z`, but the authoring intent is visible in `project-room.json`.
 - Live scene-host layers can declare `draggable` and `locked`. Room/background layers are locked by default; props and pets are draggable by default.
 - Every asset should have a sidecar `.asset.json`.
+- Room intake clears edge-connected near-white borders at registration time; this fixes generated top/bottom fringe without cropping the source room.
 
 ### 2. Installed Codex Skill
 
@@ -90,6 +92,7 @@ Files:
 - `README.md`
 - `project-room-projects.json`
 - `project-room-layouts.json`
+- `project-room-window.json`
 - `project-room-state.json`
 - `run-gakju-archive-room.bat`
 - `run-gakju-imagegen-room-v1.bat`
@@ -104,6 +107,9 @@ Purpose:
 - Keep project assignment in `project-room-projects.json`; production reports also include a `projectLink` block for quick inspection.
 - Render room, prop, main pet, and helper pet as independent Canvas entities in one transparent scene-host window.
 - Persist project-specific dragged entity anchors in `project-room-layouts.json`.
+- Persist registered project host window position and scale in `project-room-window.json`.
+- Show state messages as a runtime-only speech bubble near the main pet.
+- Open a right-click context menu instead of closing immediately.
 - Animate pet states by cycling frames.
 
 Controls:
@@ -111,7 +117,12 @@ Controls:
 - Drag a prop or pet with left mouse button.
 - Drag locked room/background or empty space to move the host window.
 - Double-click to cycle animation state.
-- Right-click or Escape to close.
+- Right-click to open the context menu: cycle state, reset project layout, toggle bubble, or close.
+- Escape closes the host.
+
+Pet UX parity note:
+
+- The original Codex pet runtime implementation is not bundled in this repo, so parity v1 covers confirmed behavior first: speech bubble, context menu instead of immediate right-click close, explicit close action, and window placement persistence.
 
 Run current best widget:
 
@@ -165,6 +176,7 @@ Important outputs:
 Validation status:
 
 - `validate_project_room_kit.py`: passed.
+- `kit/rooms/default-room.png` edge-connected near-white room margin: cleaned from 19055 pixels to 0.
 - `desk.png` transparent RGB residue: `0`.
 - `book-stack.png` transparent RGB residue: `0`.
 - `project-room-widget --render-once`: passed.
@@ -229,9 +241,9 @@ Start-Process -FilePath 'C:\Users\USER\.cache\codex-runtimes\codex-primary-runti
 Recommended next step:
 
 1. Continue from `docs/PROJECT_ROOM_ROADMAP.md`.
-2. Polish widget runtime behavior.
-3. Add persistent window position and scale.
-4. Expand `codex_state_adapter.py` from workspace project detection toward hooks.
+2. Expand `codex_state_adapter.py` from workspace project detection toward hooks.
+3. Add more pet runtime parity items as users identify them.
+4. Generate additional room/prop variants and verify the intake cleanup.
 
 Other good next steps:
 

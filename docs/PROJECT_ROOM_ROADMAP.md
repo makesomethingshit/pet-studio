@@ -13,6 +13,9 @@ The long-term experience should feel like a living Codex pet scene: a compact si
 - `project-room-widget` can render a layered kit as independent Canvas entities in a frameless desktop scene host.
 - `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge and infer project ids from registered workspace paths.
 - `project-room-layouts.json` stores project-specific moved entity anchors without changing kit files.
+- `project-room-window.json` stores registered project host window position and scale.
+- Room asset intake clears edge-connected near-white margins to transparent alpha without cropping the `384x240` source.
+- The scene host has pet UX parity v1: state speech bubbles, a right-click context menu, explicit close, and Escape close.
 - The current best demo is `runs/gakju-imagegen-room-v1`, a Gakju SD/chibi archive room.
 
 ## Milestones
@@ -100,3 +103,4 @@ The state bridge uses:
 - No standalone dashboard app.
 - No requirement that many agents are visible at all times.
 - No direct Codex hook integration before the file-based bridge is stable.
+- No claim of full private Codex pet runtime parity until each behavior is confirmed and reproduced.

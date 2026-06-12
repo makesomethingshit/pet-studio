@@ -104,6 +104,8 @@ The sidecar must match the kit `styleId` and perspective. The validator checks:
 - props fit inside the `384x240` source room canvas
 - static layers have no transparent RGB residue
 
+Room image intake also removes edge-connected near-white margin pixels by making them transparent while preserving the required `384x240` canvas. Bright interior wall or furniture pixels are kept when they are not connected to the image edge.
+
 This does not replace visual QA. It catches structural mismatch, while contact-sheet review catches taste mismatch.
 
 Visual QA should reject an asset set when:
@@ -157,6 +159,8 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 
 This writes `kit/project-room.json`, `kit/style-lock.json`, copied layer assets, sidecar `.asset.json` files, `generation-brief.json`, prompt text files, `kit-validation.json`, and `production-report.json`. The fallback package is optional and is only for runtimes that still need a normal hatch-pet package.
 
+During room registration, edge-connected near-white borders are cleared to alpha so generated room images do not leave visible white top/bottom fringe in the transparent scene host. The source room size stays `384x240`.
+
 Prop placement is stored in the manifest as a semantic `placement` plus a computed `z` value:
 
 - `background`: wall/floor decoration behind furniture
@@ -164,7 +168,7 @@ Prop placement is stored in the manifest as a semantic `placement` plus a comput
 - `front-of-pet`: props allowed to overlap the pet
 - `foreground`: near-camera accents above the pet layer
 
-Live scene-host runs also use `draggable` and `locked` layer flags. Room/background layers are locked by default; props and pets are draggable by default. Project-specific moved anchors are saved outside the kit in the widget layout file, so the kit remains a reusable asset package.
+Live scene-host runs also use `draggable` and `locked` layer flags. Room/background layers are locked by default; props and pets are draggable by default. Project-specific moved anchors are saved outside the kit in the widget layout file, so the kit remains a reusable asset package. Runtime-only pet UX, including speech bubbles and context menus, is handled by the scene host and is not baked into preview or fallback assets.
 
 When `--register-project` is used, the new kit is also added to a project assignment registry so the widget can launch it with `--project-id`. The `production-report.json` also records a `projectLink` block with the project id, registry path, kit path, and workspace paths.
 

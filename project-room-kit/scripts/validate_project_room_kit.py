@@ -4,9 +4,16 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from PIL import Image
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from project_room_assets import room_edge_margin_pixel_count
 
 
 PET_ROLES = {"mainPet", "helperPet"}
@@ -89,6 +96,9 @@ def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: l
         expected = (kit["roomModule"]["width"], kit["roomModule"]["height"])
         if (width, height) != expected:
             errors.append(f"Room `{layer_id}` is {width}x{height}; expected {expected[0]}x{expected[1]}")
+        margin_pixels = room_edge_margin_pixel_count(asset_path)
+        if margin_pixels:
+            warnings.append(f"Room `{layer_id}` has {margin_pixels} opaque edge-connected near-white margin pixels.")
         for required in kit["roomModule"].get("requiredFeatures", []):
             if required not in metadata.get("features", []):
                 errors.append(f"Room `{layer_id}` missing required feature metadata: {required}")

@@ -74,6 +74,8 @@ python project-room-kit\scripts\create_project_room_kit.py `
 
 This creates a layered room kit, prompt pack, validation report, full-size previews, and optional hatch-pet fallback package.
 
+Room intake preserves the `384x240` source size but clears edge-connected near-white margin pixels to transparency. This removes visible white top/bottom fringe without deleting bright wall or furniture pixels that are separated from the image edge.
+
 Prop placement is explicit. Use `behind-pet` for furniture the pet should stand in front of, `front-of-pet` for props that can overlap the pet, `background` for wall/floor decorations, and `foreground` for near-camera accents.
 
 ## Run The Widget
@@ -81,6 +83,8 @@ Prop placement is explicit. Use `behind-pet` for furniture the pet should stand 
 Codex can launch the scene host, render compatibility previews, or update project state for the user. These examples show the underlying commands.
 
 The live runtime uses separate Canvas entities for room, props, main pet, and helper pets. Props and pets are draggable. Room/background layers are locked by default. Registered projects persist moved entity anchors in `project-room-widget\project-room-layouts.json`; direct `--kit` runs are session-only.
+
+Pet UX parity v1 keeps the basics visible in the scene host: state messages render as a runtime-only speech bubble near the pet, right-click opens a context menu instead of closing immediately, and registered projects persist window position/scale in `project-room-widget\project-room-window.json`. Escape still closes the host. Full Codex pet runtime parity is tracked incrementally because the internal runtime implementation is not bundled in this repo.
 
 Launch the included demo project:
 

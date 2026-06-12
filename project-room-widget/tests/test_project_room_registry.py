@@ -66,6 +66,45 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
             self.assertEqual(layout["anchors"]["desk"], {"x": 260, "y": 210})
 
+    def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
+        from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            layout_file = Path(tmp) / "project-room-layouts.json"
+            save_project_anchor(layout_file, "gakju-demo", "desk", {"x": 260, "y": 210})
+
+            reset_project_layout(layout_file, "gakju-demo")
+            layout = load_project_layout(layout_file, "gakju-demo")
+
+            self.assertEqual(layout["anchors"], {})
+
+    def test_project_window_file_round_trips_position_and_scale(self) -> None:
+        from project_room_scene import load_project_window, save_project_window
+
+        with tempfile.TemporaryDirectory() as tmp:
+            window_file = Path(tmp) / "project-room-window.json"
+
+            save_project_window(window_file, "gakju-demo", {"x": 120, "y": 340, "scale": 1.25})
+            window = load_project_window(window_file, "gakju-demo")
+
+            self.assertEqual(window, {"x": 120, "y": 340, "scale": 1.25})
+
+    def test_bubble_text_prefers_state_message_and_uses_state_defaults(self) -> None:
+        from project_room_scene import bubble_text_for_state
+
+        self.assertEqual(bubble_text_for_state("running", "building room"), "building room")
+        self.assertEqual(bubble_text_for_state("blocked", ""), "Need input")
+        self.assertEqual(bubble_text_for_state("done", None), "Done")
+        self.assertIsNone(bubble_text_for_state("idle", None, enabled=False))
+
+    def test_context_menu_labels_keep_close_as_explicit_action(self) -> None:
+        from project_room_scene import context_menu_labels
+
+        labels = context_menu_labels(project_id="gakju-demo")
+
+        self.assertEqual(labels, ("Cycle state", "Reset layout", "Hide bubble", "Close"))
+        self.assertNotEqual(labels[0], "Close")
+
 
 class ProjectRoomRegistryTests(unittest.TestCase):
     def make_config(self, path: Path, **overrides: object) -> Path:
@@ -168,6 +207,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     "gakju-demo",
                     "--layout-file",
                     str(work / "project-room-layouts.json"),
+                    "--window-file",
+                    str(work / "project-room-window.json"),
                     "--render-project-once",
                     str(output),
                 ],

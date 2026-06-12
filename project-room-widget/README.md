@@ -27,9 +27,11 @@ Controls:
 - Drag a prop or pet with the left mouse button.
 - Drag locked room/background or empty space to move the host window.
 - Double-click to cycle animation state.
-- Right-click or Escape to close.
+- Right-click to open the context menu.
+- Use the context menu to cycle state, reset a registered project layout, toggle the speech bubble, or close.
+- Escape closes the host.
 
-Registered projects persist moved entity anchors in `project-room-layouts.json`. Direct `--kit` runs allow session-only movement and do not write project layout overrides.
+Registered projects persist moved entity anchors in `project-room-layouts.json` and host window position/scale in `project-room-window.json`. Direct `--kit` runs allow session-only movement and do not write project layout or window overrides.
 
 ## State Bridge
 
@@ -45,6 +47,8 @@ Use `project-room-state.json` as the first file-based bridge from external proje
 ```
 
 Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
+
+If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`; idle can stay quiet. Speech bubbles are not included in `--render-once`, fallback baking, or kit assets.
 
 Write the bridge file with:
 
@@ -82,4 +86,10 @@ Use a custom layout file:
 
 ```powershell
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --layout-file D:\pet-studio\project-room-widget\project-room-layouts.json
+```
+
+Use a custom window persistence file:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --window-file D:\pet-studio\project-room-widget\project-room-window.json
 ```

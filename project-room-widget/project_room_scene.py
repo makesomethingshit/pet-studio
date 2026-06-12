@@ -10,6 +10,17 @@ from typing import Any
 
 
 DEFAULT_LAYOUT_FILE = Path(__file__).with_name("project-room-layouts.json")
+DEFAULT_WINDOW_FILE = Path(__file__).with_name("project-room-window.json")
+DEFAULT_BUBBLE_MESSAGES = {
+    "running": "Working",
+    "waiting": "Waiting",
+    "review": "Reviewing",
+    "failed": "Need input",
+    "blocked": "Need input",
+    "handoff": "Reviewing",
+    "jumping": "Done",
+    "done": "Done",
+}
 
 
 @dataclass(frozen=True)
@@ -67,6 +78,69 @@ def save_project_anchor(path: Path, project_id: str, entity_id: str, anchor: dic
     anchors[entity_id] = coerce_anchor(anchor)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def reset_project_layout(path: Path, project_id: str) -> None:
+    data = project_layout_document(path)
+    project = data.setdefault("projects", {}).setdefault(project_id, {})
+    project["anchors"] = {}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def project_window_document(path: Path) -> dict:
+    if not path.exists():
+        return {"schemaVersion": 1, "projects": {}}
+    data = json.loads(path.read_text(encoding="utf-8-sig"))
+    data.setdefault("schemaVersion", 1)
+    data.setdefault("projects", {})
+    return data
+
+
+def load_project_window(path: Path, project_id: str | None) -> dict | None:
+    if not project_id:
+        return None
+    data = project_window_document(path)
+    project = data.get("projects", {}).get(project_id)
+    if not isinstance(project, dict):
+        return None
+    window: dict[str, int | float] = {}
+    if isinstance(project.get("x"), int):
+        window["x"] = project["x"]
+    if isinstance(project.get("y"), int):
+        window["y"] = project["y"]
+    if isinstance(project.get("scale"), (int, float)) and project["scale"] > 0:
+        window["scale"] = float(project["scale"])
+    return window or None
+
+
+def save_project_window(path: Path, project_id: str, window: dict[str, int | float]) -> None:
+    data = project_window_document(path)
+    projects = data.setdefault("projects", {})
+    projects[project_id] = {
+        "x": int(window["x"]),
+        "y": int(window["y"]),
+        "scale": float(window["scale"]),
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def bubble_text_for_state(state: str, message: str | None, enabled: bool = True) -> str | None:
+    if not enabled:
+        return None
+    if message and message.strip():
+        return message.strip()
+    return DEFAULT_BUBBLE_MESSAGES.get(state)
+
+
+def context_menu_labels(project_id: str | None, bubble_visible: bool = True) -> tuple[str, ...]:
+    labels = ["Cycle state"]
+    if project_id:
+        labels.append("Reset layout")
+    labels.append("Hide bubble" if bubble_visible else "Show bubble")
+    labels.append("Close")
+    return tuple(labels)
 
 
 def layer_anchor(kit: dict, layer: dict, layout: dict | None) -> dict[str, int]:

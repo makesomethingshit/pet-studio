@@ -33,15 +33,19 @@ from project_room_registry import (  # noqa: E402
     list_projects,
     normalize_state,
     project_to_summary,
-    read_project_state,
     select_project,
 )
 from project_room_scene import (  # noqa: E402
     DEFAULT_LAYOUT_FILE,
+    DEFAULT_WINDOW_FILE,
     SceneEntity,
+    bubble_text_for_state,
     kit_with_layout,
     load_project_layout,
+    load_project_window,
+    reset_project_layout,
     save_project_anchor,
+    save_project_window,
     scene_entities_from_kit,
     visible_scene_entities,
 )
@@ -61,6 +65,19 @@ def resolve_kit_path(value: str) -> Path:
 
 def load_kit(kit_path: Path) -> dict:
     return json.loads(kit_path.read_text(encoding="utf-8"))
+
+
+def read_project_state_payload(state_file: Path, project_id: str | None, fallback: str) -> tuple[str, str | None]:
+    if not state_file.exists():
+        return normalize_state(fallback, "idle"), None
+    try:
+        data = json.loads(state_file.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return normalize_state(fallback, "idle"), None
+    if project_id and data.get("projectId") != project_id:
+        return normalize_state(fallback, "idle"), None
+    message = data.get("message")
+    return normalize_state(data.get("state"), fallback), message if isinstance(message, str) else None
 
 
 def render_frames(kit_path: Path, state: str, layout: dict | None = None) -> list[Image.Image]:
@@ -104,7 +121,9 @@ class ProjectRoomWidget:
         project_id: str | None = None,
         state_file: Path | None = None,
         layout_file: Path | None = None,
+        window_file: Path | None = None,
         state_refresh_ms: int = 1000,
+        message: str | None = None,
     ) -> None:
         self.kit_path = kit_path
         self.kit_dir = kit_path.parent
@@ -115,6 +134,9 @@ class ProjectRoomWidget:
         self.project_id = project_id
         self.state_file = state_file
         self.layout_file = layout_file if project_id else None
+        self.window_file = window_file if project_id else None
+        self.message = message
+        self.bubble_visible = True
         self.layout = load_project_layout(layout_file, project_id) if layout_file and project_id else {"anchors": {}}
         self.entities = scene_entities_from_kit(self.kit, self.layout)
         self.entities_by_id = {entity.id: entity for entity in self.entities}
@@ -127,6 +149,7 @@ class ProjectRoomWidget:
         self.drag_last: tuple[int, int] | None = None
         self.entity_items: dict[str, int] = {}
         self.entity_photos: dict[str, ImageTk.PhotoImage] = {}
+        self.bubble_items: list[int] = []
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
@@ -155,7 +178,7 @@ class ProjectRoomWidget:
         self.canvas.bind("<B1-Motion>", self.drag)
         self.canvas.bind("<ButtonRelease-1>", self.end_drag)
         self.canvas.bind("<Double-Button-1>", self.cycle_state)
-        self.canvas.bind("<Button-3>", lambda _event: self.root.destroy())
+        self.canvas.bind("<Button-3>", self.show_context_menu)
         self.root.bind("<Escape>", lambda _event: self.root.destroy())
         self.redraw_scene()
 
@@ -197,14 +220,66 @@ class ProjectRoomWidget:
 
     def redraw_scene(self) -> None:
         self.canvas.delete("entity")
+        self.canvas.delete("bubble")
         self.entity_items.clear()
         self.entity_photos.clear()
+        self.bubble_items.clear()
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
             if entity.id not in self.layer_assets:
                 if entity.role == "mainPet":
                     raise FileNotFoundError(f"Required main pet layer is missing: {entity.id}")
                 continue
             self.draw_entity(entity, self.index)
+        self.draw_bubble()
+
+    def draw_bubble(self) -> None:
+        text = bubble_text_for_state(self.state, self.message, self.bubble_visible)
+        owner = self.entities_by_id.get("main-owner")
+        if not text or owner is None:
+            return
+        x = int(round(owner.anchor["x"] * self.scale))
+        y = int(round((owner.anchor["y"] - 116) * self.scale))
+        max_width = max(120, int(round(160 * self.scale)))
+        font_size = max(9, int(round(10 * self.scale)))
+        text_item = self.canvas.create_text(
+            x,
+            y,
+            text=text,
+            width=max_width,
+            fill="#24313a",
+            font=("Segoe UI", font_size, "normal"),
+            anchor=tk.S,
+            tags=("bubble",),
+        )
+        bbox = self.canvas.bbox(text_item)
+        if bbox is None:
+            return
+        pad = max(6, int(round(7 * self.scale)))
+        left, top, right, bottom = bbox[0] - pad, bbox[1] - pad, bbox[2] + pad, bbox[3] + pad
+        rect = self.canvas.create_rectangle(
+            left,
+            top,
+            right,
+            bottom,
+            fill="#fffdf4",
+            outline="#24313a",
+            width=max(1, int(round(1.5 * self.scale))),
+            tags=("bubble",),
+        )
+        tail = self.canvas.create_polygon(
+            x - 7,
+            bottom,
+            x + 4,
+            bottom,
+            x - 4,
+            bottom + 9,
+            fill="#fffdf4",
+            outline="#24313a",
+            tags=("bubble",),
+        )
+        self.canvas.tag_lower(rect, text_item)
+        self.canvas.tag_lower(tail, text_item)
+        self.bubble_items.extend([rect, tail, text_item])
 
     def update_pet_frames(self) -> None:
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
@@ -275,6 +350,8 @@ class ProjectRoomWidget:
             if item is not None:
                 self.canvas.move(item, dx, dy)
             entity = self.entities_by_id[self.drag_entity_id]
+            if entity.id == "main-owner":
+                self.canvas.move("bubble", dx, dy)
             next_anchor = {
                 "x": int(round(entity.anchor["x"] + dx / self.scale)),
                 "y": int(round(entity.anchor["y"] + dy / self.scale)),
@@ -291,6 +368,8 @@ class ProjectRoomWidget:
         if self.drag_entity_id and self.project_id and self.layout_file:
             entity = self.entities_by_id[self.drag_entity_id]
             save_project_anchor(self.layout_file, self.project_id, entity.id, entity.anchor)
+        elif self.drag_start is not None:
+            self.save_window_position()
         self.drag_entity_id = None
         self.drag_last = None
         self.drag_start = None
@@ -302,18 +381,56 @@ class ProjectRoomWidget:
         self.index = 0
         self.redraw_scene()
 
-    def set_state(self, state: str) -> None:
+    def set_state(self, state: str, message: str | None = None) -> None:
         next_state = normalize_state(state, self.state)
-        if next_state == self.state:
+        next_message = message if message is not None else self.message
+        if next_state == self.state and next_message == self.message:
             return
         self.state = next_state
+        self.message = next_message
         self.index = 0
         self.redraw_scene()
 
     def refresh_external_state(self) -> None:
         if self.state_file is not None:
-            self.set_state(read_project_state(self.state_file, self.project_id, self.state))
+            state, message = read_project_state_payload(self.state_file, self.project_id, self.state)
+            self.set_state(state, message)
         self.root.after(self.state_refresh_ms, self.refresh_external_state)
+
+    def show_context_menu(self, event: tk.Event) -> None:
+        menu = tk.Menu(self.root, tearoff=False)
+        menu.add_command(label="Cycle state", command=lambda: self.cycle_state(event))
+        if self.project_id and self.layout_file:
+            menu.add_command(label="Reset layout", command=self.reset_layout)
+        menu.add_command(label="Hide bubble" if self.bubble_visible else "Show bubble", command=self.toggle_bubble)
+        menu.add_separator()
+        menu.add_command(label="Close", command=self.root.destroy)
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+    def reset_layout(self) -> None:
+        if not self.project_id or not self.layout_file:
+            return
+        reset_project_layout(self.layout_file, self.project_id)
+        self.layout = {"anchors": {}}
+        self.entities = scene_entities_from_kit(self.kit, self.layout)
+        self.entities_by_id = {entity.id: entity for entity in self.entities}
+        self.redraw_scene()
+
+    def toggle_bubble(self) -> None:
+        self.bubble_visible = not self.bubble_visible
+        self.redraw_scene()
+
+    def save_window_position(self) -> None:
+        if not self.project_id or not self.window_file:
+            return
+        save_project_window(
+            self.window_file,
+            self.project_id,
+            {"x": self.root.winfo_x(), "y": self.root.winfo_y(), "scale": self.scale},
+        )
 
     def enable_click_through(self) -> None:
         if sys.platform != "win32":
@@ -348,10 +465,11 @@ def main() -> None:
     parser.add_argument("--list-projects", action="store_true", help="List registered projects and exit")
     parser.add_argument("--state-file", default=None, help="Optional external project state JSON file")
     parser.add_argument("--layout-file", default=str(DEFAULT_LAYOUT_FILE), help="Optional project entity layout JSON file")
+    parser.add_argument("--window-file", default=str(DEFAULT_WINDOW_FILE), help="Optional project window placement JSON file")
     parser.add_argument("--state-refresh-ms", type=int, default=1000)
     parser.add_argument("--state", default=None)
     parser.add_argument("--fps", type=float, default=6.0)
-    parser.add_argument("--scale", type=float, default=1.0, help="Window display scale for the whole room")
+    parser.add_argument("--scale", type=float, default=None, help="Window display scale for the whole room")
     parser.add_argument("--x", type=int)
     parser.add_argument("--y", type=int)
     parser.add_argument("--no-topmost", action="store_true")
@@ -385,13 +503,19 @@ def main() -> None:
 
     state_file = Path(args.state_file).expanduser() if args.state_file else (DEFAULT_STATE_FILE if project_id and args.state is None else None)
     layout_file = Path(args.layout_file).expanduser() if project_id and args.layout_file else None
+    window_file = Path(args.window_file).expanduser() if project_id and args.window_file else None
+    saved_window = load_project_window(window_file, project_id) if window_file and project_id else None
+    scale = args.scale if args.scale is not None else float((saved_window or {}).get("scale", 1.0))
+    x = args.x if args.x is not None else (saved_window or {}).get("x")
+    y = args.y if args.y is not None else (saved_window or {}).get("y")
+    message: str | None = None
     if state_file is not None:
-        state = read_project_state(state_file, project_id, state)
+        state, message = read_project_state_payload(state_file, project_id, state)
 
     render_once = args.render_project_once or args.render_once
     if render_once:
         layout = load_project_layout(layout_file, project_id) if layout_file and project_id else None
-        frame = scaled_frame(render_frames(kit_path, state, layout)[0], args.scale)
+        frame = scaled_frame(render_frames(kit_path, state, layout)[0], scale)
         output = Path(render_once)
         output.parent.mkdir(parents=True, exist_ok=True)
         clear_transparent_rgb(frame).save(output)
@@ -402,15 +526,17 @@ def main() -> None:
         kit_path=kit_path,
         state=state,
         fps=args.fps,
-        scale=args.scale,
-        x=args.x,
-        y=args.y,
+        scale=scale,
+        x=x,
+        y=y,
         topmost=not args.no_topmost,
         click_through=args.click_through,
         project_id=project_id,
         state_file=state_file,
         layout_file=layout_file,
+        window_file=window_file,
         state_refresh_ms=args.state_refresh_ms,
+        message=message,
     )
     widget.run()
 

@@ -21,6 +21,7 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - Report outcomes as artifacts and next choices: created kit path, validation result, preview path, registered project id, layout file path, and any remaining missing asset.
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
+- Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, and project window position persistence. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
 
 ## First Choice
 
@@ -69,6 +70,7 @@ python project-room-kit/scripts/create_project_room_kit.py `
 - Pet atlases are `1536x1872`.
 - Every generated asset has a sidecar `.asset.json`.
 - Rooms include `left-door`, `right-door`, `floor-line`, and `back-wall` feature metadata.
+- Room intake clears edge-connected near-white margin pixels to transparency while preserving the `384x240` canvas; do not crop the room source.
 - Static layers must not contain transparent RGB residue.
 - Prop layers should declare placement relative to the pet: `background`, `behind-pet`, `front-of-pet`, or `foreground`. Default generated props are `behindPet` so the main pet renders in front of furniture.
 - Live runtime keeps room, prop, main pet, and helper pet as independent Canvas entities. Props and pets are draggable; room/background layers are locked by default.
@@ -90,6 +92,8 @@ Project linking lives in this registry. Created kit reports also include a `proj
 
 Project-specific entity position overrides live in `project-room-widget/project-room-layouts.json`. The host writes this file only for registered `--project-id` runs; direct `--kit` runs are session-only.
 
+Project-specific host window position and scale live in `project-room-widget/project-room-window.json`. The host writes this file only for registered `--project-id` runs; direct `--kit` runs do not persist window placement.
+
 Use `project-room-widget/project-room-state.json` as the first file-based bridge from external task state to widget state. Supported external states include `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`.
 
 Write the state bridge with:
@@ -99,7 +103,7 @@ python project-room-widget/set_project_state.py --project-id archive-nook --stat
 python project-room-widget/codex_state_adapter.py --event start --message "working"
 ```
 
-`done` maps to the hatch-pet `jumping` row, `handoff` maps to `review`, and `blocked` maps to `failed`. When `codex_state_adapter.py` omits `--project-id`, infer it from the current workspace and registry `workspacePaths`. Helper pets should appear only in collaboration/problem-solving scenes: `review`, `handoff`, and `blocked`; kits without helper assets must still render clearly with the main pet only.
+`done` maps to the hatch-pet `jumping` row, `handoff` maps to `review`, and `blocked` maps to `failed`. When `codex_state_adapter.py` omits `--project-id`, infer it from the current workspace and registry `workspacePaths`. State `message` text should appear as a runtime-only speech bubble near the main pet; it must not be baked into previews or kit assets. Helper pets should appear only in collaboration/problem-solving scenes: `review`, `handoff`, and `blocked`; kits without helper assets must still render clearly with the main pet only.
 
 ## Visual QA
 

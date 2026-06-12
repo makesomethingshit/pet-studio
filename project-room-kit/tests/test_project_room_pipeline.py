@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import subprocess
 import sys
 import tempfile
@@ -13,6 +14,7 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "project-room-kit" / "scripts" / "create_project_room_kit.py"
 VALIDATOR = ROOT / "project-room-kit" / "scripts" / "validate_project_room_kit.py"
+ASSET_HELPERS = ROOT / "project-room-kit" / "scripts" / "project_room_assets.py"
 
 
 STATE_FRAMES = {
@@ -61,6 +63,14 @@ def make_room(path: Path, *, size: tuple[int, int] = (384, 240)) -> None:
         draw.line((18, 182, 366, 182), fill=(36, 49, 58, 255), width=2)
         draw.rounded_rectangle((12, 84, 54, 184), radius=7, fill=(220, 230, 225, 255))
         draw.rounded_rectangle((330, 84, 372, 184), radius=7, fill=(220, 230, 225, 255))
+    img.save(path)
+
+
+def make_room_with_edge_margin(path: Path) -> None:
+    img = Image.new("RGBA", (384, 240), (248, 246, 245, 255))
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle((0, 22, 383, 216), radius=10, fill=(248, 252, 247, 255), outline=(36, 49, 58, 255), width=3)
+    draw.rectangle((24, 76, 92, 180), fill=(238, 242, 236, 255))
     img.save(path)
 
 
@@ -153,6 +163,54 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(validation.returncode, 0, validation.stderr + validation.stdout)
+
+    def test_room_margin_cleanup_makes_edge_connected_near_white_transparent(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room-with-margin.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room_with_edge_margin(room)
+
+            result = self.run_cli("--out-dir", str(out), "--pet-package", str(pet), "--room-image", str(room))
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            cleaned = Image.open(out / "kit" / "rooms" / "default-room.png").convert("RGBA")
+            self.assertEqual(cleaned.size, (384, 240))
+            self.assertEqual(cleaned.getpixel((10, 10))[3], 0)
+            self.assertEqual(cleaned.getpixel((192, 230))[3], 0)
+            self.assertEqual(cleaned.getpixel((192, 60))[3], 255)
+            self.assertEqual(cleaned.getpixel((30, 90))[3], 255)
+
+            validation = subprocess.run(
+                [
+                    sys.executable,
+                    str(VALIDATOR),
+                    "--kit",
+                    str(out / "kit" / "project-room.json"),
+                    "--json-out",
+                    str(out / "cleaned-validation.json"),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(validation.returncode, 0, validation.stderr + validation.stdout)
+
+    def test_room_margin_detector_warns_on_uncleaned_edge_connected_near_white(self) -> None:
+        spec = importlib.util.spec_from_file_location("project_room_assets", ASSET_HELPERS)
+        self.assertIsNotNone(spec)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            room = Path(tmp) / "room-with-margin.png"
+            make_room_with_edge_margin(room)
+
+            self.assertGreater(module.room_edge_margin_pixel_count(room), 0)
 
     def test_registers_created_kit_in_project_registry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

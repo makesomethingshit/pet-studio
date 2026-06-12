@@ -13,6 +13,12 @@ from pathlib import Path
 
 from PIL import Image
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from project_room_assets import cleanup_room_image
+
 
 CELL_WIDTH = 192
 CELL_HEIGHT = 208
@@ -479,7 +485,7 @@ def main() -> None:
         copy_pet_package(helper_package, kit_dir, helper_id, style, ["helper", helper_id])
         helper_ids.append(helper_id)
 
-    copy_image(room_image, kit_dir / "rooms" / "default-room.png")
+    cleanup_room_image(room_image, kit_dir / "rooms" / "default-room.png")
     write_asset_metadata(kit_dir / "rooms" / "default-room.png", style, "room", ["left-door", "right-door", "floor-line", "back-wall"], "generated-or-authored")
 
     prop_ids: list[str] = []
