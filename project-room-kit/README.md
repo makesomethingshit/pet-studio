@@ -106,6 +106,12 @@ The sidecar must match the kit `styleId` and perspective. The validator checks:
 
 Room image intake also removes edge-connected near-white margin pixels by making them transparent while preserving the required `384x240` canvas. Bright interior wall or furniture pixels are kept when they are not connected to the image edge.
 
+Room alpha cleanup supports three strengths:
+
+- `safe`: clears only edge-connected near-white margin pixels.
+- `balanced`: the default; clears near-white margins plus soft bright edge halo.
+- `aggressive`: clears stronger edge-connected pastel/low-alpha residue when generated rooms still leave a fringe.
+
 This does not replace visual QA. It catches structural mismatch, while contact-sheet review catches taste mismatch.
 
 Visual QA should reject an asset set when:
@@ -145,6 +151,7 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
   --out-dir D:\pet-studio\runs\my-project-room `
   --pet-package C:\Users\USER\.codex\pets\gakju `
   --room-image D:\pet-studio\runs\my-assets\room.png `
+  --room-alpha-mode balanced `
   --prop desk=D:\pet-studio\runs\my-assets\desk.png `
   --prop-placement desk=behind-pet `
   --theme "quiet archive nook" `
@@ -159,7 +166,7 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 
 This writes `kit/project-room.json`, `kit/style-lock.json`, copied layer assets, sidecar `.asset.json` files, `generation-brief.json`, prompt text files, `kit-validation.json`, and `production-report.json`. The fallback package is optional and is only for runtimes that still need a normal hatch-pet package.
 
-During room registration, edge-connected near-white borders are cleared to alpha so generated room images do not leave visible white top/bottom fringe in the transparent scene host. The source room size stays `384x240`.
+During room registration, edge-connected room borders are cleared to alpha so generated room images do not leave visible white or bright halo fringe in the transparent scene host. The source room size stays `384x240`.
 
 Prop placement is stored in the manifest as a semantic `placement` plus a computed `z` value:
 

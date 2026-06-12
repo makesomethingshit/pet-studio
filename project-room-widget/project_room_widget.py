@@ -46,7 +46,9 @@ from project_room_scene import (  # noqa: E402
     reset_project_layout,
     save_project_anchor,
     save_project_window,
+    save_project_z_order,
     scene_entities_from_kit,
+    resolve_bubble_style,
     visible_scene_entities,
 )
 
@@ -137,7 +139,8 @@ class ProjectRoomWidget:
         self.window_file = window_file if project_id else None
         self.message = message
         self.bubble_visible = True
-        self.layout = load_project_layout(layout_file, project_id) if layout_file and project_id else {"anchors": {}}
+        self.bubble_style = resolve_bubble_style(self.kit, self.kit_dir)
+        self.layout = load_project_layout(layout_file, project_id) if layout_file and project_id else {"anchors": {}, "zOrder": {}}
         self.entities = scene_entities_from_kit(self.kit, self.layout)
         self.entities_by_id = {entity.id: entity for entity in self.entities}
         self.warnings: list[str] = []
@@ -242,17 +245,18 @@ class ProjectRoomWidget:
         if not text or owner is None:
             return
         canvas_width = max(1, int(self.canvas.cget("width")))
+        canvas_height = max(1, int(self.canvas.cget("height")))
         x = int(round(owner.anchor["x"] * self.scale))
-        y = int(round((owner.anchor["y"] - 122) * self.scale))
+        y = int(round((owner.anchor["y"] - 124) * self.scale))
         margin = max(10, int(round(12 * self.scale)))
-        max_width = min(max(120, int(round(170 * self.scale))), max(80, canvas_width - margin * 2))
+        max_width = min(max(112, int(round(156 * self.scale))), max(80, canvas_width - margin * 2))
         font_size = max(9, int(round(10.5 * self.scale)))
         text_item = self.canvas.create_text(
             x,
             y,
             text=text,
             width=max_width,
-            fill="#2d241e",
+            fill=self.bubble_style["text"],
             font=("Segoe UI", font_size, "normal"),
             anchor=tk.S,
             tags=("bubble",),
@@ -266,59 +270,95 @@ class ProjectRoomWidget:
         if bbox and bbox[2] > canvas_width - margin:
             self.canvas.move(text_item, canvas_width - margin - bbox[2], 0)
             bbox = self.canvas.bbox(text_item)
+        if bbox and bbox[1] < margin:
+            self.canvas.move(text_item, 0, margin - bbox[1])
+            bbox = self.canvas.bbox(text_item)
         if bbox is None:
             return
-        pad_x = max(9, int(round(10 * self.scale)))
-        pad_y = max(6, int(round(7 * self.scale)))
-        radius = max(8, int(round(9 * self.scale)))
+        pad_x = max(10, int(round(11 * self.scale)))
+        pad_y = max(7, int(round(8 * self.scale)))
+        radius = max(10, int(round(11 * self.scale)))
         left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
+        if bottom + max(8, int(round(9 * self.scale))) > canvas_height - margin:
+            shift = canvas_height - margin - bottom - max(8, int(round(9 * self.scale)))
+            self.canvas.move(text_item, 0, shift)
+            bbox = self.canvas.bbox(text_item)
+            if bbox is None:
+                return
+            left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
         tail_anchor = max(left + radius + 6, min(x, right - radius - 6))
+        shadow_offset = max(1, int(round(2 * self.scale)))
+        tail_height = max(7, int(round(8 * self.scale)))
+        rect_points = [
+            left + radius,
+            top,
+            right - radius,
+            top,
+            right,
+            top,
+            right,
+            top + radius,
+            right,
+            bottom - radius,
+            right,
+            bottom,
+            right - radius,
+            bottom,
+            left + radius,
+            bottom,
+            left,
+            bottom,
+            left,
+            bottom - radius,
+            left,
+            top + radius,
+            left,
+            top,
+        ]
+        shadow_rect = self.canvas.create_polygon(
+            [coord + shadow_offset for coord in rect_points],
+            smooth=True,
+            splinesteps=12,
+            fill=self.bubble_style["shadow"],
+            outline="",
+            tags=("bubble",),
+        )
+        shadow_tail = self.canvas.create_polygon(
+            tail_anchor - 7 + shadow_offset,
+            bottom - 1 + shadow_offset,
+            tail_anchor + 6 + shadow_offset,
+            bottom - 1 + shadow_offset,
+            tail_anchor - 2 + shadow_offset,
+            bottom + tail_height + shadow_offset,
+            fill=self.bubble_style["shadow"],
+            outline="",
+            tags=("bubble",),
+        )
         tail = self.canvas.create_polygon(
             tail_anchor - 7,
             bottom - 1,
             tail_anchor + 6,
             bottom - 1,
             tail_anchor - 2,
-            bottom + max(7, int(round(8 * self.scale))),
-            fill="#fff8ea",
-            outline="#6f5845",
+            bottom + tail_height,
+            fill=self.bubble_style["fill"],
+            outline=self.bubble_style["outline"],
             tags=("bubble",),
         )
         rect = self.canvas.create_polygon(
-            left + radius,
-            top,
-            right - radius,
-            top,
-            right,
-            top,
-            right,
-            top + radius,
-            right,
-            bottom - radius,
-            right,
-            bottom,
-            right - radius,
-            bottom,
-            left + radius,
-            bottom,
-            left,
-            bottom,
-            left,
-            bottom - radius,
-            left,
-            top + radius,
-            left,
-            top,
+            rect_points,
             smooth=True,
             splinesteps=12,
-            fill="#fff8ea",
-            outline="#6f5845",
-            width=max(1, int(round(1.4 * self.scale))),
+            fill=self.bubble_style["fill"],
+            outline=self.bubble_style["outline"],
+            width=max(1, int(round(1.1 * self.scale))),
             tags=("bubble",),
         )
         self.canvas.tag_lower(rect, text_item)
         self.canvas.tag_lower(tail, rect)
-        self.bubble_items.extend([rect, tail, text_item])
+        self.canvas.tag_lower(shadow_rect, tail)
+        self.canvas.tag_lower(shadow_tail, shadow_rect)
+        self.bubble_items.extend([shadow_rect, shadow_tail, rect, tail, text_item])
 
     def update_pet_frames(self) -> None:
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
@@ -367,6 +407,27 @@ class ProjectRoomWidget:
             else:
                 next_entities.append(entity)
         self.entities = next_entities
+        self.entities_by_id = {entity.id: entity for entity in self.entities}
+
+    def replace_entity_z(self, entity_id: str, z: int) -> None:
+        next_entities: list[SceneEntity] = []
+        for entity in self.entities:
+            next_entities.append(
+                SceneEntity(
+                    id=entity.id,
+                    role=entity.role,
+                    path=entity.path,
+                    anchor_name=entity.anchor_name,
+                    anchor=entity.anchor,
+                    scale=entity.scale,
+                    z=int(z) if entity.id == entity_id else entity.z,
+                    placement=entity.placement,
+                    visible_when=entity.visible_when,
+                    draggable=entity.draggable,
+                    locked=entity.locked,
+                )
+            )
+        self.entities = sorted(next_entities, key=lambda entity: entity.z)
         self.entities_by_id = {entity.id: entity for entity in self.entities}
 
     def start_drag(self, event: tk.Event) -> None:
@@ -437,10 +498,17 @@ class ProjectRoomWidget:
         self.root.after(self.state_refresh_ms, self.refresh_external_state)
 
     def show_context_menu(self, event: tk.Event) -> None:
+        entity = self.pick_draggable_entity(event.x, event.y)
         menu = tk.Menu(self.root, tearoff=False)
         menu.add_command(label="Cycle state", command=lambda: self.cycle_state(event))
         if self.project_id and self.layout_file:
             menu.add_command(label="Reset layout", command=self.reset_layout)
+        if self.project_id and self.layout_file and entity is not None:
+            menu.add_separator()
+            menu.add_command(label="Bring forward", command=lambda entity_id=entity.id: self.adjust_entity_z(entity_id, 1))
+            menu.add_command(label="Send backward", command=lambda entity_id=entity.id: self.adjust_entity_z(entity_id, -1))
+            menu.add_command(label="Bring to front", command=lambda entity_id=entity.id: self.move_entity_z_to_edge(entity_id, "front"))
+            menu.add_command(label="Send to back", command=lambda entity_id=entity.id: self.move_entity_z_to_edge(entity_id, "back"))
         menu.add_separator()
         menu.add_command(label="Larger", command=lambda: self.adjust_scale(1.1))
         menu.add_command(label="Smaller", command=lambda: self.adjust_scale(1 / 1.1))
@@ -458,10 +526,37 @@ class ProjectRoomWidget:
         if not self.project_id or not self.layout_file:
             return
         reset_project_layout(self.layout_file, self.project_id)
-        self.layout = {"anchors": {}}
+        self.layout = {"anchors": {}, "zOrder": {}}
         self.entities = scene_entities_from_kit(self.kit, self.layout)
         self.entities_by_id = {entity.id: entity for entity in self.entities}
         self.redraw_scene()
+
+    def save_entity_z(self, entity_id: str, z: int) -> None:
+        self.layout.setdefault("zOrder", {})[entity_id] = int(z)
+        if self.project_id and self.layout_file:
+            save_project_z_order(self.layout_file, self.project_id, entity_id, z)
+
+    def set_entity_z(self, entity_id: str, z: int) -> None:
+        if entity_id not in self.entities_by_id:
+            return
+        self.replace_entity_z(entity_id, z)
+        self.save_entity_z(entity_id, z)
+        self.redraw_scene()
+
+    def adjust_entity_z(self, entity_id: str, delta: int) -> None:
+        entity = self.entities_by_id.get(entity_id)
+        if entity is None:
+            return
+        self.set_entity_z(entity_id, entity.z + delta)
+
+    def move_entity_z_to_edge(self, entity_id: str, edge: str) -> None:
+        if entity_id not in self.entities_by_id:
+            return
+        z_values = [entity.z for entity in self.entities]
+        if not z_values:
+            return
+        next_z = max(z_values) + 1 if edge == "front" else min(z_values) - 1
+        self.set_entity_z(entity_id, next_z)
 
     def toggle_bubble(self) -> None:
         self.bubble_visible = not self.bubble_visible

@@ -7,6 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from PIL import Image
+
 
 ROOT = Path(__file__).resolve().parents[2]
 WIDGET_DIR = ROOT / "project-room-widget"
@@ -67,17 +69,44 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
             self.assertEqual(layout["anchors"]["desk"], {"x": 260, "y": 210})
 
+    def test_project_layout_file_round_trips_entity_z_order(self) -> None:
+        from project_room_scene import load_project_layout, save_project_z_order
+
+        with tempfile.TemporaryDirectory() as tmp:
+            layout_file = Path(tmp) / "project-room-layouts.json"
+
+            save_project_z_order(layout_file, "gakju-demo", "desk", 27)
+            layout = load_project_layout(layout_file, "gakju-demo")
+
+            self.assertEqual(layout["zOrder"]["desk"], 27)
+
+    def test_project_layout_z_order_overrides_entity_sorting_without_changing_kit(self) -> None:
+        from project_room_scene import scene_entities_from_kit
+
+        kit = self.load_demo_kit()
+        original_desk_z = next(layer for layer in kit["layers"] if layer["id"] == "desk")["z"]
+        layout = {"anchors": {}, "zOrder": {"desk": 99}}
+
+        entities = scene_entities_from_kit(kit, layout)
+        desk = next(entity for entity in entities if entity.id == "desk")
+
+        self.assertEqual(desk.z, 99)
+        self.assertEqual(entities[-1].id, "desk")
+        self.assertEqual(next(layer for layer in kit["layers"] if layer["id"] == "desk")["z"], original_desk_z)
+
     def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
-        from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor
+        from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor, save_project_z_order
 
         with tempfile.TemporaryDirectory() as tmp:
             layout_file = Path(tmp) / "project-room-layouts.json"
             save_project_anchor(layout_file, "gakju-demo", "desk", {"x": 260, "y": 210})
+            save_project_z_order(layout_file, "gakju-demo", "desk", 27)
 
             reset_project_layout(layout_file, "gakju-demo")
             layout = load_project_layout(layout_file, "gakju-demo")
 
             self.assertEqual(layout["anchors"], {})
+            self.assertEqual(layout["zOrder"], {})
 
     def test_project_window_file_round_trips_position_and_scale(self) -> None:
         from project_room_scene import load_project_window, save_project_window
@@ -112,13 +141,104 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertNotIn("\n", text)
         self.assertNotIn("  ", text)
 
+    def test_bubble_visual_style_uses_soft_room_palette(self) -> None:
+        from project_room_scene import BUBBLE_STYLE
+
+        self.assertEqual(BUBBLE_STYLE["fill"], "#fffaf1")
+        self.assertEqual(BUBBLE_STYLE["outline"], "#7a6554")
+        self.assertEqual(BUBBLE_STYLE["shadow"], "#d8c0a1")
+        self.assertEqual(BUBBLE_STYLE["text"], "#2d241e")
+
+    def test_bubble_style_prefers_kit_manifest_over_pet_sidecar_and_image(self) -> None:
+        from project_room_scene import resolve_bubble_style
+
+        with tempfile.TemporaryDirectory() as tmp:
+            kit_dir = Path(tmp)
+            pet_dir = kit_dir / "pets" / "main-owner"
+            pet_dir.mkdir(parents=True)
+            Image.new("RGBA", (8, 8), (20, 160, 120, 255)).save(pet_dir / "spritesheet.webp")
+            write_json(pet_dir / "spritesheet.asset.json", {"bubbleStyle": {"fill": "#eeeeee", "outline": "#111111"}})
+            kit = {
+                "bubbleStyle": {"fill": "#fdf4d8", "outline": "#35524a", "shadow": "#c8a66a", "text": "#1b211f"},
+                "layers": [{"id": "main-owner", "role": "mainPet", "path": "pets/main-owner/spritesheet.webp"}],
+            }
+
+            style = resolve_bubble_style(kit, kit_dir)
+
+            self.assertEqual(style["fill"], "#fdf4d8")
+            self.assertEqual(style["outline"], "#35524a")
+            self.assertEqual(style["shadow"], "#c8a66a")
+            self.assertEqual(style["text"], "#1b211f")
+
+    def test_bubble_style_reads_main_pet_sidecar_when_manifest_has_no_style(self) -> None:
+        from project_room_scene import resolve_bubble_style
+
+        with tempfile.TemporaryDirectory() as tmp:
+            kit_dir = Path(tmp)
+            pet_dir = kit_dir / "pets" / "main-owner"
+            pet_dir.mkdir(parents=True)
+            Image.new("RGBA", (8, 8), (20, 160, 120, 255)).save(pet_dir / "spritesheet.webp")
+            write_json(
+                pet_dir / "spritesheet.asset.json",
+                {"bubbleStyle": {"fill": "#e8fbf5", "outline": "#247667", "shadow": "#a5d4c9", "text": "#1d2d2a"}},
+            )
+            kit = {"layers": [{"id": "main-owner", "role": "mainPet", "path": "pets/main-owner/spritesheet.webp"}]}
+
+            style = resolve_bubble_style(kit, kit_dir)
+
+            self.assertEqual(style["fill"], "#e8fbf5")
+            self.assertEqual(style["outline"], "#247667")
+            self.assertEqual(style["shadow"], "#a5d4c9")
+            self.assertEqual(style["text"], "#1d2d2a")
+
+    def test_bubble_style_can_be_inferred_from_main_pet_pixels(self) -> None:
+        from project_room_scene import BUBBLE_STYLE, resolve_bubble_style
+
+        with tempfile.TemporaryDirectory() as tmp:
+            kit_dir = Path(tmp)
+            pet_dir = kit_dir / "pets" / "main-owner"
+            pet_dir.mkdir(parents=True)
+            Image.new("RGBA", (16, 16), (80, 130, 170, 255)).save(pet_dir / "spritesheet.webp")
+            kit = {"layers": [{"id": "main-owner", "role": "mainPet", "path": "pets/main-owner/spritesheet.webp"}]}
+
+            style = resolve_bubble_style(kit, kit_dir)
+
+            self.assertNotEqual(style["fill"], BUBBLE_STYLE["fill"])
+            self.assertTrue(style["fill"].startswith("#"))
+            self.assertTrue(style["outline"].startswith("#"))
+            self.assertTrue(style["shadow"].startswith("#"))
+            self.assertEqual(style["text"], BUBBLE_STYLE["text"])
+
     def test_context_menu_labels_keep_close_as_explicit_action(self) -> None:
         from project_room_scene import context_menu_labels
 
-        labels = context_menu_labels(project_id="gakju-demo")
+        labels = context_menu_labels(project_id="gakju-demo", entity_selected=True)
 
-        self.assertEqual(labels, ("Cycle state", "Reset layout", "Larger", "Smaller", "Reset size", "Hide bubble", "Close"))
+        self.assertEqual(
+            labels,
+            (
+                "Cycle state",
+                "Reset layout",
+                "Bring forward",
+                "Send backward",
+                "Bring to front",
+                "Send to back",
+                "Larger",
+                "Smaller",
+                "Reset size",
+                "Hide bubble",
+                "Close",
+            ),
+        )
         self.assertNotEqual(labels[0], "Close")
+
+    def test_sample_launchers_start_widget_without_console_python(self) -> None:
+        for launcher in WIDGET_DIR.glob("run-*.bat"):
+            with self.subTest(launcher=launcher.name):
+                text = launcher.read_text(encoding="utf-8").lower()
+                self.assertIn("pythonw.exe", text)
+                self.assertIn("start \"project room widget\"", text)
+                self.assertNotIn("\\python.exe", text)
 
 
 class ProjectRoomRegistryTests(unittest.TestCase):

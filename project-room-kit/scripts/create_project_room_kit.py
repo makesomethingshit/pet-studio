@@ -436,6 +436,7 @@ def main() -> None:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--pet-package", required=True)
     parser.add_argument("--room-image", required=True)
+    parser.add_argument("--room-alpha-mode", choices=("safe", "balanced", "aggressive"), default="balanced")
     parser.add_argument("--prop", action="append", default=[], help="Prop asset in id=path format; may be repeated")
     parser.add_argument(
         "--prop-placement",
@@ -489,8 +490,14 @@ def main() -> None:
         copy_pet_package(helper_package, kit_dir, helper_id, style, ["helper", helper_id])
         helper_ids.append(helper_id)
 
-    cleanup_room_image(room_image, kit_dir / "rooms" / "default-room.png")
-    write_asset_metadata(kit_dir / "rooms" / "default-room.png", style, "room", ["left-door", "right-door", "floor-line", "back-wall"], "generated-or-authored")
+    cleanup_room_image(room_image, kit_dir / "rooms" / "default-room.png", args.room_alpha_mode)
+    write_asset_metadata(
+        kit_dir / "rooms" / "default-room.png",
+        style,
+        "room",
+        ["left-door", "right-door", "floor-line", "back-wall", f"alpha-{args.room_alpha_mode}"],
+        "generated-or-authored",
+    )
 
     prop_ids: list[str] = []
     for prop_id, source in prop_inputs:
@@ -593,6 +600,7 @@ def main() -> None:
         "promptsDir": str(out_dir / "prompts"),
         "registeredProject": registered_project,
         "projectLink": project_link,
+        "roomAlphaMode": args.room_alpha_mode,
         "validation": validation,
         "steps": steps,
     }

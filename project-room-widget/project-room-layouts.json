@@ -1,4 +1,21 @@
 {
   "schemaVersion": 1,
-  "projects": {}
+  "projects": {
+    "fresh-custom-pet-room": {
+      "anchors": {
+        "main-owner": {
+          "x": 152,
+          "y": 220
+        },
+        "book-stack": {
+          "x": 72,
+          "y": 220
+        },
+        "desk": {
+          "x": 277,
+          "y": 229
+        }
+      }
+    }
+  }
 }

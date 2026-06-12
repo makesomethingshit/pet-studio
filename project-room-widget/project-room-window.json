@@ -1,4 +1,10 @@
 {
   "schemaVersion": 1,
-  "projects": {}
+  "projects": {
+    "fresh-custom-pet-room": {
+      "x": -491,
+      "y": 1468,
+      "scale": 1.25
+    }
+  }
 }

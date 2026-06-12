@@ -28,11 +28,11 @@ Controls:
 - Drag locked room/background or empty space to move the host window.
 - Double-click to cycle animation state.
 - Right-click to open the context menu.
-- Use the context menu to cycle state, reset a registered project layout, resize the widget, toggle the speech bubble, or close.
+- Use the context menu to cycle state, reset a registered project layout, adjust a selected entity's layer order, resize the widget, toggle the speech bubble, or close.
 - Press `Ctrl` + `+` / `Ctrl` + `-` to resize the widget, or `Ctrl` + `0` to reset size.
 - Escape closes the host.
 
-Registered projects persist moved entity anchors in `project-room-layouts.json` and host window position/scale in `project-room-window.json`. Direct `--kit` runs allow session-only movement and do not write project layout or window overrides.
+Registered projects persist moved entity anchors and layer-order overrides in `project-room-layouts.json`, and host window position/scale in `project-room-window.json`. Direct `--kit` runs allow session-only movement and do not write project layout or window overrides.
 
 ## State Bridge
 
@@ -50,6 +50,8 @@ Use `project-room-state.json` as the first file-based bridge from external proje
 Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
 
 If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Messages are whitespace-normalized and capped at 80 characters so long hook output cannot crowd the room. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`; idle can stay quiet. Speech bubbles are not included in `--render-once`, fallback baking, or kit assets.
+
+Bubble styling follows the selected room kit. The runtime resolves style in this order: `project-room.json` `bubbleStyle`, main pet `spritesheet.asset.json` `bubbleStyle`, automatic color extraction from the main pet spritesheet, then the default compact style.
 
 Write the bridge file with:
 

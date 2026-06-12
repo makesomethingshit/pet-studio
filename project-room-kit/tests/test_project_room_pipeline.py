@@ -74,6 +74,24 @@ def make_room_with_edge_margin(path: Path) -> None:
     img.save(path)
 
 
+def make_room_with_soft_edge_halo(path: Path) -> None:
+    img = Image.new("RGBA", (384, 240), (232, 236, 230, 255))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((20, 20, 363, 219), outline=(36, 49, 58, 255), width=3)
+    draw.rectangle((24, 24, 359, 215), fill=(232, 236, 230, 255))
+    draw.line((24, 182, 359, 182), fill=(36, 49, 58, 255), width=2)
+    img.save(path)
+
+
+def make_room_with_pastel_edge_halo(path: Path) -> None:
+    img = Image.new("RGBA", (384, 240), (224, 232, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.rectangle((20, 20, 363, 219), outline=(36, 49, 58, 255), width=3)
+    draw.rectangle((24, 24, 359, 215), fill=(224, 232, 255, 255))
+    draw.line((24, 182, 359, 182), fill=(36, 49, 58, 255), width=2)
+    img.save(path)
+
+
 def make_prop(path: Path) -> None:
     img = Image.new("RGBA", (96, 54), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -211,6 +229,74 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             make_room_with_edge_margin(room)
 
             self.assertGreater(module.room_edge_margin_pixel_count(room), 0)
+
+    def test_room_alpha_modes_have_distinct_cleanup_strengths(self) -> None:
+        spec = importlib.util.spec_from_file_location("project_room_assets", ASSET_HELPERS)
+        self.assertIsNotNone(spec)
+        module = importlib.util.module_from_spec(spec)
+        assert spec and spec.loader
+        spec.loader.exec_module(module)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            soft = work / "soft-halo.png"
+            pastel = work / "pastel-halo.png"
+            make_room_with_soft_edge_halo(soft)
+            make_room_with_pastel_edge_halo(pastel)
+
+            with Image.open(soft) as image:
+                safe = module.remove_room_edge_margin(image, mode="safe")
+                balanced = module.remove_room_edge_margin(image, mode="balanced")
+            self.assertEqual(safe.getpixel((5, 5))[3], 255)
+            self.assertEqual(balanced.getpixel((5, 5))[3], 0)
+            self.assertEqual(balanced.getpixel((192, 120))[3], 255)
+
+            with Image.open(pastel) as image:
+                balanced_pastel = module.remove_room_edge_margin(image, mode="balanced")
+                aggressive = module.remove_room_edge_margin(image, mode="aggressive")
+            self.assertEqual(balanced_pastel.getpixel((5, 5))[3], 255)
+            self.assertEqual(aggressive.getpixel((5, 5))[3], 0)
+            self.assertEqual(aggressive.getpixel((192, 120))[3], 255)
+
+    def test_create_kit_uses_balanced_room_alpha_cleanup_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "soft-halo.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room_with_soft_edge_halo(room)
+
+            result = self.run_cli("--out-dir", str(out), "--pet-package", str(pet), "--room-image", str(room))
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            cleaned = Image.open(out / "kit" / "rooms" / "default-room.png").convert("RGBA")
+            self.assertEqual(cleaned.getpixel((5, 5))[3], 0)
+            self.assertEqual(cleaned.getpixel((192, 120))[3], 255)
+
+    def test_create_kit_can_use_safe_room_alpha_cleanup(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "soft-halo.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room_with_soft_edge_halo(room)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--room-alpha-mode",
+                "safe",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            cleaned = Image.open(out / "kit" / "rooms" / "default-room.png").convert("RGBA")
+            self.assertEqual(cleaned.getpixel((5, 5))[3], 255)
 
     def test_registers_created_kit_in_project_registry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -392,7 +478,11 @@ class ProjectRoomPipelineTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             with Image.open(out / "room-contact.png") as image:
-                self.assertEqual(image.size[0], 3 * 384 + 2 * 10 + 36)
+                self.assertEqual(image.size[0], 3 * (384 + 92) + 2 * 10)
+                first_label_gutter = image.crop((0, 0, 92, 28))
+                first_frame_area = image.crop((92, 28, 92 + 384, 28 + 240))
+                self.assertIsNotNone(first_label_gutter.getbbox())
+                self.assertIsNotNone(first_frame_area.getbbox())
 
     def test_rejects_unknown_prop_placement_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -6,10 +6,22 @@
       "displayName": "Gakju Archive Demo",
       "kitPath": "../runs/gakju-imagegen-room-v1/kit",
       "petPackagePath": "../runs/gakju-imagegen-room-v1/kit/pets/main-owner",
-      "workspacePaths": [".."],
+      "workspacePaths": [],
       "defaultState": "idle",
       "theme": "quiet archive nook",
       "enabled": true
+    },
+    {
+      "projectId": "fresh-custom-pet-room",
+      "displayName": "Fresh Custom Pet Room",
+      "kitPath": "..\\runs\\fresh-custom-pet-room\\kit",
+      "petPackagePath": "C:\\Users\\USER\\.codex\\pets\\gakju",
+      "defaultState": "idle",
+      "theme": "fresh custom pet workspace room",
+      "enabled": true,
+      "workspacePaths": [
+        "D:\\pet-studio"
+      ]
     }
   ]
 }
