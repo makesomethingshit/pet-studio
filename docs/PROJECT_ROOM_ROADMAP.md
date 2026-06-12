@@ -2,16 +2,17 @@
 
 ## Vision
 
-Project Room turns each project or chat room into a small pet room. Each project owns a pet, a room kit, and a current state, so the desktop widget can show where work is happening and how it is going without becoming a full dashboard or game.
+Project Room turns each project or chat room into a small pet room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a full dashboard or game.
 
-The long-term experience should feel like a living Codex pet: a compact side-view room near the edge of the desktop, one main owner pet as the emotional focus, optional helper pets for review or handoff moments, and project-specific room details that make each workspace recognizable.
+The long-term experience should feel like a living Codex pet scene: a compact side-view room near the edge of the desktop, one main owner pet as the emotional focus, optional helper pets for review or handoff moments, draggable props, and project-specific layout details that make each workspace recognizable.
 
 ## Current State
 
 - `project-room-kit` can create, validate, preview, and optionally bake layered `384x240` room kits.
 - `create_project_room_kit.py` accepts an arbitrary hatch-pet package plus generated or authored room/prop assets.
-- `project-room-widget` can render a layered kit in a frameless desktop window.
+- `project-room-widget` can render a layered kit as independent Canvas entities in a frameless desktop scene host.
 - `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge and infer project ids from registered workspace paths.
+- `project-room-layouts.json` stores project-specific moved entity anchors without changing kit files.
 - The current best demo is `runs/gakju-imagegen-room-v1`, a Gakju SD/chibi archive room.
 
 ## Milestones

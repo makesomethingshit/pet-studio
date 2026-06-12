@@ -128,6 +128,10 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             layers = {layer["id"]: layer for layer in manifest["layers"]}
             self.assertEqual(layers["desk"]["placement"], "behindPet")
             self.assertLess(layers["desk"]["z"], layers["main-owner"]["z"])
+            self.assertTrue(layers["desk"]["draggable"])
+            self.assertFalse(layers["desk"]["locked"])
+            self.assertFalse(layers["room"]["draggable"])
+            self.assertTrue(layers["room"]["locked"])
             self.assertTrue((out / "generation-brief.json").exists())
             self.assertIn("SD/chibi dollhouse room", (out / "prompts" / "room-prompt.txt").read_text(encoding="utf-8"))
             self.assertTrue((out / "room-preview.png").exists())

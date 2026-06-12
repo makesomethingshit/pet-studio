@@ -4,7 +4,7 @@ Last updated: 2026-06-12
 
 ## One-Line Summary
 
-We built a modular Project Room system for Codex pets: `project-room-kit` creates and validates layered 384x240 room kits, and `project-room-widget` displays those kits as a frameless desktop widget. The current best demo is Gakju in an SD/chibi archive room generated with GPT image generation.
+We built a modular Project Room system for Codex pets: `project-room-kit` creates and validates layered 384x240 room kits, and `project-room-widget` displays those kits as a frameless scene host with independent room, prop, and pet entities. The current best demo is Gakju in an SD/chibi archive room generated with GPT image generation.
 
 ## Current Workspace
 
@@ -45,6 +45,7 @@ Current format decisions:
 - Main pet remains a hatch-pet spritesheet layer.
 - Props are separate PNG layers with alpha.
 - Prop layers now declare semantic placement relative to the pet: `background`, `behindPet`, `frontOfPet`, or `foreground`. Renderers still execute by `z`, but the authoring intent is visible in `project-room.json`.
+- Live scene-host layers can declare `draggable` and `locked`. Room/background layers are locked by default; props and pets are draggable by default.
 - Every asset should have a sidecar `.asset.json`.
 
 ### 2. Installed Codex Skill
@@ -83,10 +84,12 @@ D:\pet-studio\project-room-widget
 Files:
 
 - `project_room_widget.py`
+- `project_room_scene.py`
 - `codex_state_adapter.py`
 - `set_project_state.py`
 - `README.md`
 - `project-room-projects.json`
+- `project-room-layouts.json`
 - `project-room-state.json`
 - `run-gakju-archive-room.bat`
 - `run-gakju-imagegen-room-v1.bat`
@@ -99,13 +102,14 @@ Purpose:
 - Write that state file manually or through a Codex-style task event adapter.
 - Infer the active project from registry `workspacePaths` when adapter calls omit `--project-id`.
 - Keep project assignment in `project-room-projects.json`; production reports also include a `projectLink` block for quick inspection.
-- Render the layered room at full size.
-- Show it in a frameless transparent-ish desktop widget window.
+- Render room, prop, main pet, and helper pet as independent Canvas entities in one transparent scene-host window.
+- Persist project-specific dragged entity anchors in `project-room-layouts.json`.
 - Animate pet states by cycling frames.
 
 Controls:
 
-- Drag with left mouse button.
+- Drag a prop or pet with left mouse button.
+- Drag locked room/background or empty space to move the host window.
 - Double-click to cycle animation state.
 - Right-click or Escape to close.
 
@@ -245,6 +249,6 @@ We are continuing Pet Studio work from D:\pet-studio. Please read D:\pet-studio\
 
 Current goal: continue the Project Room system for Codex pets. The best current demo is D:\pet-studio\runs\gakju-imagegen-room-v1, displayed by D:\pet-studio\project-room-widget\project_room_widget.py.
 
-Important: the real output is a 384x240 layered room widget, not a 192x208 hatch-pet spritesheet. Keep room, props, and pet layers separate. Use Gakju as the style source.
+Important: the real output is a 384x240 scene-host kit, not a 192x208 hatch-pet spritesheet and not one precomposited widget image. Keep room, props, and pet entities separate. Use Gakju as the style source.
 Roadmap: D:\pet-studio\docs\PROJECT_ROOM_ROADMAP.md
 ```

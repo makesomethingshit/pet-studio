@@ -1,6 +1,8 @@
 # Project Room Widget
 
-Frameless desktop-widget runtime for Project Room Kit packages.
+Frameless desktop scene-host runtime for Project Room Kit packages.
+
+The runtime keeps room, props, main pet, and helper pets as separate Canvas entities inside one transparent host window. It is not a single precomposited widget image.
 
 ## Run Gakju Archive Room
 
@@ -22,9 +24,12 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 
 Controls:
 
-- Drag with left mouse button.
+- Drag a prop or pet with the left mouse button.
+- Drag locked room/background or empty space to move the host window.
 - Double-click to cycle animation state.
 - Right-click or Escape to close.
+
+Registered projects persist moved entity anchors in `project-room-layouts.json`. Direct `--kit` runs allow session-only movement and do not write project layout overrides.
 
 ## State Bridge
 
@@ -71,4 +76,10 @@ Render a registered project once:
 
 ```powershell
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --render-project-once D:\pet-studio\runs\widget-render-test.png
+```
+
+Use a custom layout file:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --layout-file D:\pet-studio\project-room-widget\project-room-layouts.json
 ```

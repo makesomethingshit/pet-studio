@@ -1,13 +1,13 @@
 ---
 name: project-room-kit
-description: Create modular room-decorating Codex pet kits that match a selected hatch-pet style, preserve a large layered room source, generate or register props and helper pets, validate style consistency, render full-size previews, register project-specific pet rooms, and run a frameless project-room widget. Use when working on project-room pets, room-decorating pet widgets, project-to-pet assignments, style-matched props, helper pets, or hatch-pet composition workflows.
+description: Create modular room-decorating Codex pet kits that match a selected hatch-pet style, preserve a large layered room source, generate or register props and helper pets, validate style consistency, render full-size previews, register project-specific pet rooms, and run a frameless project-room scene host. Use when working on project-room pets, room-decorating pet widgets, project-to-pet assignments, style-matched props, helper pets, or hatch-pet composition workflows.
 ---
 
 # Project Room Kit
 
 ## Overview
 
-Use this skill to create and run modular project-room pets. The real source is a layered `384x240` room kit with separate room, prop, main pet, and optional helper pet layers. A standard hatch-pet package is only a compatibility preview or fallback.
+Use this skill to create and run modular project-room pets. The real source is a layered `384x240` room kit with separate room, prop, main pet, and optional helper pet entities. A standard hatch-pet package is only a compatibility preview or fallback.
 
 Keep assets style-locked. Do not mix downloaded asset packs or generated images unless their sidecar metadata and visual QA match the selected style source.
 
@@ -18,7 +18,7 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - Inspect the workspace first and infer project id from `project-room-widget/project-room-projects.json` when possible.
 - Ask only for missing creative inputs: style source, room image, prop images, theme, display name, or whether fallback baking is wanted.
 - Run creation, validation, preview, registry, and state-bridge scripts yourself when the local workspace allows it.
-- Report outcomes as artifacts and next choices: created kit path, validation result, preview path, registered project id, and any remaining missing asset.
+- Report outcomes as artifacts and next choices: created kit path, validation result, preview path, registered project id, layout file path, and any remaining missing asset.
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
 
@@ -40,7 +40,7 @@ The selected source controls perspective, palette, outline weight, room size, pe
 4. Run `scripts/validate_project_room_kit.py` before trusting the kit.
 5. Render visual QA with `scripts/render_project_room_preview.py --state idle` and `--state all`.
 6. Register the kit into a project registry when it should be selectable by project id.
-7. Use `project-room-widget/project_room_widget.py` from the repository runtime, or copy the generated kit into another widget host.
+7. Use `project-room-widget/project_room_widget.py` from the repository scene-host runtime, or copy the generated kit into another host.
 
 ## Manual/Debug Command
 
@@ -71,6 +71,7 @@ python project-room-kit/scripts/create_project_room_kit.py `
 - Rooms include `left-door`, `right-door`, `floor-line`, and `back-wall` feature metadata.
 - Static layers must not contain transparent RGB residue.
 - Prop layers should declare placement relative to the pet: `background`, `behind-pet`, `front-of-pet`, or `foreground`. Default generated props are `behindPet` so the main pet renders in front of furniture.
+- Live runtime keeps room, prop, main pet, and helper pet as independent Canvas entities. Props and pets are draggable; room/background layers are locked by default.
 
 ## Project Registry
 
@@ -86,6 +87,8 @@ Use `project-room-widget/project-room-projects.json` to map project ids to room 
 - `enabled`
 
 Project linking lives in this registry. Created kit reports also include a `projectLink` block so the assigned project id, registry path, kit path, and workspace paths can be inspected without opening the registry by hand.
+
+Project-specific entity position overrides live in `project-room-widget/project-room-layouts.json`. The host writes this file only for registered `--project-id` runs; direct `--kit` runs are session-only.
 
 Use `project-room-widget/project-room-state.json` as the first file-based bridge from external task state to widget state. Supported external states include `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`.
 

@@ -13,6 +13,7 @@ WIDGET_DIR = ROOT / "project-room-widget"
 WIDGET_SCRIPT = WIDGET_DIR / "project_room_widget.py"
 STATE_SCRIPT = WIDGET_DIR / "set_project_state.py"
 ADAPTER_SCRIPT = WIDGET_DIR / "codex_state_adapter.py"
+DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
 
@@ -20,6 +21,50 @@ if str(WIDGET_DIR) not in sys.path:
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+class ProjectRoomSceneTests(unittest.TestCase):
+    def load_demo_kit(self) -> dict:
+        return json.loads(DEMO_KIT.read_text(encoding="utf-8"))
+
+    def test_scene_entities_preserve_independent_layer_controls(self) -> None:
+        from project_room_scene import scene_entities_from_kit
+
+        kit = self.load_demo_kit()
+        entities = scene_entities_from_kit(kit)
+        by_id = {entity.id: entity for entity in entities}
+
+        self.assertEqual([entity.id for entity in entities], ["room", "desk", "helper-reviewer", "main-owner", "book-stack"])
+        self.assertTrue(by_id["room"].locked)
+        self.assertFalse(by_id["room"].draggable)
+        self.assertTrue(by_id["desk"].draggable)
+        self.assertFalse(by_id["desk"].locked)
+        self.assertEqual(by_id["desk"].placement, "behindPet")
+        self.assertEqual(by_id["book-stack"].placement, "foreground")
+
+    def test_project_layout_overrides_entity_anchor_without_changing_kit(self) -> None:
+        from project_room_scene import scene_entities_from_kit
+
+        kit = self.load_demo_kit()
+        original_anchor = dict(kit["anchors"]["desk"])
+        layout = {"anchors": {"desk": {"x": 260, "y": 210}}}
+
+        entities = scene_entities_from_kit(kit, layout)
+        desk = next(entity for entity in entities if entity.id == "desk")
+
+        self.assertEqual(desk.anchor, {"x": 260, "y": 210})
+        self.assertEqual(kit["anchors"]["desk"], original_anchor)
+
+    def test_project_layout_file_round_trips_entity_anchor(self) -> None:
+        from project_room_scene import load_project_layout, save_project_anchor
+
+        with tempfile.TemporaryDirectory() as tmp:
+            layout_file = Path(tmp) / "project-room-layouts.json"
+
+            save_project_anchor(layout_file, "gakju-demo", "desk", {"x": 260, "y": 210})
+            layout = load_project_layout(layout_file, "gakju-demo")
+
+            self.assertEqual(layout["anchors"]["desk"], {"x": 260, "y": 210})
 
 
 class ProjectRoomRegistryTests(unittest.TestCase):
@@ -121,6 +166,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(config),
                     "--project-id",
                     "gakju-demo",
+                    "--layout-file",
+                    str(work / "project-room-layouts.json"),
                     "--render-project-once",
                     str(output),
                 ],

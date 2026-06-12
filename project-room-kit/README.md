@@ -1,6 +1,6 @@
 # Project Room Kit
 
-Project Room Kit is a modular pet-room asset format for a windowless Codex pet widget.
+Project Room Kit is a modular pet-room asset format for a windowless Codex scene-host runtime.
 
 The idea is closer to room decorating than to a standalone app:
 
@@ -17,8 +17,8 @@ The current hatch-pet package is a single `pet.json` plus `spritesheet.webp`. Th
 
 Project Room Kit keeps the authoring model modular, then supports two output modes:
 
-1. **Layered output** for a future runtime that can render room and prop layers.
-2. **Baked output** for the current pet runtime, where the room, props, and pet frames are composed into one normal hatch-pet spritesheet.
+1. **Scene-host output** where the live runtime renders room, prop, main pet, and helper pet as independent entities.
+2. **Baked output** for compatibility, where the room, props, and pet frames are composed into one normal hatch-pet spritesheet.
 
 ## Folder Shape
 
@@ -49,7 +49,7 @@ project-room-kit/
 
 ## Compatibility Rule
 
-The kit should never require a separate visible app window. If the runtime cannot render layers, the kit is baked into a standard hatch-pet atlas.
+The kit should not require a dashboard or editor window. The live runtime uses one transparent host window with independent Canvas entities. If a host cannot render entities, the kit is baked into a standard hatch-pet atlas as a fallback.
 
 ## Room Module Contract
 
@@ -163,6 +163,8 @@ Prop placement is stored in the manifest as a semantic `placement` plus a comput
 - `behind-pet`: furniture or props the pet should stand in front of
 - `front-of-pet`: props allowed to overlap the pet
 - `foreground`: near-camera accents above the pet layer
+
+Live scene-host runs also use `draggable` and `locked` layer flags. Room/background layers are locked by default; props and pets are draggable by default. Project-specific moved anchors are saved outside the kit in the widget layout file, so the kit remains a reusable asset package.
 
 When `--register-project` is used, the new kit is also added to a project assignment registry so the widget can launch it with `--project-id`. The `production-report.json` also records a `projectLink` block with the project id, registry path, kit path, and workspace paths.
 

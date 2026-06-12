@@ -232,7 +232,16 @@ def write_asset_metadata(path: Path, style: dict, role: str, features: list[str]
 def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str], prop_placements: dict[str, str] | None = None) -> dict:
     prop_placements = prop_placements or {}
     layers = [
-        {"id": "room", "role": "room", "path": "rooms/default-room.png", "z": 0, "anchor": "room", "scale": 1.0},
+        {
+            "id": "room",
+            "role": "room",
+            "path": "rooms/default-room.png",
+            "z": 0,
+            "anchor": "room",
+            "scale": 1.0,
+            "draggable": False,
+            "locked": True,
+        },
     ]
     anchors = {
         "cell-bottom-center": {"x": 96, "y": 190},
@@ -256,6 +265,8 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
                 "z": PROP_PLACEMENT_Z_BASE[placement] + index,
                 "anchor": anchor_name,
                 "scale": 1.0,
+                "draggable": True,
+                "locked": False,
             }
         )
 
@@ -271,11 +282,22 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
                 "anchor": anchor_name,
                 "scale": 0.56,
                 "visibleWhen": ["review", "failed"],
+                "draggable": True,
+                "locked": False,
             }
         )
 
     layers.append(
-        {"id": "main-owner", "role": "mainPet", "path": "pets/main-owner/spritesheet.webp", "z": 20, "anchor": "owner", "scale": 0.68}
+        {
+            "id": "main-owner",
+            "role": "mainPet",
+            "path": "pets/main-owner/spritesheet.webp",
+            "z": 20,
+            "anchor": "owner",
+            "scale": 0.68,
+            "draggable": True,
+            "locked": False,
+        }
     )
     base_visible = ["room", *prop_ids, "main-owner"]
     helper_visible = ["room", *prop_ids, *helper_ids, "main-owner"]

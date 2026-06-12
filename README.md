@@ -1,11 +1,11 @@
 # Codex Pet Room Skill
 
-Project Room Kit turns a Codex hatch-pet into a modular project room: a `384x240` side-view room, separate props, one main pet, optional helper pets, project assignments, and a frameless desktop widget runtime.
+Project Room Kit turns a Codex hatch-pet into a modular project room: a `384x240` side-view scene host with separate room, prop, main pet, and optional helper pet entities, project assignments, and a frameless desktop runtime.
 
 The repo includes:
 
 - `project-room-kit/`: installable Codex skill plus kit creation/validation/rendering scripts
-- `project-room-widget/`: local desktop widget runtime and project assignment registry
+- `project-room-widget/`: local desktop scene-host runtime and project assignment registry
 - `runs/`: preserved demo outputs and validation artifacts
 - `docs/PROJECT_ROOM_ROADMAP.md`: milestone roadmap for project-specific pets and state integration
 
@@ -78,7 +78,9 @@ Prop placement is explicit. Use `behind-pet` for furniture the pet should stand 
 
 ## Run The Widget
 
-Codex can launch, render, or update the widget state for the user. These examples show the underlying commands.
+Codex can launch the scene host, render compatibility previews, or update project state for the user. These examples show the underlying commands.
+
+The live runtime uses separate Canvas entities for room, props, main pet, and helper pets. Props and pets are draggable. Room/background layers are locked by default. Registered projects persist moved entity anchors in `project-room-widget\project-room-layouts.json`; direct `--kit` runs are session-only.
 
 Launch the included demo project:
 

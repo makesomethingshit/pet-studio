@@ -59,7 +59,9 @@
       "path": "rooms/default-room.png",
       "z": 0,
       "anchor": "room",
-      "scale": 1.0
+      "scale": 1.0,
+      "draggable": false,
+      "locked": true
     },
     {
       "id": "desk",
@@ -68,7 +70,9 @@
       "placement": "behindPet",
       "z": 12,
       "anchor": "desk",
-      "scale": 1.0
+      "scale": 1.0,
+      "draggable": true,
+      "locked": false
     },
     {
       "id": "book-stack",
@@ -77,7 +81,9 @@
       "placement": "foreground",
       "z": 30,
       "anchor": "book-stack",
-      "scale": 1.0
+      "scale": 1.0,
+      "draggable": true,
+      "locked": false
     },
     {
       "id": "helper-reviewer",
@@ -89,7 +95,9 @@
       "visibleWhen": [
         "review",
         "failed"
-      ]
+      ],
+      "draggable": true,
+      "locked": false
     },
     {
       "id": "main-owner",
@@ -97,7 +105,9 @@
       "path": "pets/main-owner/spritesheet.webp",
       "z": 20,
       "anchor": "owner",
-      "scale": 0.68
+      "scale": 0.68,
+      "draggable": true,
+      "locked": false
     }
   ],
   "anchors": {
