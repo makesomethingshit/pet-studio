@@ -50,6 +50,7 @@ python project-room-kit/scripts/create_project_room_kit.py `
   --pet-package C:\Users\USER\.codex\pets\gakju `
   --room-image runs/my-assets/room.png `
   --prop desk=runs/my-assets/desk.png `
+  --prop-placement desk=behind-pet `
   --theme "quiet archive nook" `
   --display-name "Archive Nook" `
   --render-preview `
@@ -69,6 +70,7 @@ python project-room-kit/scripts/create_project_room_kit.py `
 - Every generated asset has a sidecar `.asset.json`.
 - Rooms include `left-door`, `right-door`, `floor-line`, and `back-wall` feature metadata.
 - Static layers must not contain transparent RGB residue.
+- Prop layers should declare placement relative to the pet: `background`, `behind-pet`, `front-of-pet`, or `foreground`. Default generated props are `behindPet` so the main pet renders in front of furniture.
 
 ## Project Registry
 
@@ -82,6 +84,8 @@ Use `project-room-widget/project-room-projects.json` to map project ids to room 
 - `defaultState`
 - `theme`
 - `enabled`
+
+Project linking lives in this registry. Created kit reports also include a `projectLink` block so the assigned project id, registry path, kit path, and workspace paths can be inspected without opening the registry by hand.
 
 Use `project-room-widget/project-room-state.json` as the first file-based bridge from external task state to widget state. Supported external states include `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`.
 

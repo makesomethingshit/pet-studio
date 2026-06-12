@@ -65,7 +65,8 @@
       "id": "desk",
       "role": "prop",
       "path": "props/desk.png",
-      "z": 10,
+      "placement": "behindPet",
+      "z": 12,
       "anchor": "desk",
       "scale": 1.0
     },
@@ -73,7 +74,8 @@
       "id": "book-stack",
       "role": "prop",
       "path": "props/book-stack.png",
-      "z": 12,
+      "placement": "foreground",
+      "z": 30,
       "anchor": "book-stack",
       "scale": 1.0
     },

@@ -44,6 +44,20 @@ STATE_ROWS = [
     "running",
     "review",
 ]
+PROP_PLACEMENTS = {
+    "background": "background",
+    "behind-pet": "behindPet",
+    "behindPet": "behindPet",
+    "front-of-pet": "frontOfPet",
+    "frontOfPet": "frontOfPet",
+    "foreground": "foreground",
+}
+PROP_PLACEMENT_Z_BASE = {
+    "background": 5,
+    "behindPet": 12,
+    "frontOfPet": 24,
+    "foreground": 30,
+}
 
 
 def load_json(path: Path) -> dict:
@@ -77,6 +91,34 @@ def parse_id_path(value: str, label: str) -> tuple[str, Path]:
     if not path.exists():
         raise SystemExit(f"{label} asset not found: {path}")
     return item_id, path
+
+
+def parse_id_value(value: str, label: str) -> tuple[str, str]:
+    if "=" not in value:
+        raise SystemExit(f"{label} must use id=value format: {value}")
+    item_id, raw_value = value.split("=", 1)
+    item_id = item_id.strip()
+    raw_value = raw_value.strip()
+    if not item_id:
+        raise SystemExit(f"{label} id cannot be empty: {value}")
+    if not raw_value:
+        raise SystemExit(f"{label} value cannot be empty: {value}")
+    return item_id, raw_value
+
+
+def parse_prop_placements(values: list[str], prop_ids: list[str]) -> dict[str, str]:
+    known_prop_ids = set(prop_ids)
+    placements: dict[str, str] = {}
+    for value in values:
+        prop_id, raw_placement = parse_id_value(value, "Prop placement")
+        if prop_id not in known_prop_ids:
+            raise SystemExit(f"Prop placement references unknown prop id `{prop_id}`")
+        placement = PROP_PLACEMENTS.get(raw_placement)
+        if not placement:
+            allowed = ", ".join(sorted({key for key in PROP_PLACEMENTS if "-" in key or key in {"background", "foreground"}}))
+            raise SystemExit(f"Unknown prop placement `{raw_placement}` for `{prop_id}`. Allowed: {allowed}")
+        placements[prop_id] = placement
+    return placements
 
 
 def copy_image(source: Path, target: Path) -> None:
@@ -187,7 +229,8 @@ def write_asset_metadata(path: Path, style: dict, role: str, features: list[str]
     )
 
 
-def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str]) -> dict:
+def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str], prop_placements: dict[str, str] | None = None) -> dict:
+    prop_placements = prop_placements or {}
     layers = [
         {"id": "room", "role": "room", "path": "rooms/default-room.png", "z": 0, "anchor": "room", "scale": 1.0},
     ]
@@ -200,11 +243,20 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str])
 
     for index, prop_id in enumerate(prop_ids):
         anchor_name = prop_id
+        placement = prop_placements.get(prop_id, "behindPet")
         x = min(330, 215 + index * 42)
         y = max(196, 216 - (index % 2) * 10)
         anchors[anchor_name] = {"x": x, "y": y}
         layers.append(
-            {"id": prop_id, "role": "prop", "path": f"props/{prop_id}.png", "z": 10 + index, "anchor": anchor_name, "scale": 1.0}
+            {
+                "id": prop_id,
+                "role": "prop",
+                "path": f"props/{prop_id}.png",
+                "placement": placement,
+                "z": PROP_PLACEMENT_Z_BASE[placement] + index,
+                "anchor": anchor_name,
+                "scale": 1.0,
+            }
         )
 
     for index, helper_id in enumerate(helper_ids):
@@ -353,6 +405,12 @@ def main() -> None:
     parser.add_argument("--pet-package", required=True)
     parser.add_argument("--room-image", required=True)
     parser.add_argument("--prop", action="append", default=[], help="Prop asset in id=path format; may be repeated")
+    parser.add_argument(
+        "--prop-placement",
+        action="append",
+        default=[],
+        help="Prop layer placement in id=background|behind-pet|front-of-pet|foreground format; may be repeated",
+    )
     parser.add_argument("--helper-package", action="append", default=[], help="Helper pet in id=path format; may be repeated")
     parser.add_argument("--theme", default="project room")
     parser.add_argument("--display-name", default=None)
@@ -409,16 +467,19 @@ def main() -> None:
         write_asset_metadata(target, style, "prop", [prop_id], "generated-or-authored")
         prop_ids.append(prop_id)
 
-    manifest = make_manifest(display_name, prop_ids, helper_ids)
+    prop_placements = parse_prop_placements(args.prop_placement, prop_ids)
+    manifest = make_manifest(display_name, prop_ids, helper_ids, prop_placements)
     write_json(kit_dir / "project-room.json", manifest)
     write_json(out_dir / "generation-brief.json", make_generation_brief(args.theme, pet_json, prop_ids))
     write_prompts(out_dir, args.theme, prop_ids)
 
     registered_project = None
+    project_link = None
     if args.register_project:
         if not args.project_id:
             raise SystemExit("--project-id is required with --register-project")
         registry_path = Path(args.registry) if args.registry else repo_root / "project-room-widget" / "project-room-projects.json"
+        workspace_paths = [Path(value) for value in args.workspace_path]
         registered_project = upsert_project_registry(
             registry_path,
             args.project_id,
@@ -427,8 +488,14 @@ def main() -> None:
             pet_package,
             "idle",
             args.theme,
-            [Path(value) for value in args.workspace_path],
+            workspace_paths,
         )
+        project_link = {
+            "projectId": args.project_id,
+            "registryPath": str(registry_path.expanduser().resolve()),
+            "kitPath": str(kit_dir.resolve()),
+            "workspacePaths": [str(path.expanduser().resolve()) for path in workspace_paths],
+        }
 
     steps: list[dict] = []
     validation_path = out_dir / "kit-validation.json"
@@ -493,6 +560,7 @@ def main() -> None:
         "generationBrief": str(out_dir / "generation-brief.json"),
         "promptsDir": str(out_dir / "prompts"),
         "registeredProject": registered_project,
+        "projectLink": project_link,
         "validation": validation,
         "steps": steps,
     }

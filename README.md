@@ -60,6 +60,7 @@ python project-room-kit\scripts\create_project_room_kit.py `
   --pet-package C:\Users\USER\.codex\pets\gakju `
   --room-image runs\my-assets\room.png `
   --prop desk=runs\my-assets\desk.png `
+  --prop-placement desk=behind-pet `
   --theme "quiet archive nook" `
   --display-name "Archive Nook" `
   --render-preview `
@@ -72,6 +73,8 @@ python project-room-kit\scripts\create_project_room_kit.py `
 ```
 
 This creates a layered room kit, prompt pack, validation report, full-size previews, and optional hatch-pet fallback package.
+
+Prop placement is explicit. Use `behind-pet` for furniture the pet should stand in front of, `front-of-pet` for props that can overlap the pet, `background` for wall/floor decorations, and `foreground` for near-camera accents.
 
 ## Run The Widget
 

@@ -125,6 +125,9 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertEqual(prop_meta["role"], "prop")
             self.assertEqual(prop_meta["assetType"], "prop")
             self.assertIn("desk", manifest["anchors"])
+            layers = {layer["id"]: layer for layer in manifest["layers"]}
+            self.assertEqual(layers["desk"]["placement"], "behindPet")
+            self.assertLess(layers["desk"]["z"], layers["main-owner"]["z"])
             self.assertTrue((out / "generation-brief.json").exists())
             self.assertIn("SD/chibi dollhouse room", (out / "prompts" / "room-prompt.txt").read_text(encoding="utf-8"))
             self.assertTrue((out / "room-preview.png").exists())
@@ -190,6 +193,9 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertEqual(project["theme"], "quiet archive nook")
             self.assertTrue(project["enabled"])
             self.assertEqual((registry.parent / project["kitPath"]).resolve(), (out / "kit").resolve())
+            report = json.loads((out / "production-report.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["projectLink"]["projectId"], "archive-nook")
+            self.assertEqual(Path(report["projectLink"]["registryPath"]), registry.resolve())
 
     def test_registers_workspace_path_with_created_project(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -227,6 +233,73 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             data = json.loads(registry.read_text(encoding="utf-8"))
             project = data["projects"][0]
             self.assertEqual(project["workspacePaths"], [str(workspace.resolve())])
+            report = json.loads((out / "production-report.json").read_text(encoding="utf-8"))
+            self.assertEqual(report["projectLink"]["workspacePaths"], [str(workspace.resolve())])
+
+    def test_prop_placement_controls_layer_order_relative_to_main_pet(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            plant = work / "plant.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+            make_prop(plant)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--prop",
+                f"plant={plant}",
+                "--prop-placement",
+                "desk=behind-pet",
+                "--prop-placement",
+                "plant=front-of-pet",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            manifest = json.loads((out / "kit" / "project-room.json").read_text(encoding="utf-8"))
+            layers = {layer["id"]: layer for layer in manifest["layers"]}
+            self.assertEqual(layers["desk"]["placement"], "behindPet")
+            self.assertEqual(layers["plant"]["placement"], "frontOfPet")
+            self.assertLess(layers["desk"]["z"], layers["main-owner"]["z"])
+            self.assertGreater(layers["plant"]["z"], layers["main-owner"]["z"])
+
+    def test_rejects_unknown_prop_placement_id(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--prop-placement",
+                "unknown=front-of-pet",
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Prop placement references unknown prop id", result.stderr + result.stdout)
 
     def test_helper_pet_is_mapped_for_review_and_blocked_scenes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

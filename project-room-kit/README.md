@@ -144,6 +144,7 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
   --pet-package C:\Users\USER\.codex\pets\gakju `
   --room-image D:\pet-studio\runs\my-assets\room.png `
   --prop desk=D:\pet-studio\runs\my-assets\desk.png `
+  --prop-placement desk=behind-pet `
   --theme "quiet archive nook" `
   --display-name "Archive Nook" `
   --render-preview `
@@ -156,7 +157,14 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 
 This writes `kit/project-room.json`, `kit/style-lock.json`, copied layer assets, sidecar `.asset.json` files, `generation-brief.json`, prompt text files, `kit-validation.json`, and `production-report.json`. The fallback package is optional and is only for runtimes that still need a normal hatch-pet package.
 
-When `--register-project` is used, the new kit is also added to a project assignment registry so the widget can launch it with `--project-id`.
+Prop placement is stored in the manifest as a semantic `placement` plus a computed `z` value:
+
+- `background`: wall/floor decoration behind furniture
+- `behind-pet`: furniture or props the pet should stand in front of
+- `front-of-pet`: props allowed to overlap the pet
+- `foreground`: near-camera accents above the pet layer
+
+When `--register-project` is used, the new kit is also added to a project assignment registry so the widget can launch it with `--project-id`. The `production-report.json` also records a `projectLink` block with the project id, registry path, kit path, and workspace paths.
 
 Register a hatch-pet package as a kit pet layer:
 

@@ -44,6 +44,7 @@ Current format decisions:
 - Hatch-pet cell: `192x208`, used only for pet frames and optional fallback previews.
 - Main pet remains a hatch-pet spritesheet layer.
 - Props are separate PNG layers with alpha.
+- Prop layers now declare semantic placement relative to the pet: `background`, `behindPet`, `frontOfPet`, or `foreground`. Renderers still execute by `z`, but the authoring intent is visible in `project-room.json`.
 - Every asset should have a sidecar `.asset.json`.
 
 ### 2. Installed Codex Skill
@@ -97,6 +98,7 @@ Purpose:
 - Poll a small state file for external project state.
 - Write that state file manually or through a Codex-style task event adapter.
 - Infer the active project from registry `workspacePaths` when adapter calls omit `--project-id`.
+- Keep project assignment in `project-room-projects.json`; production reports also include a `projectLink` block for quick inspection.
 - Render the layered room at full size.
 - Show it in a frameless transparent-ish desktop widget window.
 - Animate pet states by cycling frames.

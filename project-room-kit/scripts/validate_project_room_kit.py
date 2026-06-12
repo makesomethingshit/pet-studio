@@ -11,6 +11,7 @@ from PIL import Image
 
 PET_ROLES = {"mainPet", "helperPet"}
 STATIC_ROLES = {"room", "prop"}
+PROP_PLACEMENTS = {"background", "behindPet", "frontOfPet", "foreground"}
 
 
 def load_json(path: Path) -> dict:
@@ -93,6 +94,12 @@ def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: l
         if (width, height) != expected:
             errors.append(f"Pet atlas `{layer_id}` is {width}x{height}; expected {expected[0]}x{expected[1]}")
     elif role in STATIC_ROLES:
+        if role == "prop":
+            placement = layer.get("placement")
+            if placement is None:
+                warnings.append(f"Prop layer `{layer_id}` has no placement; default runtime behavior is behindPet")
+            elif placement not in PROP_PLACEMENTS:
+                errors.append(f"Prop layer `{layer_id}` has invalid placement: {placement}")
         max_w = kit["roomModule"]["width"]
         max_h = kit["roomModule"]["height"]
         if width > max_w or height > max_h:
