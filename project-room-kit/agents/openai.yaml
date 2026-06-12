@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Room Kit"
+  short_description: "Build style-matched Codex pet rooms and project-room widgets."
+  default_prompt: "Use $project-room-kit to create a style-matched project room for my Codex pet."
+policy:
+  allow_implicit_invocation: true
