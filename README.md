@@ -111,6 +111,7 @@ python project-room-widget\set_project_state.py --project-id gakju-archive-demo 
 ```
 
 The widget maps `done` to `jumping`, `handoff` to `review`, and `blocked` to `failed`. Helper pets appear in review/handoff and blocked scenes when the kit includes a helper layer.
+State `message` text appears as a runtime-only speech bubble. The widget normalizes whitespace and caps messages at 80 characters so hook output stays compact.
 
 Publish a Codex-style task event through the adapter:
 

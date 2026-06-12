@@ -49,7 +49,7 @@ Use `project-room-state.json` as the first file-based bridge from external proje
 
 Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
 
-If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`; idle can stay quiet. Speech bubbles are not included in `--render-once`, fallback baking, or kit assets.
+If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Messages are whitespace-normalized and capped at 80 characters so long hook output cannot crowd the room. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`; idle can stay quiet. Speech bubbles are not included in `--render-once`, fallback baking, or kit assets.
 
 Write the bridge file with:
 

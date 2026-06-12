@@ -21,6 +21,7 @@ DEFAULT_BUBBLE_MESSAGES = {
     "jumping": "Done",
     "done": "Done",
 }
+MAX_BUBBLE_TEXT_LENGTH = 80
 
 
 @dataclass(frozen=True)
@@ -126,11 +127,18 @@ def save_project_window(path: Path, project_id: str, window: dict[str, int | flo
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def normalize_bubble_text(text: str) -> str:
+    normalized = " ".join(text.split())
+    if len(normalized) <= MAX_BUBBLE_TEXT_LENGTH:
+        return normalized
+    return normalized[: MAX_BUBBLE_TEXT_LENGTH - 3].rstrip() + "..."
+
+
 def bubble_text_for_state(state: str, message: str | None, enabled: bool = True) -> str | None:
     if not enabled:
         return None
     if message and message.strip():
-        return message.strip()
+        return normalize_bubble_text(message)
     return DEFAULT_BUBBLE_MESSAGES.get(state)
 
 

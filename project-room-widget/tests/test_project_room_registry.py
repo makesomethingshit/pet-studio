@@ -98,6 +98,20 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertEqual(bubble_text_for_state("done", None), "Done")
         self.assertIsNone(bubble_text_for_state("idle", None, enabled=False))
 
+    def test_bubble_text_normalizes_and_truncates_long_messages(self) -> None:
+        from project_room_scene import MAX_BUBBLE_TEXT_LENGTH, bubble_text_for_state
+
+        message = "  Waiting\n\non   approval for the very long integration check before the widget can continue safely  "
+
+        text = bubble_text_for_state("blocked", message)
+
+        self.assertIsNotNone(text)
+        assert text is not None
+        self.assertLessEqual(len(text), MAX_BUBBLE_TEXT_LENGTH)
+        self.assertTrue(text.endswith("..."))
+        self.assertNotIn("\n", text)
+        self.assertNotIn("  ", text)
+
     def test_context_menu_labels_keep_close_as_explicit_action(self) -> None:
         from project_room_scene import context_menu_labels
 
