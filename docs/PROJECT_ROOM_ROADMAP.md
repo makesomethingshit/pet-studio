@@ -14,6 +14,7 @@ The long-term experience should feel like a living Codex pet scene: a compact si
 - `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge and infer project ids from registered workspace paths.
 - `project-room-layouts.json` stores project-specific moved entity anchors without changing kit files.
 - `project-room-window.json` stores registered project host window position and scale.
+- `project-room-active.json` can pin an active project for Codex event adapters when workspace matching is ambiguous.
 - Room asset intake clears edge-connected near-white margins to transparent alpha without cropping the `384x240` source.
 - The scene host has pet UX parity v1: state speech bubbles, a right-click context menu, explicit close, and Escape close.
 - The current best demo is `runs/gakju-imagegen-room-v1`, a Gakju SD/chibi archive room.
@@ -77,6 +78,8 @@ Connect real Codex project or task state to the state bridge.
 Done when:
 
 - A thin adapter can write `project-room-state.json` from a local command or hook.
+- The adapter accepts structured JSON payloads from a host hook command.
+- Active project pinning can resolve ambiguous workspace matches.
 - The widget reacts without needing manual double-click state cycling.
 - Automatic workspace/project discovery is documented and isolated from the core widget.
 
@@ -87,6 +90,7 @@ The first project identity model is a local string id. A project assignment entr
 - project identity: `projectId`, `displayName`, `theme`
 - visual source: `petPackagePath`, `kitPath`
 - workspace matching: `workspacePaths`
+- active selection: local `project-room-active.json` pin
 - runtime defaults: `defaultState`, `enabled`
 
 The state bridge uses:
@@ -95,6 +99,16 @@ The state bridge uses:
 - `state`
 - `message`
 - `updatedAt`
+
+Codex-style event payloads accepted by the adapter use:
+
+- `event`
+- `message`
+- optional `projectId`
+- optional `cwd`
+- optional `threadId`
+- optional `worktreeId`
+- optional `updatedAt`
 
 ## Out Of Scope
 

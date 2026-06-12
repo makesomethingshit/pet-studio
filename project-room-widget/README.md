@@ -28,7 +28,8 @@ Controls:
 - Drag locked room/background or empty space to move the host window.
 - Double-click to cycle animation state.
 - Right-click to open the context menu.
-- Use the context menu to cycle state, reset a registered project layout, toggle the speech bubble, or close.
+- Use the context menu to cycle state, reset a registered project layout, resize the widget, toggle the speech bubble, or close.
+- Press `Ctrl` + `+` / `Ctrl` + `-` to resize the widget, or `Ctrl` + `0` to reset size.
 - Escape closes the host.
 
 Registered projects persist moved entity anchors in `project-room-layouts.json` and host window position/scale in `project-room-window.json`. Direct `--kit` runs allow session-only movement and do not write project layout or window overrides.
@@ -68,7 +69,19 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event done --message "finished"
 ```
 
-The adapter maps `start` to `running`, `wait` to `waiting`, `review` to `review`, `block` to `blocked`, `fail` to `failed`, `done` to `done`, and `idle` to `idle`. When `--project-id` is omitted, the adapter infers the project from the current workspace using registry `workspacePaths`; pass `--project-id` to override inference.
+The adapter maps `start` to `running`, `wait` to `waiting`, `review` to `review`, `block` to `blocked`, `fail` to `failed`, `done` to `done`, and `idle` to `idle`. When `--project-id` is omitted, the adapter resolves project identity in this order: explicit `projectId`, active project pin, then registry `workspacePaths`.
+
+Pin an active project when multiple room projects share a workspace:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\set_active_project.py --project-id gakju-archive-demo --cwd D:\pet-studio
+```
+
+Codex host hooks can call the same adapter with a JSON payload. The repository does not install host hooks automatically; it provides this stable local command target:
+
+```powershell
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event-json -
+```
 
 ## Render Test
 

@@ -122,11 +122,21 @@ python project-room-widget\codex_state_adapter.py --project-id gakju-archive-dem
 python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event done --message "finished"
 ```
 
-When `--project-id` is omitted, the adapter infers the project from the current workspace using registry `workspacePaths`. Pass `--project-id` to override inference.
+When `--project-id` is omitted, the adapter resolves project identity in this order: explicit project id, active project pin, then registry `workspacePaths`. Pin a project when several rooms share one workspace:
+
+```powershell
+python project-room-widget\set_active_project.py --project-id gakju-archive-demo --cwd .
+```
+
+Codex host hooks can publish structured JSON to the same local command target. This repo provides the adapter contract, but does not install host hooks automatically:
+
+```powershell
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | python project-room-widget\codex_state_adapter.py --event-json -
+```
 
 ## Development Checks
 
 ```powershell
 python -m unittest project-room-widget.tests.test_project_room_registry project-room-kit.tests.test_project_room_pipeline
-python -m py_compile project-room-widget\codex_state_adapter.py project-room-widget\set_project_state.py project-room-widget\project_room_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
+python -m py_compile project-room-widget\codex_state_adapter.py project-room-widget\set_project_state.py project-room-widget\set_active_project.py project-room-widget\project_room_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
 ```

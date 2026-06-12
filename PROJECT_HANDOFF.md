@@ -88,6 +88,7 @@ Files:
 - `project_room_widget.py`
 - `project_room_scene.py`
 - `codex_state_adapter.py`
+- `set_active_project.py`
 - `set_project_state.py`
 - `README.md`
 - `project-room-projects.json`
@@ -103,7 +104,7 @@ Purpose:
 - Select a registered project by `projectId`.
 - Poll a small state file for external project state.
 - Write that state file manually or through a Codex-style task event adapter.
-- Infer the active project from registry `workspacePaths` when adapter calls omit `--project-id`.
+- Resolve project identity from explicit `projectId`, a local active project pin, or registry `workspacePaths`.
 - Keep project assignment in `project-room-projects.json`; production reports also include a `projectLink` block for quick inspection.
 - Render room, prop, main pet, and helper pet as independent Canvas entities in one transparent scene-host window.
 - Persist project-specific dragged entity anchors in `project-room-layouts.json`.
@@ -152,6 +153,13 @@ Publish a Codex-style state event:
 
 ```powershell
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event start --message "working"
+```
+
+Pin an active project or publish a structured hook payload:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\set_active_project.py --project-id gakju-archive-demo --cwd D:\pet-studio
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event-json -
 ```
 
 ## Current Best Run: `gakju-imagegen-room-v1`
@@ -241,7 +249,7 @@ Start-Process -FilePath 'C:\Users\USER\.cache\codex-runtimes\codex-primary-runti
 Recommended next step:
 
 1. Continue from `docs/PROJECT_ROOM_ROADMAP.md`.
-2. Expand `codex_state_adapter.py` from workspace project detection toward hooks.
+2. Connect a real Codex host hook to `codex_state_adapter.py --event-json -`.
 3. Add more pet runtime parity items as users identify them.
 4. Generate additional room/prop variants and verify the intake cleanup.
 
