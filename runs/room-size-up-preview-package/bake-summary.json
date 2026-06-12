@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "kit": "project-room",
+  "package": "D:\\pet-studio\\runs\\room-size-up-preview-package",
+  "spritesheet": "D:\\pet-studio\\runs\\room-size-up-preview-package\\spritesheet.webp",
+  "pet_json": "D:\\pet-studio\\runs\\room-size-up-preview-package\\pet.json",
+  "bakeMode": "preview/fallback",
+  "warnings": []
+}

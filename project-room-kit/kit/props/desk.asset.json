@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "styleId": "project-room-soft-sticker-v1",
+  "perspective": "eye-level-side-view",
+  "role": "prop",
+  "features": [
+    "desk",
+    "monitor",
+    "mug"
+  ],
+  "notes": "Sample asset generated for Project Room Kit pipeline validation."
+}

@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "styleId": "project-room-soft-sticker-v1",
+  "kit": "project-room",
+  "errors": [
+    "Style mismatch for `desk`: rogue-pixel-pack-v1 != project-room-soft-sticker-v1",
+    "Perspective mismatch for `desk`: top-down != eye-level-side-view"
+  ],
+  "warnings": []
+}

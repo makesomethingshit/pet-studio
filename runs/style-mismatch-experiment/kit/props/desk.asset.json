@@ -1,0 +1,12 @@
+﻿{
+    "schemaVersion":  1,
+    "styleId":  "rogue-pixel-pack-v1",
+    "perspective":  "top-down",
+    "role":  "prop",
+    "features":  [
+                     "desk",
+                     "monitor",
+                     "mug"
+                 ],
+    "notes":  "Intentional mismatch experiment: this prop pretends to come from a different asset pack."
+}

@@ -1,0 +1,7 @@
+{
+  "id": "project-room",
+  "displayName": "Pipeline V1 Smoke",
+  "description": "A side-view room-decorating kit for a Codex pet widget.",
+  "spritesheetPath": "spritesheet.webp",
+  "sourceKit": "runs\\pipeline-v1-smoke\\kit\\project-room.json"
+}

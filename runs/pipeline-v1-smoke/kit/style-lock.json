@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "styleId": "project-room-soft-sticker-v1",
+  "name": "Project Room Soft Sticker",
+  "sourcePolicy": {
+    "requiredAtRuntime": true,
+    "preferredSource": "hatch-pet package",
+    "acceptedSources": [
+      "existing hatch-pet pet package",
+      "new hatch-pet pet generated before room assets",
+      "explicit style-lock.json supplied by user"
+    ],
+    "rule": "Do not generate room, prop, or helper assets until the style source is selected.",
+    "selectedSource": {
+      "type": "existing hatch-pet pet package",
+      "petId": "gakju",
+      "displayName": "Gakju / \uac01\uc8fc",
+      "packageDir": "C:\\Users\\USER\\.codex\\pets\\gakju",
+      "role": "main-owner"
+    }
+  },
+  "perspective": "eye-level-side-view",
+  "rendering": {
+    "medium": "2d-sticker",
+    "outline": {
+      "color": "#24313a",
+      "width": 3,
+      "joins": "round"
+    },
+    "shading": "flat-with-minimal-highlight",
+    "texture": "clean-vector-like"
+  },
+  "geometry": {
+    "cellWidth": 192,
+    "cellHeight": 208,
+    "roomWidth": 384,
+    "roomHeight": 240,
+    "doorLeftX": 28,
+    "doorRightX": 356,
+    "floorY": 182
+  },
+  "palette": {
+    "ink": "#24313a",
+    "mint": "#38b7a4",
+    "coral": "#ff8a65",
+    "cream": "#fff2d1",
+    "wall": "#f8fcf7",
+    "floor": "#e8f2ee",
+    "trim": "#bed8d0",
+    "wood": "#d3ac86",
+    "yellow": "#fff8d6"
+  },
+  "rules": [
+    "All assets must use the same eye-level side-view perspective.",
+    "All source room modules must be exactly 384x240 with left and right doors in the same positions.",
+    "The 192x208 hatch-pet cell is only for preview/fallback baking; keep layered room sources separate.",
+    "Pets, helpers, props, and rooms must share the same outline color and approximate outline width.",
+    "Props should be simple, rounded, and readable at pet-widget size.",
+    "Do not mix pixel art, painterly rendering, photorealism, heavy gradients, or mismatched outline systems.",
+    "Do not add readable text, logos, large UI panels, or unrelated scenery inside baked sprite assets."
+  ]
+}

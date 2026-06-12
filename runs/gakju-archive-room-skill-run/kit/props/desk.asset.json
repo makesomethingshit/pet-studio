@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "styleId": "project-room-soft-sticker-v1",
+  "perspective": "eye-level-side-view",
+  "role": "prop",
+  "features": [
+    "desk",
+    "books",
+    "paper",
+    "archive-prop"
+  ],
+  "notes": "Gakju archive-room asset generated for Project Room Kit skill trial."
+}
