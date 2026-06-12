@@ -41,6 +41,14 @@ Use `project-room-state.json` as the first file-based bridge from external proje
 
 Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
 
+Write the bridge file with:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\set_project_state.py --project-id gakju-archive-demo --state running --message "building room kit"
+```
+
+Helper pets appear in `review`/`handoff` scenes and in the `failed` scene used by `blocked`, when the selected kit has a helper layer. Kits without helper assets continue rendering the main pet only.
+
 ## Render Test
 
 ```powershell

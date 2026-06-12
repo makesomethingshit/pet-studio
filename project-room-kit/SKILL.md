@@ -72,6 +72,14 @@ Use `project-room-widget/project-room-projects.json` to map project ids to room 
 
 Use `project-room-widget/project-room-state.json` as the first file-based bridge from external task state to widget state. Supported external states include `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`.
 
+Write the state bridge with:
+
+```powershell
+python project-room-widget/set_project_state.py --project-id archive-nook --state running --message "building room kit"
+```
+
+`done` maps to the hatch-pet `jumping` row, `handoff` maps to `review`, and `blocked` maps to `failed`. Helper pets should appear only in collaboration/problem-solving scenes: `review`, `handoff`, and `blocked`; kits without helper assets must still render clearly with the main pet only.
+
 ## Visual QA
 
 Reject or regenerate assets when:

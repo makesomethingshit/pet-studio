@@ -191,6 +191,41 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertTrue(project["enabled"])
             self.assertEqual((registry.parent / project["kitPath"]).resolve(), (out / "kit").resolve())
 
+    def test_helper_pet_is_mapped_for_review_and_blocked_scenes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            helper = work / "helper"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_pet_package(helper)
+            make_room(room)
+            make_prop(desk)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--helper-package",
+                f"reviewer={helper}",
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            manifest = json.loads((out / "kit" / "project-room.json").read_text(encoding="utf-8"))
+            helper_layer = next(layer for layer in manifest["layers"] if layer["id"] == "reviewer")
+            self.assertEqual(helper_layer["visibleWhen"], ["review", "failed"])
+            self.assertIn("reviewer", manifest["states"]["review"]["visibleLayers"])
+            self.assertIn("reviewer", manifest["states"]["failed"]["visibleLayers"])
+            self.assertEqual(manifest["states"]["review"]["helperPetRow"], "review")
+            self.assertEqual(manifest["states"]["failed"]["helperPetRow"], "review")
+
     def test_rejects_bad_pet_atlas_size(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

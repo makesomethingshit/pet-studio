@@ -79,7 +79,7 @@
       "z": 18,
       "anchor": "helper",
       "scale": 0.56,
-      "visibleWhen": ["review"]
+      "visibleWhen": ["review", "failed"]
     }
   ],
   "anchors": {
@@ -127,7 +127,8 @@
     },
     "failed": {
       "mainPetRow": "failed",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "waiting": {
       "mainPetRow": "waiting",

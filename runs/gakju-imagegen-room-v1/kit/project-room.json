@@ -85,7 +85,8 @@
       "anchor": "helper",
       "scale": 0.56,
       "visibleWhen": [
-        "review"
+        "review",
+        "failed"
       ]
     },
     {
@@ -171,10 +172,12 @@
     },
     "failed": {
       "mainPetRow": "failed",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-reviewer",
         "main-owner"
       ]
     },

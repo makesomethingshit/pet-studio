@@ -11,6 +11,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 WIDGET_DIR = ROOT / "project-room-widget"
 WIDGET_SCRIPT = WIDGET_DIR / "project_room_widget.py"
+STATE_SCRIPT = WIDGET_DIR / "set_project_state.py"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
 
@@ -151,6 +152,39 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             )
             self.assertEqual(rendered_done.returncode, 0, rendered_done.stderr + rendered_done.stdout)
             self.assertIn('"state": "jumping"', rendered_done.stdout)
+
+    def test_set_project_state_cli_writes_external_state_bridge_file(self) -> None:
+        from project_room_registry import read_project_state
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(STATE_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--state",
+                    "blocked",
+                    "--message",
+                    "Waiting on review notes",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "blocked")
+            self.assertEqual(data["message"], "Waiting on review notes")
+            self.assertIn("updatedAt", data)
+            self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), "failed")
 
 
 if __name__ == "__main__":

@@ -218,7 +218,7 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str])
                 "z": 18 + index,
                 "anchor": anchor_name,
                 "scale": 0.56,
-                "visibleWhen": ["review"],
+                "visibleWhen": ["review", "failed"],
             }
         )
 
@@ -226,11 +226,12 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str])
         {"id": "main-owner", "role": "mainPet", "path": "pets/main-owner/spritesheet.webp", "z": 20, "anchor": "owner", "scale": 0.68}
     )
     base_visible = ["room", *prop_ids, "main-owner"]
-    review_visible = ["room", *prop_ids, *helper_ids, "main-owner"]
+    helper_visible = ["room", *prop_ids, *helper_ids, "main-owner"]
     states = {}
     for state in STATE_ROWS:
-        states[state] = {"mainPetRow": state, "visibleLayers": review_visible if state == "review" else base_visible}
-        if state == "review" and helper_ids:
+        helper_state = state in {"review", "failed"}
+        states[state] = {"mainPetRow": state, "visibleLayers": helper_visible if helper_state else base_visible}
+        if helper_state and helper_ids:
             states[state]["helperPetRow"] = "review"
 
     return {

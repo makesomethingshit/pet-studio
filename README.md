@@ -90,9 +90,17 @@ Render one frame without opening a window:
 python project-room-widget\project_room_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
 
+Update the active project state bridge:
+
+```powershell
+python project-room-widget\set_project_state.py --project-id gakju-archive-demo --state running --message "building room kit"
+```
+
+The widget maps `done` to `jumping`, `handoff` to `review`, and `blocked` to `failed`. Helper pets appear in review/handoff and blocked scenes when the kit includes a helper layer.
+
 ## Development Checks
 
 ```powershell
 python -m unittest project-room-widget.tests.test_project_room_registry project-room-kit.tests.test_project_room_pipeline
-python -m py_compile project-room-widget\project_room_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
+python -m py_compile project-room-widget\set_project_state.py project-room-widget\project_room_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
 ```
