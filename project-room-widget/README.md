@@ -49,6 +49,17 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 
 Helper pets appear in `review`/`handoff` scenes and in the `failed` scene used by `blocked`, when the selected kit has a helper layer. Kits without helper assets continue rendering the main pet only.
 
+For Codex-like task events, use the adapter instead of writing bridge states directly:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event start --message "implementing adapter"
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event done --message "finished"
+```
+
+The adapter maps `start` to `running`, `wait` to `waiting`, `review` to `review`, `block` to `blocked`, `fail` to `failed`, `done` to `done`, and `idle` to `idle`. Project id inference is intentionally deferred; pass `--project-id` in v1.
+
 ## Render Test
 
 ```powershell

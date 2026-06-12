@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[2]
 WIDGET_DIR = ROOT / "project-room-widget"
 WIDGET_SCRIPT = WIDGET_DIR / "project_room_widget.py"
 STATE_SCRIPT = WIDGET_DIR / "set_project_state.py"
+ADAPTER_SCRIPT = WIDGET_DIR / "codex_state_adapter.py"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
 
@@ -185,6 +186,69 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["message"], "Waiting on review notes")
             self.assertIn("updatedAt", data)
             self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), "failed")
+
+    def test_codex_state_adapter_maps_events_to_bridge_states(self) -> None:
+        from project_room_registry import read_project_state
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            cases = [
+                ("start", "running", "running"),
+                ("block", "blocked", "failed"),
+                ("done", "done", "jumping"),
+            ]
+            for event, stored_state, widget_state in cases:
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        str(ADAPTER_SCRIPT),
+                        "--state-file",
+                        str(state_file),
+                        "--project-id",
+                        "gakju-demo",
+                        "--event",
+                        event,
+                        "--message",
+                        f"event {event}",
+                    ],
+                    cwd=ROOT,
+                    text=True,
+                    capture_output=True,
+                    check=False,
+                )
+
+                self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+                data = json.loads(state_file.read_text(encoding="utf-8"))
+                self.assertEqual(data["projectId"], "gakju-demo")
+                self.assertEqual(data["state"], stored_state)
+                self.assertEqual(data["message"], f"event {event}")
+                self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), widget_state)
+
+    def test_codex_state_adapter_rejects_unknown_events(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--event",
+                    "mystery",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Unsupported Codex event", result.stderr + result.stdout)
+            self.assertFalse(state_file.exists())
 
 
 if __name__ == "__main__":

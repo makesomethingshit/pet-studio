@@ -82,6 +82,8 @@ D:\pet-studio\project-room-widget
 Files:
 
 - `project_room_widget.py`
+- `codex_state_adapter.py`
+- `set_project_state.py`
 - `README.md`
 - `project-room-projects.json`
 - `project-room-state.json`
@@ -93,6 +95,7 @@ Purpose:
 - Load a `project-room.json` kit.
 - Select a registered project by `projectId`.
 - Poll a small state file for external project state.
+- Write that state file manually or through a Codex-style task event adapter.
 - Render the layered room at full size.
 - Show it in a frameless transparent-ish desktop widget window.
 - Animate pet states by cycling frames.
@@ -125,6 +128,12 @@ Render test:
 
 ```powershell
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --kit D:\pet-studio\runs\gakju-imagegen-room-v1\kit --render-once D:\pet-studio\runs\widget-render-test.png
+```
+
+Publish a Codex-style state event:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event start --message "working"
 ```
 
 ## Current Best Run: `gakju-imagegen-room-v1`
@@ -215,7 +224,7 @@ Recommended next step:
 1. Continue from `docs/PROJECT_ROOM_ROADMAP.md`.
 2. Polish widget runtime behavior.
 3. Add persistent window position and scale.
-4. Expand the state bridge into real Codex project/task integration.
+4. Expand `codex_state_adapter.py` from manual CLI events toward workspace/project detection or hooks.
 
 Other good next steps:
 

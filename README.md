@@ -98,9 +98,20 @@ python project-room-widget\set_project_state.py --project-id gakju-archive-demo 
 
 The widget maps `done` to `jumping`, `handoff` to `review`, and `blocked` to `failed`. Helper pets appear in review/handoff and blocked scenes when the kit includes a helper layer.
 
+Publish a Codex-style task event through the adapter:
+
+```powershell
+python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event start --message "implementing adapter"
+python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
+python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
+python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event done --message "finished"
+```
+
+Project inference is intentionally explicit in v1: pass `--project-id`. A later adapter can infer project ids from the current workspace.
+
 ## Development Checks
 
 ```powershell
 python -m unittest project-room-widget.tests.test_project_room_registry project-room-kit.tests.test_project_room_pipeline
-python -m py_compile project-room-widget\set_project_state.py project-room-widget\project_room_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
+python -m py_compile project-room-widget\codex_state_adapter.py project-room-widget\set_project_state.py project-room-widget\project_room_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
 ```
