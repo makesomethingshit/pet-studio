@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import inspect
 import subprocess
 import sys
 import tempfile
@@ -105,6 +106,14 @@ class ProjectRoomSceneTests(unittest.TestCase):
         desk = next(entity for entity in entities if entity.id == "desk")
 
         self.assertTrue(desk.flip_x)
+
+    def test_widget_imports_local_room_kit_tools_before_installed_skill(self) -> None:
+        import project_room_widget
+
+        signature = inspect.signature(project_room_widget.scale_visible_layer)
+
+        self.assertIn("flip_x", signature.parameters)
+        self.assertEqual(Path(project_room_widget.scale_visible_layer.__code__.co_filename).resolve().parents[1], ROOT / "project-room-kit")
 
     def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
         from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor, save_project_z_order

@@ -4,16 +4,20 @@
     "fresh-custom-pet-room": {
       "anchors": {
         "main-owner": {
-          "x": 152,
-          "y": 220
+          "x": 164,
+          "y": 222
         },
         "book-stack": {
-          "x": 72,
-          "y": 220
+          "x": 78,
+          "y": 223
         },
         "desk": {
-          "x": 277,
+          "x": 282,
           "y": 229
+        },
+        "helper-prop-creature": {
+          "x": -1050,
+          "y": 611
         }
       }
     }

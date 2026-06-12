@@ -14,7 +14,7 @@ from PIL import Image, ImageTk
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_TOOLS = ROOT / "project-room-kit" / "scripts"
 INSTALLED_TOOLS = Path.home() / ".codex" / "skills" / "project-room-kit" / "scripts"
-for tools_dir in (LOCAL_TOOLS, INSTALLED_TOOLS):
+for tools_dir in (INSTALLED_TOOLS, LOCAL_TOOLS):
     if tools_dir.exists() and str(tools_dir) not in sys.path:
         sys.path.insert(0, str(tools_dir))
 
