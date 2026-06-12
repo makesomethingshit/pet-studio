@@ -38,6 +38,7 @@ class ProjectAssignment:
     kit_manifest: Path
     kit_dir: Path
     pet_package_path: Path | None
+    workspace_paths: tuple[Path, ...]
     default_state: str
     theme: str
     enabled: bool
@@ -75,6 +76,20 @@ def resolve_kit_manifest(value: str, base_dir: Path) -> Path:
     return path
 
 
+def resolve_workspace_paths(entry: dict, registry_dir: Path) -> tuple[Path, ...]:
+    values = entry.get("workspacePaths") or []
+    if not isinstance(values, list):
+        raise ProjectRegistryError("Project assignment `workspacePaths` must be a list")
+    resolved: list[Path] = []
+    for value in values:
+        if not isinstance(value, str):
+            raise ProjectRegistryError("Project assignment `workspacePaths` entries must be strings")
+        path = resolve_path(value, registry_dir)
+        if path is not None:
+            resolved.append(path)
+    return tuple(resolved)
+
+
 def normalize_state(state: str | None, fallback: str = "idle") -> str:
     value = (state or fallback or "idle").strip()
     mapped = STATE_ALIASES.get(value, value)
@@ -96,12 +111,14 @@ def project_from_entry(entry: dict, registry_dir: Path, *, validate_kit: bool) -
         if kit_manifest is None:
             kit_manifest = Path("")
     pet_package = resolve_path(entry.get("petPackagePath"), registry_dir)
+    workspace_paths = resolve_workspace_paths(entry, registry_dir)
     return ProjectAssignment(
         project_id=project_id,
         display_name=entry.get("displayName") or project_id,
         kit_manifest=kit_manifest,
         kit_dir=kit_manifest.parent if str(kit_manifest) else Path(""),
         pet_package_path=pet_package,
+        workspace_paths=workspace_paths,
         default_state=normalize_state(entry.get("defaultState"), "idle"),
         theme=entry.get("theme") or "",
         enabled=bool(entry.get("enabled", True)),
@@ -128,6 +145,35 @@ def select_project(registry_path: str | Path | None, project_id: str) -> Project
     raise ProjectRegistryError(f"Unknown project id: {project_id}")
 
 
+def path_contains(parent: Path, child: Path) -> bool:
+    parent = parent.resolve()
+    child = child.resolve()
+    return child == parent or parent in child.parents
+
+
+def infer_project_for_workspace(registry_path: str | Path | None, cwd: str | Path) -> ProjectAssignment:
+    workspace = Path(cwd).expanduser().resolve()
+    matches: list[tuple[int, ProjectAssignment, Path]] = []
+    for project in list_projects(registry_path, validate_kit=False):
+        if not project.enabled:
+            continue
+        for workspace_path in project.workspace_paths:
+            if path_contains(workspace_path, workspace):
+                matches.append((len(str(workspace_path.resolve())), project, workspace_path))
+
+    if not matches:
+        raise ProjectRegistryError(f"Could not infer project id from workspace: {workspace}")
+
+    matches.sort(key=lambda item: item[0], reverse=True)
+    best_length = matches[0][0]
+    best_matches = [item for item in matches if item[0] == best_length]
+    project_ids = sorted({item[1].project_id for item in best_matches})
+    if len(project_ids) > 1:
+        joined = ", ".join(project_ids)
+        raise ProjectRegistryError(f"Ambiguous workspace project match for {workspace}: {joined}")
+    return best_matches[0][1]
+
+
 def read_project_state(state_file: str | Path | None, project_id: str | None, fallback: str) -> str:
     if not state_file:
         return normalize_state(fallback, "idle")
@@ -147,6 +193,7 @@ def project_to_summary(project: ProjectAssignment) -> dict:
         "displayName": project.display_name,
         "kitPath": str(project.kit_manifest),
         "petPackagePath": str(project.pet_package_path) if project.pet_package_path else None,
+        "workspacePaths": [str(path) for path in project.workspace_paths],
         "defaultState": project.default_state,
         "theme": project.theme,
         "enabled": project.enabled,

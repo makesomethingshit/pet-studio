@@ -65,7 +65,8 @@ python project-room-kit\scripts\create_project_room_kit.py `
   --bake-fallback `
   --register-project `
   --project-id archive-nook `
-  --registry project-room-widget\project-room-projects.json
+  --registry project-room-widget\project-room-projects.json `
+  --workspace-path .
 ```
 
 This creates a layered room kit, prompt pack, validation report, full-size previews, and optional hatch-pet fallback package.
@@ -101,13 +102,14 @@ The widget maps `done` to `jumping`, `handoff` to `review`, and `blocked` to `fa
 Publish a Codex-style task event through the adapter:
 
 ```powershell
+python project-room-widget\codex_state_adapter.py --event start --message "working"
 python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event start --message "implementing adapter"
 python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
 python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
 python project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event done --message "finished"
 ```
 
-Project inference is intentionally explicit in v1: pass `--project-id`. A later adapter can infer project ids from the current workspace.
+When `--project-id` is omitted, the adapter infers the project from the current workspace using registry `workspacePaths`. Pass `--project-id` to override inference.
 
 ## Development Checks
 

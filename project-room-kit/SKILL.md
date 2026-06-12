@@ -46,7 +46,8 @@ python project-room-kit/scripts/create_project_room_kit.py `
   --bake-fallback `
   --register-project `
   --project-id archive-nook `
-  --registry project-room-widget/project-room-projects.json
+  --registry project-room-widget/project-room-projects.json `
+  --workspace-path .
 ```
 
 ## Module Contract
@@ -66,6 +67,7 @@ Use `project-room-widget/project-room-projects.json` to map project ids to room 
 - `displayName`
 - `kitPath`
 - `petPackagePath`
+- `workspacePaths`
 - `defaultState`
 - `theme`
 - `enabled`
@@ -76,9 +78,10 @@ Write the state bridge with:
 
 ```powershell
 python project-room-widget/set_project_state.py --project-id archive-nook --state running --message "building room kit"
+python project-room-widget/codex_state_adapter.py --event start --message "working"
 ```
 
-`done` maps to the hatch-pet `jumping` row, `handoff` maps to `review`, and `blocked` maps to `failed`. Helper pets should appear only in collaboration/problem-solving scenes: `review`, `handoff`, and `blocked`; kits without helper assets must still render clearly with the main pet only.
+`done` maps to the hatch-pet `jumping` row, `handoff` maps to `review`, and `blocked` maps to `failed`. When `codex_state_adapter.py` omits `--project-id`, infer it from the current workspace and registry `workspacePaths`. Helper pets should appear only in collaboration/problem-solving scenes: `review`, `handoff`, and `blocked`; kits without helper assets must still render clearly with the main pet only.
 
 ## Visual QA
 

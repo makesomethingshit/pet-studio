@@ -154,6 +154,74 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(rendered_done.returncode, 0, rendered_done.stderr + rendered_done.stdout)
             self.assertIn('"state": "jumping"', rendered_done.stdout)
 
+    def test_infers_enabled_project_from_workspace_path(self) -> None:
+        from project_room_registry import ProjectRegistryError, infer_project_for_workspace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            workspace = work / "workspace"
+            child = workspace / "src" / "feature"
+            child.mkdir(parents=True)
+            config = self.make_config(work / "projects.json", workspacePaths=[str(workspace)])
+
+            project = infer_project_for_workspace(config, workspace)
+            nested_project = infer_project_for_workspace(config, child)
+
+            self.assertEqual(project.project_id, "gakju-demo")
+            self.assertEqual(nested_project.project_id, "gakju-demo")
+
+            disabled = self.make_config(work / "disabled.json", workspacePaths=[str(workspace)], enabled=False)
+            with self.assertRaisesRegex(ProjectRegistryError, "Could not infer project id from workspace"):
+                infer_project_for_workspace(disabled, workspace)
+
+            missing = self.make_config(work / "missing-workspace.json", workspacePaths=[str(work / "other")])
+            with self.assertRaisesRegex(ProjectRegistryError, "Could not infer project id from workspace"):
+                infer_project_for_workspace(missing, workspace)
+
+    def test_workspace_inference_prefers_longest_match_and_rejects_ambiguous_matches(self) -> None:
+        from project_room_registry import ProjectRegistryError, infer_project_for_workspace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            parent = work / "workspace"
+            nested = parent / "nested"
+            nested.mkdir(parents=True)
+            config = work / "projects.json"
+            base_project = {
+                "displayName": "Demo",
+                "kitPath": str(ROOT / "runs" / "gakju-imagegen-room-v1" / "kit"),
+                "petPackagePath": str(ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner"),
+                "defaultState": "idle",
+                "theme": "quiet archive nook",
+                "enabled": True,
+            }
+            write_json(
+                config,
+                {
+                    "schemaVersion": 1,
+                    "projects": [
+                        {"projectId": "parent", **base_project, "workspacePaths": [str(parent)]},
+                        {"projectId": "nested", **base_project, "workspacePaths": [str(nested)]},
+                    ],
+                },
+            )
+
+            self.assertEqual(infer_project_for_workspace(config, nested).project_id, "nested")
+
+            ambiguous = work / "ambiguous.json"
+            write_json(
+                ambiguous,
+                {
+                    "schemaVersion": 1,
+                    "projects": [
+                        {"projectId": "first", **base_project, "workspacePaths": [str(parent)]},
+                        {"projectId": "second", **base_project, "workspacePaths": [str(parent)]},
+                    ],
+                },
+            )
+            with self.assertRaisesRegex(ProjectRegistryError, "Ambiguous workspace project match"):
+                infer_project_for_workspace(ambiguous, parent)
+
     def test_set_project_state_cli_writes_external_state_bridge_file(self) -> None:
         from project_room_registry import read_project_state
 
@@ -224,6 +292,106 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                 self.assertEqual(data["state"], stored_state)
                 self.assertEqual(data["message"], f"event {event}")
                 self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), widget_state)
+
+    def test_codex_state_adapter_infers_project_from_workspace(self) -> None:
+        from project_room_registry import read_project_state
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            workspace = work / "workspace"
+            workspace.mkdir()
+            config = self.make_config(work / "projects.json", workspacePaths=[str(workspace)])
+            state_file = work / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--state-file",
+                    str(state_file),
+                    "--cwd",
+                    str(workspace),
+                    "--event",
+                    "start",
+                    "--message",
+                    "inferred start",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "running")
+            self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), "running")
+
+    def test_codex_state_adapter_project_id_overrides_workspace_inference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            workspace = work / "workspace"
+            workspace.mkdir()
+            config = self.make_config(work / "projects.json", workspacePaths=[str(workspace)])
+            state_file = work / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--state-file",
+                    str(state_file),
+                    "--cwd",
+                    str(work / "unmatched"),
+                    "--project-id",
+                    "manual-project",
+                    "--event",
+                    "done",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "manual-project")
+            self.assertEqual(data["state"], "done")
+
+    def test_codex_state_adapter_reports_workspace_inference_failure(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            config = self.make_config(work / "projects.json", workspacePaths=[str(work / "other")])
+            state_file = work / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(ADAPTER_SCRIPT),
+                    "--config",
+                    str(config),
+                    "--state-file",
+                    str(state_file),
+                    "--cwd",
+                    str(work / "unmatched"),
+                    "--event",
+                    "start",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Could not infer project id from workspace", result.stderr + result.stdout)
+            self.assertFalse(state_file.exists())
 
     def test_codex_state_adapter_rejects_unknown_events(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

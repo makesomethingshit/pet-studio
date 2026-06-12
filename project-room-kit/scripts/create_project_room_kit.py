@@ -307,6 +307,7 @@ def upsert_project_registry(
     pet_package: Path,
     default_state: str,
     theme: str,
+    workspace_paths: list[Path] | None = None,
 ) -> dict:
     registry_path.parent.mkdir(parents=True, exist_ok=True)
     if registry_path.exists():
@@ -326,6 +327,8 @@ def upsert_project_registry(
         "theme": theme,
         "enabled": True,
     }
+    if workspace_paths:
+        entry["workspacePaths"] = [str(path.expanduser().resolve()) for path in workspace_paths]
     registry["projects"] = [project for project in projects if project.get("projectId") != project_id]
     registry["projects"].append(entry)
     write_json(registry_path, registry)
@@ -359,6 +362,7 @@ def main() -> None:
     parser.add_argument("--register-project", action="store_true", help="Register the created kit in a project-room registry")
     parser.add_argument("--project-id", default=None, help="Project id to use with --register-project")
     parser.add_argument("--registry", default=None, help="Project registry path to update")
+    parser.add_argument("--workspace-path", action="append", default=[], help="Workspace path to associate with the registered project; may be repeated")
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--hatch-pet-dir", default=str(Path.home() / ".codex" / "skills" / "hatch-pet"))
     args = parser.parse_args()
@@ -423,6 +427,7 @@ def main() -> None:
             pet_package,
             "idle",
             args.theme,
+            [Path(value) for value in args.workspace_path],
         )
 
     steps: list[dict] = []

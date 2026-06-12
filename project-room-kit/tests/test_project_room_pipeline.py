@@ -191,6 +191,43 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertTrue(project["enabled"])
             self.assertEqual((registry.parent / project["kitPath"]).resolve(), (out / "kit").resolve())
 
+    def test_registers_workspace_path_with_created_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            out = work / "out"
+            registry = work / "project-room-projects.json"
+            workspace = work / "workspace"
+            workspace.mkdir()
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--register-project",
+                "--project-id",
+                "archive-nook",
+                "--registry",
+                str(registry),
+                "--workspace-path",
+                str(workspace),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(registry.read_text(encoding="utf-8"))
+            project = data["projects"][0]
+            self.assertEqual(project["workspacePaths"], [str(workspace.resolve())])
+
     def test_helper_pet_is_mapped_for_review_and_blocked_scenes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

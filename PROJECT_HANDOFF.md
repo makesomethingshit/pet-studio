@@ -96,6 +96,7 @@ Purpose:
 - Select a registered project by `projectId`.
 - Poll a small state file for external project state.
 - Write that state file manually or through a Codex-style task event adapter.
+- Infer the active project from registry `workspacePaths` when adapter calls omit `--project-id`.
 - Render the layered room at full size.
 - Show it in a frameless transparent-ish desktop widget window.
 - Animate pet states by cycling frames.
@@ -133,7 +134,7 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 Publish a Codex-style state event:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event start --message "working"
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event start --message "working"
 ```
 
 ## Current Best Run: `gakju-imagegen-room-v1`
@@ -224,7 +225,7 @@ Recommended next step:
 1. Continue from `docs/PROJECT_ROOM_ROADMAP.md`.
 2. Polish widget runtime behavior.
 3. Add persistent window position and scale.
-4. Expand `codex_state_adapter.py` from manual CLI events toward workspace/project detection or hooks.
+4. Expand `codex_state_adapter.py` from workspace project detection toward hooks.
 
 Other good next steps:
 

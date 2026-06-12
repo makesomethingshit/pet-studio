@@ -11,7 +11,7 @@ The long-term experience should feel like a living Codex pet: a compact side-vie
 - `project-room-kit` can create, validate, preview, and optionally bake layered `384x240` room kits.
 - `create_project_room_kit.py` accepts an arbitrary hatch-pet package plus generated or authored room/prop assets.
 - `project-room-widget` can render a layered kit in a frameless desktop window.
-- `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge.
+- `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge and infer project ids from registered workspace paths.
 - The current best demo is `runs/gakju-imagegen-room-v1`, a Gakju SD/chibi archive room.
 
 ## Milestones
@@ -82,6 +82,7 @@ The first project identity model is a local string id. A project assignment entr
 
 - project identity: `projectId`, `displayName`, `theme`
 - visual source: `petPackagePath`, `kitPath`
+- workspace matching: `workspacePaths`
 - runtime defaults: `defaultState`, `enabled`
 
 The state bridge uses:
