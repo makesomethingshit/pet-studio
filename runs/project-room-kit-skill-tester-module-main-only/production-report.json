@@ -1,0 +1,67 @@
+{
+  "ok": true,
+  "createdAt": "2026-06-12T14:44:49.436590+00:00",
+  "kitDir": "runs\\project-room-kit-skill-tester-module-main-only\\kit",
+  "generationBrief": "runs\\project-room-kit-skill-tester-module-main-only\\generation-brief.json",
+  "promptsDir": "runs\\project-room-kit-skill-tester-module-main-only\\prompts",
+  "registeredProject": null,
+  "projectLink": null,
+  "validation": {
+    "ok": true,
+    "styleId": "project-room-soft-sticker-v1",
+    "kit": "project-room",
+    "errors": [],
+    "warnings": []
+  },
+  "steps": [
+    {
+      "name": "validate kit",
+      "command": [
+        "C:\\Users\\USER\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "D:\\pet-studio\\project-room-kit\\scripts\\validate_project_room_kit.py",
+        "--kit",
+        "runs\\project-room-kit-skill-tester-module-main-only\\kit\\project-room.json",
+        "--json-out",
+        "runs\\project-room-kit-skill-tester-module-main-only\\kit-validation.json"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"styleId\": \"project-room-soft-sticker-v1\",\n  \"kit\": \"project-room\",\n  \"errors\": [],\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "render idle preview",
+      "command": [
+        "C:\\Users\\USER\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "D:\\pet-studio\\project-room-kit\\scripts\\render_project_room_preview.py",
+        "--kit",
+        "runs\\project-room-kit-skill-tester-module-main-only\\kit\\project-room.json",
+        "--state",
+        "idle",
+        "--out",
+        "runs\\project-room-kit-skill-tester-module-main-only\\room-preview.png"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"output\": \"runs\\\\project-room-kit-skill-tester-module-main-only\\\\room-preview.png\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "render contact sheet",
+      "command": [
+        "C:\\Users\\USER\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+        "D:\\pet-studio\\project-room-kit\\scripts\\render_project_room_preview.py",
+        "--kit",
+        "runs\\project-room-kit-skill-tester-module-main-only\\kit\\project-room.json",
+        "--state",
+        "all",
+        "--out",
+        "runs\\project-room-kit-skill-tester-module-main-only\\room-contact.png"
+      ],
+      "exitCode": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"output\": \"runs\\\\project-room-kit-skill-tester-module-main-only\\\\room-contact.png\",\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "ok": true
+    }
+  ]
+}

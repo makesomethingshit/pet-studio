@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "styleId": "project-room-soft-sticker-v1",
+  "perspective": "eye-level-side-view",
+  "role": "room",
+  "assetType": "room",
+  "features": [
+    "left-door",
+    "right-door",
+    "floor-line",
+    "back-wall"
+  ],
+  "source": "generated-or-authored",
+  "notes": "Registered by create_project_room_kit.py."
+}
