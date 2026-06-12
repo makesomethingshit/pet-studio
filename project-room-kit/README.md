@@ -148,10 +148,15 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
   --display-name "Archive Nook" `
   --render-preview `
   --render-contact `
-  --bake-fallback
+  --bake-fallback `
+  --register-project `
+  --project-id archive-nook `
+  --registry D:\pet-studio\project-room-widget\project-room-projects.json
 ```
 
 This writes `kit/project-room.json`, `kit/style-lock.json`, copied layer assets, sidecar `.asset.json` files, `generation-brief.json`, prompt text files, `kit-validation.json`, and `production-report.json`. The fallback package is optional and is only for runtimes that still need a normal hatch-pet package.
+
+When `--register-project` is used, the new kit is also added to a project assignment registry so the widget can launch it with `--project-id`.
 
 Register a hatch-pet package as a kit pet layer:
 

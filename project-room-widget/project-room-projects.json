@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "projects": [
+    {
+      "projectId": "gakju-archive-demo",
+      "displayName": "Gakju Archive Demo",
+      "kitPath": "../runs/gakju-imagegen-room-v1/kit",
+      "petPackagePath": "../runs/gakju-imagegen-room-v1/kit/pets/main-owner",
+      "defaultState": "idle",
+      "theme": "quiet archive nook",
+      "enabled": true
+    }
+  ]
+}

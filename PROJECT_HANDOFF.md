@@ -9,6 +9,7 @@ We built a modular Project Room system for Codex pets: `project-room-kit` create
 ## Current Workspace
 
 - Main workspace: `D:\pet-studio`
+- Roadmap: `D:\pet-studio\docs\PROJECT_ROOM_ROADMAP.md`
 - Skill installed at: `C:\Users\USER\.codex\skills\project-room-kit`
 - Gakju pet source: `C:\Users\USER\.codex\pets\gakju`
 - Current best run: `D:\pet-studio\runs\gakju-imagegen-room-v1`
@@ -82,12 +83,16 @@ Files:
 
 - `project_room_widget.py`
 - `README.md`
+- `project-room-projects.json`
+- `project-room-state.json`
 - `run-gakju-archive-room.bat`
 - `run-gakju-imagegen-room-v1.bat`
 
 Purpose:
 
 - Load a `project-room.json` kit.
+- Select a registered project by `projectId`.
+- Poll a small state file for external project state.
 - Render the layered room at full size.
 - Show it in a frameless transparent-ish desktop widget window.
 - Animate pet states by cycling frames.
@@ -108,6 +113,12 @@ Direct command:
 
 ```powershell
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --kit D:\pet-studio\runs\gakju-imagegen-room-v1\kit --scale 1.25 --x 1200 --y 620
+```
+
+Registered project command:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --scale 1.25 --x 1200 --y 620
 ```
 
 Render test:
@@ -201,10 +212,10 @@ Start-Process -FilePath 'C:\Users\USER\.cache\codex-runtimes\codex-primary-runti
 
 Recommended next step:
 
-1. Polish widget runtime behavior.
-2. Add persistent window position and scale.
-3. Add a tiny config file that chooses the active kit.
-4. Add proper state switching from external events later.
+1. Continue from `docs/PROJECT_ROOM_ROADMAP.md`.
+2. Polish widget runtime behavior.
+3. Add persistent window position and scale.
+4. Expand the state bridge into real Codex project/task integration.
 
 Other good next steps:
 
@@ -223,4 +234,5 @@ We are continuing Pet Studio work from D:\pet-studio. Please read D:\pet-studio\
 Current goal: continue the Project Room system for Codex pets. The best current demo is D:\pet-studio\runs\gakju-imagegen-room-v1, displayed by D:\pet-studio\project-room-widget\project_room_widget.py.
 
 Important: the real output is a 384x240 layered room widget, not a 192x208 hatch-pet spritesheet. Keep room, props, and pet layers separate. Use Gakju as the style source.
+Roadmap: D:\pet-studio\docs\PROJECT_ROOM_ROADMAP.md
 ```

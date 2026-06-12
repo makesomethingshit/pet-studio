@@ -147,6 +147,50 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             )
             self.assertEqual(validation.returncode, 0, validation.stderr + validation.stdout)
 
+    def test_registers_created_kit_in_project_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            out = work / "out"
+            registry = work / "project-room-projects.json"
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--theme",
+                "quiet archive nook",
+                "--display-name",
+                "Archive Nook",
+                "--register-project",
+                "--project-id",
+                "archive-nook",
+                "--registry",
+                str(registry),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(registry.read_text(encoding="utf-8"))
+            self.assertEqual(data["schemaVersion"], 1)
+            self.assertEqual(len(data["projects"]), 1)
+            project = data["projects"][0]
+            self.assertEqual(project["projectId"], "archive-nook")
+            self.assertEqual(project["displayName"], "Archive Nook")
+            self.assertEqual(project["defaultState"], "idle")
+            self.assertEqual(project["theme"], "quiet archive nook")
+            self.assertTrue(project["enabled"])
+            self.assertEqual((registry.parent / project["kitPath"]).resolve(), (out / "kit").resolve())
+
     def test_rejects_bad_pet_atlas_size(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

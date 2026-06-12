@@ -8,14 +8,47 @@ Frameless desktop-widget runtime for Project Room Kit packages.
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --kit D:\pet-studio\runs\gakju-archive-room-skill-run\kit --scale 1.25 --x 1200 --y 620
 ```
 
+## Run A Registered Project
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --scale 1.25 --x 1200 --y 620
+```
+
+Registered projects live in `project-room-projects.json`. The widget also supports:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --list-projects
+```
+
 Controls:
 
 - Drag with left mouse button.
 - Double-click to cycle animation state.
 - Right-click or Escape to close.
 
+## State Bridge
+
+Use `project-room-state.json` as the first file-based bridge from external project status to widget state:
+
+```json
+{
+  "projectId": "gakju-archive-demo",
+  "state": "running",
+  "message": "working on it",
+  "updatedAt": "2026-06-12T00:00:00Z"
+}
+```
+
+Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
+
 ## Render Test
 
 ```powershell
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --kit D:\pet-studio\runs\gakju-archive-room-skill-run\kit --render-once D:\pet-studio\runs\widget-render-test.png
+```
+
+Render a registered project once:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --render-project-once D:\pet-studio\runs\widget-render-test.png
 ```

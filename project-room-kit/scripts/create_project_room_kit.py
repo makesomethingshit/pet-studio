@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -290,6 +291,46 @@ def write_prompts(out_dir: Path, theme: str, prop_ids: list[str]) -> None:
         )
 
 
+def relative_path_from(path: Path, base_dir: Path) -> str:
+    try:
+        return os.path.relpath(path.resolve(), base_dir.resolve())
+    except ValueError:
+        return str(path.resolve())
+
+
+def upsert_project_registry(
+    registry_path: Path,
+    project_id: str,
+    display_name: str,
+    kit_dir: Path,
+    pet_package: Path,
+    default_state: str,
+    theme: str,
+) -> dict:
+    registry_path.parent.mkdir(parents=True, exist_ok=True)
+    if registry_path.exists():
+        registry = load_json(registry_path)
+    else:
+        registry = {"schemaVersion": 1, "projects": []}
+    projects = registry.setdefault("projects", [])
+    if not isinstance(projects, list):
+        raise SystemExit("Project registry `projects` must be a list.")
+
+    entry = {
+        "projectId": project_id,
+        "displayName": display_name,
+        "kitPath": relative_path_from(kit_dir, registry_path.parent),
+        "petPackagePath": relative_path_from(pet_package, registry_path.parent),
+        "defaultState": default_state,
+        "theme": theme,
+        "enabled": True,
+    }
+    registry["projects"] = [project for project in projects if project.get("projectId") != project_id]
+    registry["projects"].append(entry)
+    write_json(registry_path, registry)
+    return entry
+
+
 def run_step(name: str, command: list[str], cwd: Path) -> dict:
     completed = subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=False)
     return {
@@ -314,6 +355,9 @@ def main() -> None:
     parser.add_argument("--render-preview", action="store_true")
     parser.add_argument("--render-contact", action="store_true")
     parser.add_argument("--bake-fallback", action="store_true")
+    parser.add_argument("--register-project", action="store_true", help="Register the created kit in a project-room registry")
+    parser.add_argument("--project-id", default=None, help="Project id to use with --register-project")
+    parser.add_argument("--registry", default=None, help="Project registry path to update")
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--hatch-pet-dir", default=str(Path.home() / ".codex" / "skills" / "hatch-pet"))
     args = parser.parse_args()
@@ -364,6 +408,21 @@ def main() -> None:
     write_json(kit_dir / "project-room.json", manifest)
     write_json(out_dir / "generation-brief.json", make_generation_brief(args.theme, pet_json, prop_ids))
     write_prompts(out_dir, args.theme, prop_ids)
+
+    registered_project = None
+    if args.register_project:
+        if not args.project_id:
+            raise SystemExit("--project-id is required with --register-project")
+        registry_path = Path(args.registry) if args.registry else repo_root / "project-room-widget" / "project-room-projects.json"
+        registered_project = upsert_project_registry(
+            registry_path,
+            args.project_id,
+            display_name,
+            kit_dir,
+            pet_package,
+            "idle",
+            args.theme,
+        )
 
     steps: list[dict] = []
     validation_path = out_dir / "kit-validation.json"
@@ -427,6 +486,7 @@ def main() -> None:
         "kitDir": str(kit_dir),
         "generationBrief": str(out_dir / "generation-brief.json"),
         "promptsDir": str(out_dir / "prompts"),
+        "registeredProject": registered_project,
         "validation": validation,
         "steps": steps,
     }
