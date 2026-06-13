@@ -5,6 +5,8 @@
 
 Give a Codex pet its own desktop studio room.
 
+![Gakju archive room widget example](docs/images/gakju-widget-bubble-example.png)
+
 Pet Studio is a Codex skill and lightweight widget runtime for turning a hatch-pet into a layered desktop room. It keeps the room, props, main pet, helper pets, and speech bubbles editable instead of flattening them into one image.
 
 Current release: `v0.1.1`
@@ -77,8 +79,6 @@ Codex should guide the workflow, ask for missing art inputs, run validation, and
 ## Example Room
 
 This repository includes a public Gakju archive room sample built from separated room, prop, main pet, helper pet, and runtime speech-bubble layers.
-
-![Gakju archive room widget example](docs/images/gakju-widget-bubble-example.png)
 
 You can render or inspect the checked-in sample without generating new art:
 
