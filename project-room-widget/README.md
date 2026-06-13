@@ -98,7 +98,7 @@ For local Codex Desktop bubble integration, install the Pet Studio Codex bridge:
 python tools\install_pet_studio_codex_integration.py
 ```
 
-That installer installs the skill as `$pet-studio`, creates or backs up `%USERPROFILE%\.codex\config.toml`, writes `%USERPROFILE%\.codex\hooks.json` lifecycle hooks, and wraps the existing Codex `notify` command. Pass `--project-id <id>` when you also want to write an active project pin during installation.
+That installer installs the skill as `$pet-studio` and writes project-local `.codex\hooks.json` lifecycle hooks. Pass `--project-id <id>` when you also want to write an active project pin during installation. Pass `--install-notify` only if you intentionally want to wrap the user-level Codex `notify` command.
 
 The installed hooks cover `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`. Restart Codex or open `/hooks` to review and trust the command hooks if Codex asks.
 

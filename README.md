@@ -160,10 +160,9 @@ python tools\install_pet_studio_codex_integration.py
 The installer:
 
 - installs the skill as `$pet-studio` under `%USERPROFILE%\.codex\skills\pet-studio`
-- creates or backs up `%USERPROFILE%\.codex\config.toml`
-- writes `%USERPROFILE%\.codex\hooks.json` entries for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`
-- wraps the existing Codex `notify` command so Pet Studio also updates the widget state bridge when turns end
+- writes project-local `.codex\hooks.json` entries for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`
 - can write an active project pin when `--project-id` is provided
+- only wraps the user-level Codex `notify` command when `--install-notify` is provided
 
 After installation, restart Codex or open `/hooks` to review and trust the new non-managed command hooks when Codex asks.
 
@@ -224,4 +223,4 @@ python -m py_compile project-room-widget\pet_studio_event_adapter.py project-roo
 - The real room format is layered. The fallback baked pet package is only for compatibility.
 - Helper pets are optional, but make review, handoff, and blocked scenes more expressive.
 - `project-room.json` and `project-room-*` runtime files remain supported as the v1 compatibility format while the user-facing skill and commands use Pet Studio naming.
-- This repository provides a Codex event adapter, notify bridge, and lifecycle hook installer. `tools\install_pet_studio_codex_integration.py` installs the local bridge into `config.toml` and `hooks.json`; Codex may still require reviewing/trusting those hooks before they run.
+- This repository provides a Codex event adapter, optional notify bridge, and lifecycle hook installer. `tools\install_pet_studio_codex_integration.py` installs project-local hooks into `.codex\hooks.json`; Codex may still require reviewing/trusting those hooks before they run. Use `--install-notify` only if you intentionally want a user-level `notify` wrapper.

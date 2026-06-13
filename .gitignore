@@ -22,6 +22,8 @@ tester/
 runs/fresh-custom-pet-room/
 
 # Local Pet Studio runtime selection/state
+.codex/hooks.json
+.codex/hooks.json.bak-pet-studio-*
 project-room-widget/project-room-active.json
 project-room-widget/project-room-layouts.json
 project-room-widget/project-room-state.json

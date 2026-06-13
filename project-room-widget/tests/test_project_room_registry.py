@@ -1130,6 +1130,56 @@ class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
             self.assertIn("codex_pet_hook.py", text)
             self.assertIsNone(result["backup"])
 
+    def test_default_hooks_file_is_project_local(self) -> None:
+        from install_pet_studio_codex_integration import HOOKS_PATH
+
+        self.assertEqual(HOOKS_PATH, ROOT / ".codex" / "hooks.json")
+
+    def test_installer_does_not_wrap_global_notify_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOLS_DIR / "install_pet_studio_codex_integration.py"),
+                    "--dry-run",
+                    "--skip-skill",
+                    "--skip-hooks",
+                    "--config",
+                    str(Path(tmp) / "config.toml"),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            self.assertNotIn("notify", data)
+
+    def test_installer_wraps_global_notify_only_when_requested(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOLS_DIR / "install_pet_studio_codex_integration.py"),
+                    "--dry-run",
+                    "--skip-skill",
+                    "--skip-hooks",
+                    "--install-notify",
+                    "--config",
+                    str(Path(tmp) / "config.toml"),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            self.assertIn("notify", data)
+
 
 if __name__ == "__main__":
     unittest.main()

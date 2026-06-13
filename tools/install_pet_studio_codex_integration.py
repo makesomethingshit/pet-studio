@@ -15,7 +15,7 @@ from install_pet_studio_skill import install as install_skill
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON_EXE = Path(sys.executable)
 CONFIG_PATH = Path.home() / ".codex" / "config.toml"
-HOOKS_PATH = Path.home() / ".codex" / "hooks.json"
+HOOKS_PATH = ROOT / ".codex" / "hooks.json"
 SKILL_DESTINATION = Path.home() / ".codex" / "skills" / "pet-studio"
 HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "Stop"]
 
@@ -236,7 +236,8 @@ def main() -> None:
     parser.add_argument("--project-id", default=None, help="Optional project id to pin as the active Pet Studio room")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-skill", action="store_true")
-    parser.add_argument("--skip-notify", action="store_true")
+    parser.add_argument("--install-notify", action="store_true", help="Also wrap the user-level Codex notify command")
+    parser.add_argument("--skip-notify", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--skip-hooks", action="store_true")
     parser.add_argument("--skip-active-project", action="store_true")
     args = parser.parse_args()
@@ -246,7 +247,7 @@ def main() -> None:
         if not args.dry_run:
             install_skill(Path(args.skill_dest).expanduser(), force=True)
         results["skill"] = {"destination": str(Path(args.skill_dest).expanduser()), "dryRun": args.dry_run}
-    if not args.skip_notify:
+    if args.install_notify and not args.skip_notify:
         results["notify"] = install_notify_bridge(Path(args.config).expanduser(), dry_run=args.dry_run)
     if not args.skip_hooks:
         results["hooks"] = install_hooks_bridge(Path(args.hooks_file).expanduser(), dry_run=args.dry_run)
