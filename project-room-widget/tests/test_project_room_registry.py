@@ -187,7 +187,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(visible_chroma, 0)
 
-    def test_widget_canvas_image_mattes_partial_alpha_before_tk_composite(self) -> None:
+    def test_widget_canvas_image_hardens_partial_alpha_without_light_halo(self) -> None:
         import project_room_widget
 
         image = Image.new("RGBA", (3, 1), (0, 0, 0, 0))
@@ -197,7 +197,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         prepared = project_room_widget.prepare_canvas_image_for_tk(image)
 
-        self.assertEqual(prepared.getpixel((0, 0))[3], 255)
+        self.assertEqual(prepared.getpixel((0, 0)), (120, 80, 40, 255))
         self.assertEqual(prepared.getpixel((1, 0)), (0, 0, 0, 0))
         self.assertEqual(prepared.getpixel((2, 0)), (30, 20, 10, 255))
         self.assertFalse(

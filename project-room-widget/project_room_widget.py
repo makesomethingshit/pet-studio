@@ -59,7 +59,6 @@ from project_room_scene import (  # noqa: E402
 
 
 CHROMA = "#ff00ff"
-TK_EDGE_MATTE = (238, 219, 191)
 TK_CHROMA_FRINGE_ALPHA_MAX = 64
 
 
@@ -116,10 +115,9 @@ def composite_for_tk(frame: Image.Image) -> Image.Image:
     return background.convert("RGB")
 
 
-def prepare_canvas_image_for_tk(image: Image.Image, matte: tuple[int, int, int] = TK_EDGE_MATTE) -> Image.Image:
+def prepare_canvas_image_for_tk(image: Image.Image) -> Image.Image:
     rgba = image.convert("RGBA")
     data = bytearray(rgba.tobytes())
-    matte_r, matte_g, matte_b = matte
     for index in range(0, len(data), 4):
         red = data[index]
         green = data[index + 1]
@@ -132,9 +130,6 @@ def prepare_canvas_image_for_tk(image: Image.Image, matte: tuple[int, int, int] 
             data[index + 2] = 0
             data[index + 3] = 0
         elif alpha < 255:
-            data[index] = (red * alpha + matte_r * (255 - alpha)) // 255
-            data[index + 1] = (green * alpha + matte_g * (255 - alpha)) // 255
-            data[index + 2] = (blue * alpha + matte_b * (255 - alpha)) // 255
             data[index + 3] = 255
     return Image.frombytes("RGBA", rgba.size, bytes(data))
 
