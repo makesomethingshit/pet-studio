@@ -9,13 +9,13 @@ The widget keeps room, props, main pet, helper pets, and speech bubbles as separ
 Launch the checked-in Gakju sample:
 
 ```powershell
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --scale 1.25
+.\tools\pet_studio_widget.cmd --kit runs\gakju-imagegen-room-v1\kit --scale 1.25
 ```
 
 Launch a registered project:
 
 ```powershell
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
 List registered projects:
@@ -25,6 +25,8 @@ List registered projects:
 ```
 
 Registered projects live in the v1 compatibility registry file `project-room-projects.json`.
+
+Use `tools\pet_studio_widget.cmd` for normal widget launches. It starts `pet_studio_widget.py` through `pythonw` when available, so the command prompt does not stay attached. Use `tools\pet_studio_python.cmd` for debugging, listing projects, rendering files, and tests.
 
 ## Controls
 
@@ -53,7 +55,7 @@ Use `project-room-state.json` as the v1 file-based bridge from external task sta
 }
 ```
 
-Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
+Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`. A state payload may include `resetAfterMs` and `resetToState`; after that delay the widget displays the reset target without rewriting the state file.
 
 If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Messages are whitespace-normalized and capped at 80 characters. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`.
 

@@ -105,7 +105,7 @@ python pet-studio-widget/set_pet_studio_state.py --project-id archive-nook --sta
 python pet-studio-widget/pet_studio_event_adapter.py --event start --message "working"
 ```
 
-`done` maps to the hatch-pet `jumping` row, `handoff` maps to `review`, and `blocked` maps to `failed`. When `codex_state_adapter.py` omits `--project-id`, infer it from the current workspace and registry `workspacePaths`. State `message` text should appear as a runtime-only speech bubble near the main pet; it must not be baked into previews or kit assets. Helper pets should appear only in collaboration/problem-solving scenes: `review`, `handoff`, and `blocked`; kits without helper assets must still render clearly with the main pet only.
+`done` maps briefly to the hatch-pet `jumping` row and can include `resetAfterMs`/`resetToState` metadata so the widget returns to idle after completion. `handoff` maps to `review`, and `blocked` maps to `failed`. When `codex_state_adapter.py` omits `--project-id`, infer it from the current workspace and registry `workspacePaths`. State `message` text should appear as a runtime-only speech bubble near the main pet; it must not be baked into previews or kit assets. Helper pets should stay visible across normal working, waiting, review, blocked, and done states; kits without helper assets must still render clearly with the main pet only.
 
 ## Visual QA
 

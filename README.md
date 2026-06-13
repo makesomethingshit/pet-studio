@@ -52,7 +52,7 @@ The installer copies the skill to:
 
 The repository also keeps the older `project-room-*` file names as the v1 compatibility format. New public commands use Pet Studio names.
 
-The Windows examples use `tools\pet_studio_python.cmd` instead of calling `python` directly. The wrapper uses `PET_STUDIO_PYTHON` when set, then tries the Codex bundled runtime, `py -3`, `python`, and `python3`. This avoids broken Windows Python shims.
+The Windows examples use repository wrappers instead of calling `python` directly. `tools\pet_studio_widget.cmd` launches the desktop widget through `pythonw` so the terminal does not stay attached. `tools\pet_studio_python.cmd` is the console/debug wrapper used for commands that print output, render files, or run tests.
 
 ## Use It With Codex
 
@@ -99,7 +99,7 @@ List registered room projects:
 Launch the included demo room:
 
 ```powershell
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
 Render one frame without opening the widget:
@@ -224,6 +224,6 @@ Development checks:
 ## Notes
 
 - The real room format is layered. The fallback baked pet package is only for compatibility.
-- Helper pets are optional, but make review, handoff, and blocked scenes more expressive.
+- Helper pets are optional, but when a kit includes one the widget keeps it visible across normal working, waiting, review, blocked, and done states.
 - `project-room.json` and `project-room-*` runtime files remain supported as the v1 compatibility format while the user-facing skill and commands use Pet Studio naming.
 - This repository provides a Codex event adapter, optional notify bridge, and lifecycle hook installer. `tools\install_pet_studio_codex_integration.py` installs project-local hooks into `.codex\hooks.json`; Codex may still require reviewing/trusting those hooks before they run. Use `--install-notify` only if you intentionally want a user-level `notify` wrapper.

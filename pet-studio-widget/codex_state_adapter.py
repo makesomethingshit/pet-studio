@@ -44,9 +44,11 @@ def publish_codex_event(
     event: str,
     message: str,
     updated_at: str | None = None,
+    reset_after_ms: int | None = None,
+    reset_to_state: str = "idle",
 ) -> dict:
     state = bridge_state_for_event(event)
-    return write_project_state(state_file, project_id, state, message, updated_at)
+    return write_project_state(state_file, project_id, state, message, updated_at, reset_after_ms, reset_to_state)
 
 
 def load_event_payload(path_value: str) -> dict:
@@ -69,6 +71,15 @@ def optional_payload_string(payload: dict, key: str) -> str | None:
         return None
     if not isinstance(value, str):
         raise SystemExit(f"Codex event JSON `{key}` must be a string")
+    return value
+
+
+def optional_payload_int(payload: dict, key: str) -> int | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, int):
+        raise SystemExit(f"Codex event JSON `{key}` must be an integer")
     return value
 
 
@@ -98,6 +109,8 @@ def main() -> None:
     parser.add_argument("--event-json", default=None, help="Codex event JSON path, or `-` to read stdin")
     parser.add_argument("--message", default=None)
     parser.add_argument("--updated-at", default=None, help="Override updatedAt; mainly useful for deterministic tests")
+    parser.add_argument("--reset-after-ms", type=int, default=None, help="Optional auto-reset delay for transient states")
+    parser.add_argument("--reset-to-state", default=None, help="State to show after --reset-after-ms expires")
     args = parser.parse_args()
 
     payload = load_event_payload(args.event_json) if args.event_json else {}
@@ -108,13 +121,17 @@ def main() -> None:
     project_id_arg = args.project_id or optional_payload_string(payload, "projectId")
     cwd = args.cwd or optional_payload_string(payload, "cwd")
     updated_at = args.updated_at or optional_payload_string(payload, "updatedAt")
+    reset_after_ms = args.reset_after_ms
+    if reset_after_ms is None:
+        reset_after_ms = optional_payload_int(payload, "resetAfterMs")
+    reset_to_state = args.reset_to_state or optional_payload_string(payload, "resetToState") or "idle"
 
     state_file = Path(args.state_file).expanduser()
     try:
         project_id = resolve_project_id(project_id_arg, args.config, cwd, args.active_project_file)
     except ProjectRegistryError as error:
         raise SystemExit(str(error)) from error
-    state_payload = publish_codex_event(state_file, project_id, event, message, updated_at)
+    state_payload = publish_codex_event(state_file, project_id, event, message, updated_at, reset_after_ms, reset_to_state)
     print(
         json.dumps(
             {

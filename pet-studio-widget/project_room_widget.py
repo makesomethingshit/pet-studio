@@ -7,6 +7,7 @@ import json
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image, ImageTk
@@ -150,7 +151,39 @@ def load_kit(kit_path: Path) -> dict:
     return json.loads(kit_path.read_text(encoding="utf-8"))
 
 
-def read_project_state_payload(state_file: Path, project_id: str | None, fallback: str) -> tuple[str, str | None]:
+def parse_utc_timestamp(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def reset_state_for_payload(data: dict, now: datetime | None = None) -> str | None:
+    reset_after_ms = data.get("resetAfterMs")
+    if not isinstance(reset_after_ms, (int, float)) or reset_after_ms < 0:
+        return None
+    updated_at = parse_utc_timestamp(data.get("updatedAt"))
+    if updated_at is None:
+        return None
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    elapsed_ms = (current - updated_at).total_seconds() * 1000
+    if elapsed_ms < reset_after_ms:
+        return None
+    reset_to_state = data.get("resetToState")
+    return reset_to_state if isinstance(reset_to_state, str) and reset_to_state.strip() else "idle"
+
+
+def read_project_state_payload(
+    state_file: Path,
+    project_id: str | None,
+    fallback: str,
+    now: datetime | None = None,
+) -> tuple[str, str | None]:
     if not state_file.exists():
         return normalize_state(fallback, "idle"), None
     try:
@@ -159,6 +192,9 @@ def read_project_state_payload(state_file: Path, project_id: str | None, fallbac
         return normalize_state(fallback, "idle"), None
     if project_id and data.get("projectId") != project_id:
         return normalize_state(fallback, "idle"), None
+    reset_state = reset_state_for_payload(data, now)
+    if reset_state is not None:
+        return normalize_state(reset_state, "idle"), None
     message = data.get("message")
     return normalize_state(data.get("state"), fallback), message if isinstance(message, str) else None
 
@@ -293,7 +329,7 @@ class ProjectRoomWidget:
             row_state = self.kit["states"][self.state].get("mainPetRow", self.state)
             image = crop_atlas_frame(source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"]))
         elif entity.role == "helperPet":
-            row_state = self.kit["states"][self.state].get("helperPetRow", self.state)
+            row_state = self.kit["states"][self.state].get("helperPetRow", "review")
             image = crop_atlas_frame(source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"]))
         else:
             image = source

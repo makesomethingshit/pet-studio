@@ -102,10 +102,6 @@
       "z": 32,
       "anchor": "helper-prop-creature-anchor",
       "scale": 0.4,
-      "visibleWhen": [
-        "review",
-        "failed"
-      ],
       "draggable": true,
       "locked": false
     }
@@ -139,46 +135,56 @@
   "states": {
     "idle": {
       "mainPetRow": "idle",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },
     "running-right": {
       "mainPetRow": "running-right",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },
     "running-left": {
       "mainPetRow": "running-left",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },
     "waving": {
       "mainPetRow": "waving",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },
     "jumping": {
       "mainPetRow": "jumping",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },
@@ -195,19 +201,23 @@
     },
     "waiting": {
       "mainPetRow": "waiting",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },
     "running": {
       "mainPetRow": "running",
+      "helperPetRow": "review",
       "visibleLayers": [
         "room",
         "desk",
         "book-stack",
+        "helper-prop-creature",
         "main-owner"
       ]
     },

@@ -561,7 +561,7 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Prop placement references unknown prop id", result.stderr + result.stdout)
 
-    def test_helper_pet_is_mapped_for_review_and_blocked_scenes(self) -> None:
+    def test_helper_pet_is_mapped_for_all_widget_states(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
             pet = work / "pet"
@@ -590,11 +590,11 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             manifest = json.loads((out / "kit" / "project-room.json").read_text(encoding="utf-8"))
             helper_layer = next(layer for layer in manifest["layers"] if layer["id"] == "reviewer")
-            self.assertEqual(helper_layer["visibleWhen"], ["review", "failed"])
-            self.assertIn("reviewer", manifest["states"]["review"]["visibleLayers"])
-            self.assertIn("reviewer", manifest["states"]["failed"]["visibleLayers"])
-            self.assertEqual(manifest["states"]["review"]["helperPetRow"], "review")
-            self.assertEqual(manifest["states"]["failed"]["helperPetRow"], "review")
+            self.assertNotIn("visibleWhen", helper_layer)
+            for state in STATE_FRAMES:
+                with self.subTest(state=state):
+                    self.assertIn("reviewer", manifest["states"][state]["visibleLayers"])
+                    self.assertEqual(manifest["states"][state]["helperPetRow"], "review")
 
     def test_rejects_bad_pet_atlas_size(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

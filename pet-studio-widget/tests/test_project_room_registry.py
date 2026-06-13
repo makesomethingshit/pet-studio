@@ -20,6 +20,7 @@ HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
 ACTIVE_SCRIPT = WIDGET_DIR / "set_active_pet_studio.py"
 TOOLS_DIR = ROOT / "tools"
 PYTHON_CMD_WRAPPER = TOOLS_DIR / "pet_studio_python.cmd"
+WIDGET_CMD_WRAPPER = TOOLS_DIR / "pet_studio_widget.cmd"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 README_SCREENSHOT = ROOT / "docs" / "images" / "gakju-widget-bubble-example.png"
 if str(WIDGET_DIR) not in sys.path:
@@ -170,19 +171,17 @@ class ProjectRoomSceneTests(unittest.TestCase):
             "Nirmala UI",
         )
 
-    def test_public_demo_helper_pet_is_visible_only_in_review_states(self) -> None:
+    def test_public_demo_helper_pet_is_visible_in_all_states(self) -> None:
         from project_room_scene import scene_entities_from_kit, visible_scene_entities
 
         kit = self.load_demo_kit()
         entities = scene_entities_from_kit(kit)
 
-        idle_ids = [entity.id for entity in visible_scene_entities(kit, entities, "idle")]
-        review_ids = [entity.id for entity in visible_scene_entities(kit, entities, "review")]
-        failed_ids = [entity.id for entity in visible_scene_entities(kit, entities, "failed")]
-
-        self.assertNotIn("helper-prop-creature", idle_ids)
-        self.assertIn("helper-prop-creature", review_ids)
-        self.assertIn("helper-prop-creature", failed_ids)
+        for state in ("idle", "running", "waiting", "review", "failed", "jumping"):
+            with self.subTest(state=state):
+                visible_ids = [entity.id for entity in visible_scene_entities(kit, entities, state)]
+                self.assertIn("helper-prop-creature", visible_ids)
+                self.assertEqual(kit["states"][state]["helperPetRow"], "review")
 
     def test_public_demo_review_render_contains_helper_pet_pixels(self) -> None:
         import project_room_widget
@@ -393,6 +392,14 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("python --version", text)
         self.assertIn("no working python 3 runtime was found", text)
 
+    def test_widget_cmd_wrapper_launches_widget_without_console_python(self) -> None:
+        text = WIDGET_CMD_WRAPPER.read_text(encoding="utf-8").lower()
+
+        self.assertIn("pet_studio_pythonw", text)
+        self.assertIn("pythonw.exe", text)
+        self.assertIn("start \"pet studio widget\"", text)
+        self.assertIn("pet_studio_widget.py", text)
+
     def test_topmost_helper_sets_attribute_and_lifts_window(self) -> None:
         import project_room_widget
 
@@ -413,6 +420,42 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(root.attributes, [("-topmost", True)])
         self.assertEqual(root.lift_count, 1)
+
+    def test_done_state_resets_to_idle_after_reset_delay(self) -> None:
+        import project_room_widget
+        from datetime import datetime, timezone
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            write_json(
+                state_file,
+                {
+                    "projectId": "gakju-demo",
+                    "state": "done",
+                    "message": "Done",
+                    "updatedAt": "2026-06-13T00:00:00Z",
+                    "resetAfterMs": 1500,
+                    "resetToState": "idle",
+                },
+            )
+
+            before_state, before_message = project_room_widget.read_project_state_payload(
+                state_file,
+                "gakju-demo",
+                "idle",
+                now=datetime(2026, 6, 13, 0, 0, 1, tzinfo=timezone.utc),
+            )
+            after_state, after_message = project_room_widget.read_project_state_payload(
+                state_file,
+                "gakju-demo",
+                "idle",
+                now=datetime(2026, 6, 13, 0, 0, 2, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual(before_state, "jumping")
+        self.assertEqual(before_message, "Done")
+        self.assertEqual(after_state, "idle")
+        self.assertIsNone(after_message)
 
 
 class ProjectRoomRegistryTests(unittest.TestCase):
@@ -1157,6 +1200,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["projectId"], "gakju-demo")
             self.assertEqual(data["state"], "done")
             self.assertEqual(data["message"], "Done")
+            self.assertEqual(data["resetAfterMs"], 1500)
+            self.assertEqual(data["resetToState"], "idle")
 
     def test_codex_pet_hook_post_tool_use_returns_to_review_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

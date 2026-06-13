@@ -23,11 +23,18 @@ def write_project_state(
     state: str,
     message: str,
     updated_at: str | None = None,
+    reset_after_ms: int | None = None,
+    reset_to_state: str = "idle",
 ) -> dict:
     state = state.strip()
     if state not in EXTERNAL_STATES:
         supported = ", ".join(sorted(EXTERNAL_STATES))
         raise SystemExit(f"Unsupported project state `{state}`. Supported states: {supported}")
+    if reset_to_state not in EXTERNAL_STATES:
+        supported = ", ".join(sorted(EXTERNAL_STATES))
+        raise SystemExit(f"Unsupported reset state `{reset_to_state}`. Supported states: {supported}")
+    if reset_after_ms is not None and reset_after_ms < 0:
+        raise SystemExit("resetAfterMs must be zero or greater")
 
     payload = {
         "projectId": project_id,
@@ -35,6 +42,9 @@ def write_project_state(
         "message": message,
         "updatedAt": updated_at or utc_now(),
     }
+    if reset_after_ms is not None:
+        payload["resetAfterMs"] = int(reset_after_ms)
+        payload["resetToState"] = reset_to_state
     state_file.parent.mkdir(parents=True, exist_ok=True)
     state_file.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return payload
@@ -47,10 +57,20 @@ def main() -> None:
     parser.add_argument("--state", required=True, help="External Pet Studio state to publish")
     parser.add_argument("--message", default="")
     parser.add_argument("--updated-at", default=None, help="Override updatedAt; mainly useful for deterministic tests")
+    parser.add_argument("--reset-after-ms", type=int, default=None, help="Optional auto-reset delay for transient states")
+    parser.add_argument("--reset-to-state", default="idle", help="State to show after --reset-after-ms expires")
     args = parser.parse_args()
 
     state_file = Path(args.state_file).expanduser()
-    payload = write_project_state(state_file, args.project_id, args.state, args.message, args.updated_at)
+    payload = write_project_state(
+        state_file,
+        args.project_id,
+        args.state,
+        args.message,
+        args.updated_at,
+        args.reset_after_ms,
+        args.reset_to_state,
+    )
     print(json.dumps({"ok": True, "stateFile": str(state_file), "state": payload}, indent=2))
 
 

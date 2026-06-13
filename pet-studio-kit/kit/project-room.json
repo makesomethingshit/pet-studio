@@ -86,7 +86,6 @@
       "z": 18,
       "anchor": "helper",
       "scale": 0.56,
-      "visibleWhen": ["review", "failed"],
       "draggable": true,
       "locked": false
     }
@@ -116,23 +115,28 @@
   "states": {
     "idle": {
       "mainPetRow": "idle",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "running-right": {
       "mainPetRow": "running-right",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "running-left": {
       "mainPetRow": "running-left",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "waving": {
       "mainPetRow": "waving",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "jumping": {
       "mainPetRow": "jumping",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "failed": {
       "mainPetRow": "failed",
@@ -141,11 +145,13 @@
     },
     "waiting": {
       "mainPetRow": "waiting",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "running": {
       "mainPetRow": "running",
-      "visibleLayers": ["room", "desk", "main-owner"]
+      "helperPetRow": "review",
+      "visibleLayers": ["room", "desk", "helper-reviewer", "main-owner"]
     },
     "review": {
       "mainPetRow": "review",

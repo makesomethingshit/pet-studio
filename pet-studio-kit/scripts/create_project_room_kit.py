@@ -291,7 +291,6 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
                 "z": 18 + index,
                 "anchor": anchor_name,
                 "scale": 0.56,
-                "visibleWhen": ["review", "failed"],
                 "draggable": True,
                 "locked": False,
             }
@@ -313,9 +312,8 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
     helper_visible = ["room", *prop_ids, *helper_ids, "main-owner"]
     states = {}
     for state in STATE_ROWS:
-        helper_state = state in {"review", "failed"}
-        states[state] = {"mainPetRow": state, "visibleLayers": helper_visible if helper_state else base_visible}
-        if helper_state and helper_ids:
+        states[state] = {"mainPetRow": state, "visibleLayers": helper_visible if helper_ids else base_visible}
+        if helper_ids:
             states[state]["helperPetRow"] = "review"
 
     return {

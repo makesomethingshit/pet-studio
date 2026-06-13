@@ -14,6 +14,7 @@ from codex_state_adapter import publish_codex_event, resolve_project_id
 from project_room_registry import DEFAULT_ACTIVE_PROJECT_FILE, DEFAULT_REGISTRY, DEFAULT_STATE_FILE, ProjectRegistryError
 
 
+DONE_RESET_AFTER_MS = 1500
 HOOK_TO_EVENT = {
     "session_start": ("idle", "Pet Studio ready"),
     "user_prompt_submit": ("start", "Working"),
@@ -23,6 +24,12 @@ HOOK_TO_EVENT = {
     "stop": ("done", "Done"),
     "notify": ("done", "Turn ended"),
 }
+
+
+def reset_options_for_hook(hook: str) -> dict[str, object]:
+    if hook in {"stop", "notify"}:
+        return {"reset_after_ms": DONE_RESET_AFTER_MS, "reset_to_state": "idle"}
+    return {}
 
 
 def decode_stdin_bytes(raw: bytes) -> str:
@@ -119,7 +126,7 @@ def main() -> None:
         project_id = None
 
     if project_id:
-        publish_codex_event(Path(args.state_file).expanduser(), project_id, event, message)
+        publish_codex_event(Path(args.state_file).expanduser(), project_id, event, message, **reset_options_for_hook(args.hook))
 
     passthrough = args.passthrough or []
     if passthrough and passthrough[0] == "--":
