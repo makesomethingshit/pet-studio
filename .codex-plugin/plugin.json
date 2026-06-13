@@ -1,10 +1,10 @@
 {
   "name": "pet-studio",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build style-matched Codex pet rooms and connect Pet Studio widget bubbles to Codex task state.",
   "author": {
     "name": "Pet Studio"
   },
-  "license": "Apache-2.0",
+  "license": "MIT",
   "skills": "./project-room-kit/"
 }

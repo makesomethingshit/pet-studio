@@ -1,13 +1,13 @@
 ﻿# Pet Studio
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue)](CHANGELOG.md)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.1-blue)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Give a Codex pet its own desktop studio room.
 
 Pet Studio is a Codex skill and lightweight widget runtime for turning a hatch-pet into a layered desktop room. It keeps the room, props, main pet, helper pets, and speech bubbles editable instead of flattening them into one image.
 
-Current release: `v0.1.0`
+Current release: `v0.1.1`
 
 ## What It Does
 

@@ -2,6 +2,14 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.1.1 - 2026-06-14
+
+License update.
+
+- Changed the project license from Apache-2.0 to MIT for simpler public reuse.
+- Updated package metadata and README badges to report the MIT license.
+- Previous `v0.1.0` release remains available under its original Apache-2.0 terms.
+
 ## 0.1.0 - 2026-06-13
 
 Initial public release.

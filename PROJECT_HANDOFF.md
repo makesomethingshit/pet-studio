@@ -1,6 +1,6 @@
 # Pet Studio Maintainer Notes
 
-This repository is prepared for the Pet Studio `v0.1.0` public release.
+This repository is prepared for the Pet Studio `v0.1.1` public release.
 
 ## Public Positioning
 
@@ -56,6 +56,6 @@ docs/images/gakju-widget-bubble-example.png
 
 ## Notes
 
-- License is Apache-2.0.
+- License is MIT from `v0.1.1`; `v0.1.0` remains available under its original Apache-2.0 terms.
 - Current release version is stored in `VERSION`.
 - Changelog entries live in `CHANGELOG.md`.
