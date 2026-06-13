@@ -3,23 +3,24 @@
   "projects": {
     "fresh-custom-pet-room": {
       "anchors": {
-        "main-owner": {
-          "x": 164,
-          "y": 222
+        "helper-prop-creature": {
+          "x": 279,
+          "y": 192
         },
         "book-stack": {
-          "x": 78,
-          "y": 223
+          "x": 58,
+          "y": 225
+        },
+        "main-owner": {
+          "x": 146,
+          "y": 225
         },
         "desk": {
-          "x": 282,
-          "y": 229
-        },
-        "helper-prop-creature": {
-          "x": -1050,
-          "y": 611
+          "x": 279,
+          "y": 230
         }
-      }
+      },
+      "zOrder": {}
     }
   }
 }

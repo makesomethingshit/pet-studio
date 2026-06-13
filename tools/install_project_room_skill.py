@@ -1,4 +1,4 @@
-"""Install the Project Room Kit skill into a local Codex skills directory."""
+"""Install the Pet Studio skill into a local Codex skills directory."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "project-room-kit"
-DEFAULT_DESTINATION = Path.home() / ".codex" / "skills" / "project-room-kit"
+DEFAULT_DESTINATION = Path.home() / ".codex" / "skills" / "pet-studio"
 INCLUDED = [
     "SKILL.md",
     "agents",
@@ -37,7 +37,7 @@ def install(destination: Path, force: bool) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     for name in INCLUDED:
         copy_item(SOURCE / name, destination / name)
-    print(f"Installed Project Room Kit skill to {destination}")
+    print(f"Installed Pet Studio skill to {destination}")
 
 
 def main() -> None:

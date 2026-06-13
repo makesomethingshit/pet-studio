@@ -1,9 +1,9 @@
 ---
-name: project-room-kit
-description: Create modular room-decorating Codex pet kits that match a selected hatch-pet style, preserve a large layered room source, generate or register props and helper pets, validate style consistency, render full-size previews, register project-specific pet rooms, and run a frameless project-room scene host. Use when working on project-room pets, room-decorating pet widgets, project-to-pet assignments, style-matched props, helper pets, or hatch-pet composition workflows.
+name: pet-studio
+description: Create modular room-decorating Codex pet kits and project-room widgets that match a selected hatch-pet style, preserve layered room sources, generate or register props and helper pets, validate style consistency, render previews, register project-specific pet rooms, and connect Codex task state to runtime speech bubbles. Use when working on project-room pets, pet-studio room kits, room-decorating pet widgets, project-to-pet assignments, style-matched props, helper pets, or Codex pet bubble integration workflows.
 ---
 
-# Project Room Kit
+# Pet Studio
 
 ## Overview
 

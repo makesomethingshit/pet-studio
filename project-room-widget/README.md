@@ -34,6 +34,8 @@ Controls:
 
 Registered projects persist moved entity anchors and layer-order overrides in `project-room-layouts.json`, and host window position/scale in `project-room-window.json`. Direct `--kit` runs allow session-only movement and do not write project layout or window overrides.
 
+When a registered project is launched with `--project-id`, the widget also writes `project-room-active.json` so Codex event adapters can resolve the currently selected room project. Saved entity anchors outside the source room canvas are ignored on load and new drag positions are clamped to the canvas, so a helper or prop cannot stay permanently off-screen after an accidental drag. Use the context menu's reset layout action to return all entities to the kit defaults.
+
 ## State Bridge
 
 Use `project-room-state.json` as the first file-based bridge from external project status to widget state:
@@ -79,11 +81,19 @@ Pin an active project when multiple room projects share a workspace:
 C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\set_active_project.py --project-id gakju-archive-demo --cwd D:\pet-studio
 ```
 
-Codex host hooks can call the same adapter with a JSON payload. The repository does not install host hooks automatically; it provides this stable local command target:
+Codex host hooks can call the same adapter with a JSON payload. This is the stable local command target:
 
 ```powershell
 '{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event-json -
 ```
+
+For the local Codex desktop setup, install the Pet Studio notify bridge:
+
+```powershell
+C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\tools\install_pet_studio_codex_integration.py
+```
+
+That installer backs up `%USERPROFILE%\.codex\config.toml`, wraps the existing Codex `notify` command, installs the skill as `$pet-studio`, and writes the active project pin. The repo also includes `.codex-plugin/plugin.json` and `hooks/hooks.codex.json` for fuller lifecycle events when the Codex plugin hook surface loads this repo as a plugin.
 
 ## Render Test
 

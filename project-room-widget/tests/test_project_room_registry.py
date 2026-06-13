@@ -16,6 +16,7 @@ WIDGET_DIR = ROOT / "project-room-widget"
 WIDGET_SCRIPT = WIDGET_DIR / "project_room_widget.py"
 STATE_SCRIPT = WIDGET_DIR / "set_project_state.py"
 ADAPTER_SCRIPT = WIDGET_DIR / "codex_state_adapter.py"
+HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
 ACTIVE_SCRIPT = WIDGET_DIR / "set_active_project.py"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 if str(WIDGET_DIR) not in sys.path:
@@ -58,6 +59,27 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(desk.anchor, {"x": 260, "y": 210})
         self.assertEqual(kit["anchors"]["desk"], original_anchor)
+
+    def test_project_layout_ignores_entity_anchor_outside_source_canvas(self) -> None:
+        from project_room_scene import scene_entities_from_kit
+
+        kit = self.load_demo_kit()
+        helper_layer = next(layer for layer in kit["layers"] if layer["id"] == "helper-reviewer")
+        original_anchor = dict(kit["anchors"][helper_layer["anchor"]])
+        layout = {"anchors": {"helper-reviewer": {"x": -1050, "y": 611}}}
+
+        entities = scene_entities_from_kit(kit, layout)
+        helper = next(entity for entity in entities if entity.id == "helper-reviewer")
+
+        self.assertEqual(helper.anchor, original_anchor)
+
+    def test_clamp_anchor_to_source_canvas_bounds_saved_drag_positions(self) -> None:
+        from project_room_scene import clamp_anchor_to_source_canvas
+
+        kit = self.load_demo_kit()
+
+        self.assertEqual(clamp_anchor_to_source_canvas(kit, {"x": -1050, "y": 611}), {"x": 0, "y": 240})
+        self.assertEqual(clamp_anchor_to_source_canvas(kit, {"x": 302, "y": 204}), {"x": 302, "y": 204})
 
     def test_project_layout_file_round_trips_entity_anchor(self) -> None:
         from project_room_scene import load_project_layout, save_project_anchor
@@ -169,6 +191,18 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertEqual(BUBBLE_STYLE["outline"], "#7a6554")
         self.assertEqual(BUBBLE_STYLE["shadow"], "#d8c0a1")
         self.assertEqual(BUBBLE_STYLE["text"], "#2d241e")
+
+    def test_rounded_rectangle_points_create_curved_bubble_body(self) -> None:
+        from project_room_scene import rounded_rectangle_points
+
+        points = rounded_rectangle_points(10, 20, 110, 70, 12, steps=5)
+
+        self.assertGreater(len(points), 8)
+        self.assertAlmostEqual(min(points[0::2]), 10)
+        self.assertAlmostEqual(max(points[0::2]), 110)
+        self.assertAlmostEqual(min(points[1::2]), 20)
+        self.assertAlmostEqual(max(points[1::2]), 70)
+        self.assertNotEqual(points, [10, 20, 110, 20, 110, 70, 10, 70])
 
     def test_bubble_style_prefers_kit_manifest_over_pet_sidecar_and_image(self) -> None:
         from project_room_scene import resolve_bubble_style
@@ -555,6 +589,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(config),
                     "--state-file",
                     str(state_file),
+                    "--active-project-file",
+                    str(work / "missing-active.json"),
                     "--cwd",
                     str(workspace),
                     "--event",
@@ -590,6 +626,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(config),
                     "--state-file",
                     str(state_file),
+                    "--active-project-file",
+                    str(work / "missing-active.json"),
                     "--cwd",
                     str(work / "unmatched"),
                     "--project-id",
@@ -877,6 +915,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(config),
                     "--state-file",
                     str(state_file),
+                    "--active-project-file",
+                    str(work / "missing-active.json"),
                     "--cwd",
                     str(work / "unmatched"),
                     "--event",
@@ -916,6 +956,60 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Unsupported Codex event", result.stderr + result.stdout)
             self.assertFalse(state_file.exists())
+
+    def test_codex_pet_hook_user_prompt_updates_bubble_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            payload = json.dumps({"prompt": "Make the sub pet visible", "projectId": "gakju-demo"})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--hook",
+                    "user_prompt_submit",
+                ],
+                cwd=ROOT,
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "running")
+            self.assertEqual(data["message"], "Working: Make the sub pet visible")
+
+    def test_codex_pet_hook_stop_moves_bubble_to_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--hook",
+                    "stop",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "review")
+            self.assertEqual(data["message"], "Ready for review")
 
 
 if __name__ == "__main__":

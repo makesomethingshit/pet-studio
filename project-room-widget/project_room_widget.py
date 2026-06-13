@@ -13,8 +13,9 @@ from PIL import Image, ImageTk
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_TOOLS = ROOT / "project-room-kit" / "scripts"
-INSTALLED_TOOLS = Path.home() / ".codex" / "skills" / "project-room-kit" / "scripts"
-for tools_dir in (INSTALLED_TOOLS, LOCAL_TOOLS):
+INSTALLED_TOOLS = Path.home() / ".codex" / "skills" / "pet-studio" / "scripts"
+LEGACY_INSTALLED_TOOLS = Path.home() / ".codex" / "skills" / "project-room-kit" / "scripts"
+for tools_dir in (INSTALLED_TOOLS, LEGACY_INSTALLED_TOOLS, LOCAL_TOOLS):
     if tools_dir.exists() and str(tools_dir) not in sys.path:
         sys.path.insert(0, str(tools_dir))
 
@@ -27,6 +28,7 @@ from bake_project_room_pet import (  # noqa: E402
     scale_visible_layer,
 )
 from project_room_registry import (  # noqa: E402
+    DEFAULT_ACTIVE_PROJECT_FILE,
     DEFAULT_REGISTRY,
     DEFAULT_STATE_FILE,
     ProjectRegistryError,
@@ -35,6 +37,7 @@ from project_room_registry import (  # noqa: E402
     project_to_summary,
     select_project,
 )
+from set_active_project import write_active_project  # noqa: E402
 from project_room_scene import (  # noqa: E402
     DEFAULT_LAYOUT_FILE,
     DEFAULT_WINDOW_FILE,
@@ -49,6 +52,8 @@ from project_room_scene import (  # noqa: E402
     save_project_z_order,
     scene_entities_from_kit,
     resolve_bubble_style,
+    clamp_anchor_to_source_canvas,
+    rounded_rectangle_points,
     visible_scene_entities,
 )
 
@@ -247,10 +252,10 @@ class ProjectRoomWidget:
         canvas_width = max(1, int(self.canvas.cget("width")))
         canvas_height = max(1, int(self.canvas.cget("height")))
         x = int(round(owner.anchor["x"] * self.scale))
-        y = int(round((owner.anchor["y"] - 124) * self.scale))
+        y = int(round((owner.anchor["y"] - 116) * self.scale))
         margin = max(10, int(round(12 * self.scale)))
-        max_width = min(max(112, int(round(156 * self.scale))), max(80, canvas_width - margin * 2))
-        font_size = max(9, int(round(10.5 * self.scale)))
+        max_width = min(max(104, int(round(142 * self.scale))), max(80, canvas_width - margin * 2))
+        font_size = max(9, int(round(9.5 * self.scale)))
         text_item = self.canvas.create_text(
             x,
             y,
@@ -275,9 +280,9 @@ class ProjectRoomWidget:
             bbox = self.canvas.bbox(text_item)
         if bbox is None:
             return
-        pad_x = max(10, int(round(11 * self.scale)))
-        pad_y = max(7, int(round(8 * self.scale)))
-        radius = max(10, int(round(11 * self.scale)))
+        pad_x = max(10, int(round(10 * self.scale)))
+        pad_y = max(6, int(round(7 * self.scale)))
+        radius = max(8, int(round(9 * self.scale)))
         left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
         if bottom + max(8, int(round(9 * self.scale))) > canvas_height - margin:
             shift = canvas_height - margin - bottom - max(8, int(round(9 * self.scale)))
@@ -288,58 +293,32 @@ class ProjectRoomWidget:
             left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
         tail_anchor = max(left + radius + 6, min(x, right - radius - 6))
         shadow_offset = max(1, int(round(2 * self.scale)))
-        tail_height = max(7, int(round(8 * self.scale)))
-        rect_points = [
-            left + radius,
-            top,
-            right - radius,
-            top,
-            right,
-            top,
-            right,
-            top + radius,
-            right,
-            bottom - radius,
-            right,
-            bottom,
-            right - radius,
-            bottom,
-            left + radius,
-            bottom,
-            left,
-            bottom,
-            left,
-            bottom - radius,
-            left,
-            top + radius,
-            left,
-            top,
-        ]
+        tail_height = max(6, int(round(7 * self.scale)))
+        tail_half = max(5, int(round(5.5 * self.scale)))
+        rect_points = rounded_rectangle_points(left, top, right, bottom, radius, steps=5)
         shadow_rect = self.canvas.create_polygon(
             [coord + shadow_offset for coord in rect_points],
-            smooth=True,
-            splinesteps=12,
             fill=self.bubble_style["shadow"],
             outline="",
             tags=("bubble",),
         )
         shadow_tail = self.canvas.create_polygon(
-            tail_anchor - 7 + shadow_offset,
+            tail_anchor - tail_half + shadow_offset,
             bottom - 1 + shadow_offset,
-            tail_anchor + 6 + shadow_offset,
+            tail_anchor + tail_half + shadow_offset,
             bottom - 1 + shadow_offset,
-            tail_anchor - 2 + shadow_offset,
+            tail_anchor - int(round(2 * self.scale)) + shadow_offset,
             bottom + tail_height + shadow_offset,
             fill=self.bubble_style["shadow"],
             outline="",
             tags=("bubble",),
         )
         tail = self.canvas.create_polygon(
-            tail_anchor - 7,
+            tail_anchor - tail_half,
             bottom - 1,
-            tail_anchor + 6,
+            tail_anchor + tail_half,
             bottom - 1,
-            tail_anchor - 2,
+            tail_anchor - int(round(2 * self.scale)),
             bottom + tail_height,
             fill=self.bubble_style["fill"],
             outline=self.bubble_style["outline"],
@@ -347,8 +326,6 @@ class ProjectRoomWidget:
         )
         rect = self.canvas.create_polygon(
             rect_points,
-            smooth=True,
-            splinesteps=12,
             fill=self.bubble_style["fill"],
             outline=self.bubble_style["outline"],
             width=max(1, int(round(1.1 * self.scale))),
@@ -458,6 +435,7 @@ class ProjectRoomWidget:
                 "x": int(round(entity.anchor["x"] + dx / self.scale)),
                 "y": int(round(entity.anchor["y"] + dy / self.scale)),
             }
+            next_anchor = clamp_anchor_to_source_canvas(self.kit, next_anchor)
             self.replace_entity_anchor(self.drag_entity_id, next_anchor)
             self.drag_last = (event.x, event.y)
             return
@@ -646,12 +624,14 @@ def main() -> None:
         return
 
     project_id: str | None = None
+    selected_project = None
     state = args.state or "idle"
     if args.project_id:
         try:
             project = select_project(args.config, args.project_id)
         except ProjectRegistryError as error:
             parser.error(str(error))
+        selected_project = project
         kit_path = project.kit_manifest
         project_id = project.project_id
         state = args.state or project.default_state
@@ -680,6 +660,10 @@ def main() -> None:
         clear_transparent_rgb(frame).save(output)
         print(json.dumps({"ok": True, "output": str(output), "state": normalize_state(state, "idle"), "projectId": project_id}, indent=2))
         return
+
+    if project_id and selected_project is not None:
+        workspace_path = selected_project.workspace_paths[0] if selected_project.workspace_paths else Path.cwd()
+        write_active_project(DEFAULT_ACTIVE_PROJECT_FILE, project_id, workspace_path)
 
     widget = ProjectRoomWidget(
         kit_path=kit_path,

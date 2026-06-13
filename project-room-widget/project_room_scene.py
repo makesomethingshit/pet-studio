@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,31 @@ BUBBLE_STYLE = {
 }
 
 
+def rounded_rectangle_points(
+    left: float,
+    top: float,
+    right: float,
+    bottom: float,
+    radius: float,
+    steps: int = 4,
+) -> list[float]:
+    radius = max(0.0, min(float(radius), (right - left) / 2, (bottom - top) / 2))
+    if radius <= 0:
+        return [left, top, right, top, right, bottom, left, bottom]
+    points: list[float] = []
+    corners = (
+        (right - radius, top + radius, -90, 0),
+        (right - radius, bottom - radius, 0, 90),
+        (left + radius, bottom - radius, 90, 180),
+        (left + radius, top + radius, 180, 270),
+    )
+    for cx, cy, start, end in corners:
+        for index in range(steps + 1):
+            angle = math.radians(start + (end - start) * index / steps)
+            points.extend([cx + math.cos(angle) * radius, cy + math.sin(angle) * radius])
+    return points
+
+
 @dataclass(frozen=True)
 class SceneEntity:
     id: str
@@ -58,6 +84,26 @@ def default_draggable(role: str) -> bool:
 
 def coerce_anchor(anchor: dict[str, Any]) -> dict[str, int]:
     return {"x": int(anchor["x"]), "y": int(anchor["y"])}
+
+
+def source_canvas_size(kit: dict[str, Any]) -> tuple[int, int]:
+    source_canvas = kit.get("sourceCanvas", kit.get("cell", {}))
+    return int(source_canvas.get("width", 0)), int(source_canvas.get("height", 0))
+
+
+def anchor_inside_source_canvas(kit: dict[str, Any], anchor: dict[str, int]) -> bool:
+    width, height = source_canvas_size(kit)
+    return 0 <= anchor["x"] <= width and 0 <= anchor["y"] <= height
+
+
+def clamp_anchor_to_source_canvas(kit: dict[str, Any], anchor: dict[str, int]) -> dict[str, int]:
+    width, height = source_canvas_size(kit)
+    if width <= 0 or height <= 0:
+        return coerce_anchor(anchor)
+    return {
+        "x": max(0, min(width, int(anchor["x"]))),
+        "y": max(0, min(height, int(anchor["y"]))),
+    }
 
 
 def project_layout_document(path: Path) -> dict:
@@ -295,7 +341,11 @@ def layer_anchor(kit: dict, layer: dict, layout: dict | None) -> dict[str, int]:
     anchors = kit.get("anchors", {})
     anchor = anchors.get(anchor_name, anchors.get("cell-bottom-center", {"x": 0, "y": 0}))
     layout_anchor = (layout or {}).get("anchors", {}).get(layer["id"])
-    return coerce_anchor(layout_anchor or anchor)
+    if layout_anchor:
+        coerced_layout_anchor = coerce_anchor(layout_anchor)
+        if anchor_inside_source_canvas(kit, coerced_layout_anchor):
+            return coerced_layout_anchor
+    return coerce_anchor(anchor)
 
 
 def scene_entities_from_kit(kit: dict, layout: dict | None = None) -> list[SceneEntity]:
