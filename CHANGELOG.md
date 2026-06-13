@@ -12,4 +12,5 @@ Initial public release.
 - Added Codex event bridge commands plus a local installer for project-scoped `hooks.json` lifecycle integration that updates widget bubble state from Codex task activity.
 - Added the public Gakju archive room example and README screenshot.
 - Fixed low-alpha chroma fringe cleanup so transparent widget edges do not show magenta residue.
+- Fixed Tk widget compositing so semi-transparent pet edges are matted before chroma-key transparency.
 - Kept `project-room.json` and `project-room-*` runtime files as the v1 compatibility format while exposing Pet Studio naming in public commands.

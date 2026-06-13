@@ -20,6 +20,7 @@ HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
 ACTIVE_SCRIPT = WIDGET_DIR / "set_active_pet_studio.py"
 TOOLS_DIR = ROOT / "tools"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
+README_SCREENSHOT = ROOT / "docs" / "images" / "gakju-widget-bubble-example.png"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
 if str(TOOLS_DIR) not in sys.path:
@@ -29,6 +30,13 @@ if str(TOOLS_DIR) not in sys.path:
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def rgba_pixels(image: Image.Image):
+    rgba = image.convert("RGBA")
+    data = rgba.tobytes()
+    for index in range(0, len(data), 4):
+        yield data[index], data[index + 1], data[index + 2], data[index + 3]
 
 
 class ProjectRoomSceneTests(unittest.TestCase):
@@ -131,6 +139,73 @@ class ProjectRoomSceneTests(unittest.TestCase):
         desk = next(entity for entity in entities if entity.id == "desk")
 
         self.assertTrue(desk.flip_x)
+
+    def test_public_demo_helper_pet_is_visible_only_in_review_states(self) -> None:
+        from project_room_scene import scene_entities_from_kit, visible_scene_entities
+
+        kit = self.load_demo_kit()
+        entities = scene_entities_from_kit(kit)
+
+        idle_ids = [entity.id for entity in visible_scene_entities(kit, entities, "idle")]
+        review_ids = [entity.id for entity in visible_scene_entities(kit, entities, "review")]
+        failed_ids = [entity.id for entity in visible_scene_entities(kit, entities, "failed")]
+
+        self.assertNotIn("helper-reviewer", idle_ids)
+        self.assertIn("helper-reviewer", review_ids)
+        self.assertIn("helper-reviewer", failed_ids)
+
+    def test_public_demo_review_render_contains_helper_pet_pixels(self) -> None:
+        import project_room_widget
+
+        kit = self.load_demo_kit()
+        kit_without_helper = json.loads(json.dumps(kit))
+        kit_without_helper["states"]["review"]["visibleLayers"] = [
+            layer_id
+            for layer_id in kit_without_helper["states"]["review"]["visibleLayers"]
+            if layer_id != "helper-reviewer"
+        ]
+        layer_assets = project_room_widget.load_layer_assets(DEMO_KIT.parent, kit["layers"], [])
+
+        with_helper = project_room_widget.build_source_frame(DEMO_KIT.parent, kit, "review", 0, layer_assets, [])
+        without_helper = project_room_widget.build_source_frame(DEMO_KIT.parent, kit_without_helper, "review", 0, layer_assets, [])
+        diff_pixels = sum(
+            1
+            for left, right in zip(rgba_pixels(with_helper), rgba_pixels(without_helper))
+            if left != right
+        )
+
+        self.assertGreater(diff_pixels, 100)
+
+    def test_readme_screenshot_has_no_visible_magenta_chroma_key(self) -> None:
+        with Image.open(README_SCREENSHOT) as image:
+            rgba = image.convert("RGBA")
+            visible_chroma = sum(
+                1
+                for red, green, blue, alpha in rgba_pixels(rgba)
+                if alpha > 0 and red >= 220 and green <= 70 and blue >= 220
+            )
+
+        self.assertEqual(visible_chroma, 0)
+
+    def test_widget_canvas_image_mattes_partial_alpha_before_tk_composite(self) -> None:
+        import project_room_widget
+
+        image = Image.new("RGBA", (3, 1), (0, 0, 0, 0))
+        image.putpixel((0, 0), (120, 80, 40, 128))
+        image.putpixel((1, 0), (255, 0, 255, 32))
+        image.putpixel((2, 0), (30, 20, 10, 255))
+
+        prepared = project_room_widget.prepare_canvas_image_for_tk(image)
+
+        self.assertEqual(prepared.getpixel((0, 0))[3], 255)
+        self.assertEqual(prepared.getpixel((1, 0)), (0, 0, 0, 0))
+        self.assertEqual(prepared.getpixel((2, 0)), (30, 20, 10, 255))
+        self.assertFalse(
+            any(
+                alpha > 0 and red >= 220 and green <= 70 and blue >= 220
+                for red, green, blue, alpha in rgba_pixels(prepared)
+            )
+        )
 
     def test_widget_imports_local_room_kit_tools_before_installed_skill(self) -> None:
         import project_room_widget
