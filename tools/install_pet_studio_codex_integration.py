@@ -107,7 +107,7 @@ def pet_studio_hook_groups() -> dict[str, list[dict]]:
         "PreToolUse": [pet_studio_hook_group("PreToolUse", "pre_tool_use")],
         "PostToolUse": [pet_studio_hook_group("PostToolUse", "post_tool_use")],
         "PreCompact": [pet_studio_hook_group("PreCompact", "pre_compact")],
-        "Stop": [pet_studio_hook_group("Stop", "stop", "pet-studio: review")],
+        "Stop": [pet_studio_hook_group("Stop", "stop", "pet-studio: done")],
     }
 
 

@@ -20,8 +20,8 @@ HOOK_TO_EVENT = {
     "pre_tool_use": ("start", "Using tool"),
     "post_tool_use": ("review", "Ready for review"),
     "pre_compact": ("wait", "Compacting context"),
-    "stop": ("review", "Ready for review"),
-    "notify": ("review", "Turn ended"),
+    "stop": ("done", "Done"),
+    "notify": ("done", "Turn ended"),
 }
 
 

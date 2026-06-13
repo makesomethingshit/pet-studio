@@ -60,6 +60,7 @@ from project_room_scene import (  # noqa: E402
 
 CHROMA = "#ff00ff"
 DEFAULT_BUBBLE_FONT = "Segoe UI"
+TOPMOST_REFRESH_MS = 2000
 FONT_CANDIDATES = {
     "base": ["Noto Sans", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial", "TkDefaultFont"],
     "cjk": [
@@ -189,6 +190,12 @@ def composite_for_tk(frame: Image.Image) -> Image.Image:
     return background.convert("RGB")
 
 
+def apply_topmost(root: tk.Tk, enabled: bool) -> None:
+    root.wm_attributes("-topmost", bool(enabled))
+    if enabled:
+        root.lift()
+
+
 class ProjectRoomWidget:
     def __init__(
         self,
@@ -233,12 +240,13 @@ class ProjectRoomWidget:
         self.entity_items: dict[str, int] = {}
         self.entity_photos: dict[str, ImageTk.PhotoImage] = {}
         self.bubble_items: list[int] = []
+        self.topmost = bool(topmost)
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
         self.root.configure(bg=CHROMA)
         self.root.wm_attributes("-transparentcolor", CHROMA)
-        self.root.wm_attributes("-topmost", bool(topmost))
+        apply_topmost(self.root, self.topmost)
         self.root.title("Pet Studio Widget")
 
         if x is not None and y is not None:
@@ -274,6 +282,8 @@ class ProjectRoomWidget:
 
         if self.state_file is not None:
             self.root.after(self.state_refresh_ms, self.refresh_external_state)
+        if self.topmost:
+            self.root.after(250, self.refresh_topmost)
 
     def entity_image(self, entity: SceneEntity, frame_index: int) -> Image.Image:
         source = self.layer_assets.get(entity.id)
@@ -551,6 +561,11 @@ class ProjectRoomWidget:
             state, message = read_project_state_payload(self.state_file, self.project_id, self.state)
             self.set_state(state, message)
         self.root.after(self.state_refresh_ms, self.refresh_external_state)
+
+    def refresh_topmost(self) -> None:
+        if self.topmost:
+            apply_topmost(self.root, True)
+            self.root.after(TOPMOST_REFRESH_MS, self.refresh_topmost)
 
     def show_context_menu(self, event: tk.Event) -> None:
         entity = self.pick_draggable_entity(event.x, event.y)

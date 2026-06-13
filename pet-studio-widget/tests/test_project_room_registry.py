@@ -393,6 +393,27 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("python --version", text)
         self.assertIn("no working python 3 runtime was found", text)
 
+    def test_topmost_helper_sets_attribute_and_lifts_window(self) -> None:
+        import project_room_widget
+
+        class FakeRoot:
+            def __init__(self) -> None:
+                self.attributes: list[tuple[str, bool]] = []
+                self.lift_count = 0
+
+            def wm_attributes(self, key: str, value: bool) -> None:
+                self.attributes.append((key, value))
+
+            def lift(self) -> None:
+                self.lift_count += 1
+
+        root = FakeRoot()
+
+        project_room_widget.apply_topmost(root, True)
+
+        self.assertEqual(root.attributes, [("-topmost", True)])
+        self.assertEqual(root.lift_count, 1)
+
 
 class ProjectRoomRegistryTests(unittest.TestCase):
     def make_config(self, path: Path, **overrides: object) -> Path:
@@ -1110,7 +1131,7 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["message"], "Working: 한글 bubble 확인")
             self.assertIn("한글 bubble 확인", state_file.read_text(encoding="utf-8"))
 
-    def test_codex_pet_hook_stop_moves_bubble_to_review(self) -> None:
+    def test_codex_pet_hook_stop_moves_bubble_to_done(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
 
@@ -1134,8 +1155,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             data = json.loads(state_file.read_text(encoding="utf-8"))
             self.assertEqual(data["projectId"], "gakju-demo")
-            self.assertEqual(data["state"], "review")
-            self.assertEqual(data["message"], "Ready for review")
+            self.assertEqual(data["state"], "done")
+            self.assertEqual(data["message"], "Done")
 
     def test_codex_pet_hook_post_tool_use_returns_to_review_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1207,6 +1228,7 @@ class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
             prompt_hook = data["hooks"]["UserPromptSubmit"][0]["hooks"][0]
             self.assertEqual(prompt_hook["type"], "command")
             self.assertIn("codex_pet_hook.py", prompt_hook["command"])
+            self.assertIn("pet-studio-widget", prompt_hook["command"])
             self.assertIn("--hook user_prompt_submit", prompt_hook["command"])
             self.assertEqual(prompt_hook["timeout"], 30)
             self.assertEqual(result["events"], ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "Stop"])
