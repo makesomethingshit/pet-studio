@@ -18,9 +18,12 @@ STATE_SCRIPT = WIDGET_DIR / "set_pet_studio_state.py"
 ADAPTER_SCRIPT = WIDGET_DIR / "pet_studio_event_adapter.py"
 HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
 ACTIVE_SCRIPT = WIDGET_DIR / "set_active_pet_studio.py"
+TOOLS_DIR = ROOT / "tools"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
 
 
 def write_json(path: Path, data: dict) -> None:
@@ -1010,6 +1013,122 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["projectId"], "gakju-demo")
             self.assertEqual(data["state"], "review")
             self.assertEqual(data["message"], "Ready for review")
+
+
+class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
+    def test_installs_lifecycle_hooks_json_without_dropping_existing_hooks(self) -> None:
+        from install_pet_studio_codex_integration import install_hooks_bridge
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks_file = Path(tmp) / "hooks.json"
+            write_json(
+                hooks_file,
+                {
+                    "hooks": {
+                        "Stop": [
+                            {
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": "python existing_stop.py",
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+            )
+
+            result = install_hooks_bridge(hooks_file, dry_run=False)
+
+            data = json.loads(hooks_file.read_text(encoding="utf-8"))
+            self.assertIn("UserPromptSubmit", data["hooks"])
+            self.assertIn("PreToolUse", data["hooks"])
+            self.assertIn("PostToolUse", data["hooks"])
+            self.assertIn("PreCompact", data["hooks"])
+            self.assertIn("Stop", data["hooks"])
+            stop_commands = [
+                hook["command"]
+                for group in data["hooks"]["Stop"]
+                for hook in group["hooks"]
+            ]
+            self.assertIn("python existing_stop.py", stop_commands)
+            self.assertTrue(any("codex_pet_hook.py" in command and "--hook stop" in command for command in stop_commands))
+            prompt_hook = data["hooks"]["UserPromptSubmit"][0]["hooks"][0]
+            self.assertEqual(prompt_hook["type"], "command")
+            self.assertIn("codex_pet_hook.py", prompt_hook["command"])
+            self.assertIn("--hook user_prompt_submit", prompt_hook["command"])
+            self.assertEqual(prompt_hook["timeout"], 30)
+            self.assertEqual(result["events"], ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "Stop"])
+
+    def test_installing_lifecycle_hooks_twice_is_idempotent(self) -> None:
+        from install_pet_studio_codex_integration import install_hooks_bridge
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks_file = Path(tmp) / "hooks.json"
+
+            install_hooks_bridge(hooks_file, dry_run=False)
+            install_hooks_bridge(hooks_file, dry_run=False)
+
+            data = json.loads(hooks_file.read_text(encoding="utf-8"))
+            prompt_commands = [
+                hook["command"]
+                for group in data["hooks"]["UserPromptSubmit"]
+                for hook in group["hooks"]
+                if "codex_pet_hook.py" in hook["command"]
+            ]
+            self.assertEqual(len(prompt_commands), 1)
+
+    def test_reinstalling_hooks_preserves_non_pet_studio_sibling_handlers(self) -> None:
+        from install_pet_studio_codex_integration import install_hooks_bridge
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks_file = Path(tmp) / "hooks.json"
+            write_json(
+                hooks_file,
+                {
+                    "hooks": {
+                        "Stop": [
+                            {
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": "python old_codex_pet_hook.py --hook stop",
+                                    },
+                                    {
+                                        "type": "command",
+                                        "command": "python keep_me.py",
+                                    },
+                                ]
+                            }
+                        ]
+                    }
+                },
+            )
+
+            install_hooks_bridge(hooks_file, dry_run=False)
+
+            data = json.loads(hooks_file.read_text(encoding="utf-8"))
+            stop_commands = [
+                hook["command"]
+                for group in data["hooks"]["Stop"]
+                for hook in group["hooks"]
+            ]
+            self.assertIn("python keep_me.py", stop_commands)
+            self.assertNotIn("python old_codex_pet_hook.py --hook stop", stop_commands)
+
+    def test_notify_bridge_creates_config_when_missing(self) -> None:
+        from install_pet_studio_codex_integration import install_notify_bridge
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config_file = Path(tmp) / ".codex" / "config.toml"
+
+            result = install_notify_bridge(config_file, dry_run=False)
+
+            text = config_file.read_text(encoding="utf-8")
+            self.assertIn("notify = [", text)
+            self.assertIn("codex_pet_hook.py", text)
+            self.assertIsNone(result["backup"])
 
 
 if __name__ == "__main__":

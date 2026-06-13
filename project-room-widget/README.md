@@ -92,13 +92,15 @@ Codex host hooks can call the same adapter with a JSON payload:
 '{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | python project-room-widget\pet_studio_event_adapter.py --event-json -
 ```
 
-For local Codex Desktop bubble integration, install the Pet Studio notify bridge:
+For local Codex Desktop bubble integration, install the Pet Studio Codex bridge:
 
 ```powershell
 python tools\install_pet_studio_codex_integration.py
 ```
 
-That installer backs up `%USERPROFILE%\.codex\config.toml`, wraps the existing Codex `notify` command, and installs the skill as `$pet-studio`. Pass `--project-id <id>` when you also want to write an active project pin during installation.
+That installer installs the skill as `$pet-studio`, creates or backs up `%USERPROFILE%\.codex\config.toml`, writes `%USERPROFILE%\.codex\hooks.json` lifecycle hooks, and wraps the existing Codex `notify` command. Pass `--project-id <id>` when you also want to write an active project pin during installation.
+
+The installed hooks cover `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`. Restart Codex or open `/hooks` to review and trust the command hooks if Codex asks.
 
 ## Render Checks
 

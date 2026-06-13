@@ -6,6 +6,5 @@
     "name": "Pet Studio"
   },
   "license": "Apache-2.0",
-  "skills": "./project-room-kit/",
-  "hooks": "./hooks/hooks.codex.json"
+  "skills": "./project-room-kit/"
 }

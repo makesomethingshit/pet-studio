@@ -131,7 +131,7 @@ Publish a Codex-style event:
 python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "working"
 ```
 
-Or send a structured JSON payload, which is the command target intended for future Codex host hooks:
+Or send a structured JSON payload, which is the command target used by the lifecycle hook bridge:
 
 ```powershell
 '{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | python project-room-widget\pet_studio_event_adapter.py --event-json -
@@ -151,7 +151,7 @@ python project-room-widget\set_active_pet_studio.py --project-id gakju-archive-d
 
 State messages appear as runtime speech bubbles. Long messages are whitespace-normalized and capped at 80 characters so hook output stays compact.
 
-For local Codex bubble integration, install the Pet Studio notify bridge:
+For local Codex bubble integration, install the Pet Studio Codex bridge:
 
 ```powershell
 python tools\install_pet_studio_codex_integration.py
@@ -160,11 +160,12 @@ python tools\install_pet_studio_codex_integration.py
 The installer:
 
 - installs the skill as `$pet-studio` under `%USERPROFILE%\.codex\skills\pet-studio`
-- backs up `%USERPROFILE%\.codex\config.toml`
-- wraps the existing Codex `notify` command so Pet Studio updates the widget state bridge when turns end
+- creates or backs up `%USERPROFILE%\.codex\config.toml`
+- writes `%USERPROFILE%\.codex\hooks.json` entries for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`
+- wraps the existing Codex `notify` command so Pet Studio also updates the widget state bridge when turns end
 - can write an active project pin when `--project-id` is provided
 
-For fuller lifecycle integration, this repo also ships `.codex-plugin/plugin.json` and `hooks/hooks.codex.json`. Those hooks call `project-room-widget\codex_pet_hook.py` for session start, prompt submit, tool use, compaction, and stop events.
+After installation, restart Codex or open `/hooks` to review and trust the new non-managed command hooks when Codex asks.
 
 ## What Gets Created
 
@@ -223,4 +224,4 @@ python -m py_compile project-room-widget\pet_studio_event_adapter.py project-roo
 - The real room format is layered. The fallback baked pet package is only for compatibility.
 - Helper pets are optional, but make review, handoff, and blocked scenes more expressive.
 - `project-room.json` and `project-room-*` runtime files remain supported as the v1 compatibility format while the user-facing skill and commands use Pet Studio naming.
-- This repository provides a Codex event adapter, notify bridge, and optional hook manifest. `tools\install_pet_studio_codex_integration.py` installs the local notify bridge; host lifecycle hooks still depend on the Codex plugin/hook surface accepting the bundled `.codex-plugin/plugin.json`.
+- This repository provides a Codex event adapter, notify bridge, and lifecycle hook installer. `tools\install_pet_studio_codex_integration.py` installs the local bridge into `config.toml` and `hooks.json`; Codex may still require reviewing/trusting those hooks before they run.
