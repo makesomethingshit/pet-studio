@@ -28,6 +28,12 @@ Registered projects live in the v1 compatibility registry file `project-room-pro
 
 Use `tools\pet_studio_widget.cmd` for normal widget launches. It starts `pet_studio_widget.py` through `pythonw` when available, so the command prompt does not stay attached. Use `tools\pet_studio_python.cmd` for debugging, listing projects, rendering files, and tests.
 
+Run the public preflight when checking a fresh clone or release candidate:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --show-hook-log
+```
+
 ## Controls
 
 - Drag a prop or pet with the left mouse button.
@@ -107,6 +113,14 @@ That installer installs the skill as `$pet-studio` and writes project-local `.co
 The installed hooks cover `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`. Restart Codex or open `/hooks` to review and trust the command hooks if Codex asks.
 
 Hook events are also appended to the local ignored file `project-room-hook-events.jsonl`. Use it to confirm that `UserPromptSubmit`, tool use, and `Stop` are reaching the widget bridge.
+
+Default hook messages intentionally avoid overstating progress:
+
+- `UserPromptSubmit` sets `running` with `Working: ...`.
+- `PreToolUse` keeps `running` and names the tool.
+- `PostToolUse` stays `running` with `Working`.
+- `Stop` writes `done` plus idle reset metadata.
+- Review wording is reserved for explicit review/handoff states, not every completed tool call.
 
 ## Render Checks
 

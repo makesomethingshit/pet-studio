@@ -19,6 +19,7 @@ ADAPTER_SCRIPT = WIDGET_DIR / "pet_studio_event_adapter.py"
 HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
 ACTIVE_SCRIPT = WIDGET_DIR / "set_active_pet_studio.py"
 TOOLS_DIR = ROOT / "tools"
+PREFLIGHT_SCRIPT = TOOLS_DIR / "pet_studio_preflight.py"
 PYTHON_CMD_WRAPPER = TOOLS_DIR / "pet_studio_python.cmd"
 WIDGET_CMD_WRAPPER = TOOLS_DIR / "pet_studio_widget.cmd"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
@@ -1266,6 +1267,36 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["resetAfterMs"], 1500)
             self.assertEqual(data["resetToState"], "idle")
 
+    def test_codex_pet_hook_pre_tool_use_names_tool_without_review_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
+            payload = json.dumps({"tool_name": "apply_patch", "projectId": "gakju-demo"})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
+                    "--hook",
+                    "pre_tool_use",
+                ],
+                cwd=ROOT,
+                input=payload,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "running")
+            self.assertEqual(data["message"], "Using apply_patch")
+
     def test_codex_pet_hook_post_tool_use_keeps_working_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
@@ -1295,6 +1326,108 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["projectId"], "gakju-demo")
             self.assertEqual(data["state"], "running")
             self.assertEqual(data["message"], "Working")
+
+
+class PetStudioPreflightTests(unittest.TestCase):
+    def test_preflight_renders_public_demo_with_skippable_local_install_checks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "preflight-render.png"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--skip-skill",
+                    "--skip-hooks",
+                    "--render-output",
+                    str(output),
+                    "--json",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["ok"])
+            self.assertTrue(output.exists())
+            self.assertGreater(output.stat().st_size, 0)
+
+    def test_preflight_reports_missing_skill_install_target(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            result = pet_studio_preflight.check_skill_install(Path(tmp) / "missing-skill")
+
+        self.assertFalse(result.ok)
+        self.assertIn("install_pet_studio_skill.py", result.message)
+
+    def test_preflight_validates_demo_registry_and_local_only_ignores(self) -> None:
+        import pet_studio_preflight
+
+        registry_result, project = pet_studio_preflight.check_demo_registry(
+            pet_studio_preflight.DEFAULT_REGISTRY,
+            "gakju-archive-demo",
+        )
+        kit_result = pet_studio_preflight.check_sample_kit(pet_studio_preflight.DEFAULT_REGISTRY, project)
+        ignore_result = pet_studio_preflight.check_local_only_ignores(ROOT)
+
+        self.assertTrue(registry_result.ok, registry_result.message)
+        self.assertTrue(kit_result.ok, kit_result.message)
+        self.assertTrue(ignore_result.ok, ignore_result.message)
+
+    def test_preflight_warns_for_incomplete_hook_config(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            hooks_file = Path(tmp) / "hooks.json"
+            write_json(
+                hooks_file,
+                {
+                    "hooks": {
+                        "SessionStart": [
+                            {
+                                "hooks": [
+                                    {
+                                        "type": "command",
+                                        "command": f"{sys.executable} {HOOK_SCRIPT} --hook session_start",
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+            )
+
+            result = pet_studio_preflight.check_hooks_config(hooks_file)
+
+        self.assertTrue(result.ok)
+        self.assertTrue(result.warning)
+        self.assertIn("UserPromptSubmit", result.message)
+        self.assertIn("Stop", result.message)
+
+    def test_preflight_summarizes_hook_log_for_debugging(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
+            log_file.write_text(
+                "\n".join(
+                    [
+                        json.dumps({"hook": "user_prompt_submit", "state": "running", "message": "Working"}),
+                        json.dumps({"hook": "post_tool_use", "state": "running", "message": "Working"}),
+                        json.dumps({"hook": "stop", "state": "done", "message": "Done"}),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            summary = pet_studio_preflight.read_hook_log_summary(log_file, 2)
+
+        self.assertEqual(summary, ["post_tool_use -> running: Working", "stop -> done: Done"])
 
 
 class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):

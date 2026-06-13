@@ -2,6 +2,14 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.1.2 - 2026-06-14
+
+Public stability hardening.
+
+- Added a release preflight command that checks the public demo, local install, Codex hooks, ignored runtime files, and one-frame rendering.
+- Documented the first-run demo flow, hook bubble policy, hook log debugging, and known limitations.
+- Kept post-tool Codex hook bubbles in `Working` instead of premature review wording.
+
 ## 0.1.1 - 2026-06-14
 
 License update.

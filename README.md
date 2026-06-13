@@ -1,6 +1,6 @@
 # Pet Studio
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.1.2-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 Give a Codex pet its own desktop studio room.
@@ -9,7 +9,7 @@ Give a Codex pet its own desktop studio room.
 
 Pet Studio is a Codex skill and lightweight widget runtime for turning a hatch-pet into a layered desktop room. It keeps the room, props, main pet, helper pets, and speech bubbles editable instead of flattening them into one image.
 
-Current release: `v0.1.1`
+Current release: `v0.1.2`
 
 ## What It Does
 
@@ -54,59 +54,30 @@ The repository also keeps the older `project-room-*` file names as the v1 compat
 
 The Windows examples use repository wrappers instead of calling `python` directly. `tools\pet_studio_widget.cmd` launches the desktop widget through `pythonw` so the terminal does not stay attached. `tools\pet_studio_python.cmd` is the console/debug wrapper used for commands that print output, render files, or run tests.
 
-## Use It With Codex
+## 30-Second Demo
 
-After installing, talk to Codex normally. Useful prompts:
-
-```text
-Create a Pet Studio room for my current Codex pet.
-```
-
-```text
-Use my Gakju pet as the style source and make a cozy archive room.
-```
-
-```text
-Register this room to the current workspace and launch the widget.
-```
-
-```text
-Set the Pet Studio state to blocked with the message "waiting on approval".
-```
-
-Codex should guide the workflow, ask for missing art inputs, run validation, and report the generated files.
-
-## Example Room
-
-This repository includes a public Gakju archive room sample built from separated room, prop, main pet, helper pet, and runtime speech-bubble layers.
-
-You can render or inspect the checked-in sample without generating new art:
+Run the preflight first. It checks Python/Pillow, the installed skill, the public demo registry, the sample kit, local-only ignore rules, and a one-frame render. It also reports whether Codex hook entries are installed:
 
 ```powershell
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\gakju-imagegen-room-v1\widget-render-test.png
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py
 ```
 
-The sample files under `runs/gakju-imagegen-room-v1/` are intended as public examples. Local QA reports, private test runs, and fresh project experiments stay ignored by git.
-
-## Try The Demo
-
-List registered room projects:
-
-```powershell
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --list-projects
-```
-
-Launch the included demo room:
+Then launch the included Gakju archive room:
 
 ```powershell
 .\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
-Render one frame without opening the widget:
+The normal widget launcher uses `pythonw`, so the command prompt does not stay attached. If the widget is already running, close it from the right-click menu or press `Escape`.
+
+Useful demo checks:
 
 ```powershell
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --list-projects
 .\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
+
+The sample files under `runs/gakju-imagegen-room-v1/` are intended as public examples. Local QA reports, private test runs, preflight renders, and fresh project experiments stay ignored by git.
 
 ## Widget Controls
 
@@ -118,6 +89,38 @@ Render one frame without opening the widget:
 - Press `Escape` to close.
 
 Registered projects persist moved anchors and window scale locally.
+
+## Codex Bubble Integration
+
+Install the local Codex bridge:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id gakju-archive-demo
+```
+
+The installer:
+
+- installs the skill as `$pet-studio` under `%USERPROFILE%\.codex\skills\pet-studio`
+- writes project-local `.codex\hooks.json` entries for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`
+- writes an active project pin when `--project-id` is provided
+- only wraps the user-level Codex `notify` command when `--install-notify` is provided
+
+After installation, restart Codex or open `/hooks` to review and trust the new command hooks when Codex asks. Pet Studio cannot detect that trust approval directly, so the preflight prints a reminder when hooks are installed.
+
+Hook bubble policy:
+
+- `UserPromptSubmit` shows `Working: ...`
+- `PreToolUse` shows `Using <tool>`
+- `PostToolUse` stays in `Working`, not `Ready for review`
+- `PreCompact` shows `Compacting context`
+- `Stop` shows `Done` briefly, then the widget falls back to idle
+- `blocked` and explicit review/handoff events are the only normal paths to review-style messaging
+
+To inspect recent hook activity:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --skip-render --show-hook-log
+```
 
 ## Project State
 
@@ -153,20 +156,23 @@ Pin an active project when several rooms share one workspace:
 
 State messages appear as runtime speech bubbles. Long messages are whitespace-normalized and capped at 80 characters so hook output stays compact.
 
-For local Codex bubble integration, install the Pet Studio Codex bridge:
+## Create A Room With Codex
 
-```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py
+After installing the skill, talk to Codex normally. Useful prompts:
+
+```text
+Create a Pet Studio room for my current Codex pet.
 ```
 
-The installer:
+```text
+Use my Gakju pet as the style source and make a cozy archive room.
+```
 
-- installs the skill as `$pet-studio` under `%USERPROFILE%\.codex\skills\pet-studio`
-- writes project-local `.codex\hooks.json` entries for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`
-- can write an active project pin when `--project-id` is provided
-- only wraps the user-level Codex `notify` command when `--install-notify` is provided
+```text
+Register this room to the current workspace and launch the widget.
+```
 
-After installation, restart Codex or open `/hooks` to review and trust the new non-managed command hooks when Codex asks.
+Codex should ask for missing art inputs, keep the style source locked, run validation, and report generated files. Helper/sub-pet art should be confirmed before generation because mismatched helper style is hard to repair later.
 
 ## What Gets Created
 
@@ -218,12 +224,25 @@ Development checks:
 ```powershell
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
-.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py
+.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py tools\pet_studio_preflight.py
 ```
+
+Release preflight:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --show-hook-log
+```
+
+## Known Limitations
+
+- Windows is the primary tested desktop widget host.
+- Codex hook commands may need manual trust approval in `/hooks` before they run.
+- The file bridge is local and project-scoped; it is not a network service.
+- `project-room.json` and `project-room-*` runtime files remain as the v1 compatibility format even though user-facing commands use Pet Studio naming.
+- The public demo is a checked-in sample. New generated rooms can vary in quality and should still be visually QA'd.
 
 ## Notes
 
 - The real room format is layered. The fallback baked pet package is only for compatibility.
 - Helper pets are optional, but when a kit includes one the widget keeps it visible across normal working, waiting, review, blocked, and done states.
-- `project-room.json` and `project-room-*` runtime files remain supported as the v1 compatibility format while the user-facing skill and commands use Pet Studio naming.
-- This repository provides a Codex event adapter, optional notify bridge, and lifecycle hook installer. `tools\install_pet_studio_codex_integration.py` installs project-local hooks into `.codex\hooks.json`; Codex may still require reviewing/trusting those hooks before they run. Use `--install-notify` only if you intentionally want a user-level `notify` wrapper.
+- This repository provides a Codex event adapter, optional notify bridge, and lifecycle hook installer. Use `--install-notify` only if you intentionally want a user-level `notify` wrapper.
