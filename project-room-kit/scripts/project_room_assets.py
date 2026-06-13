@@ -9,6 +9,7 @@ from PIL import Image
 
 
 ROOM_ALPHA_MODES = {"safe", "balanced", "aggressive"}
+CHROMA_FRINGE_ALPHA_MAX = 64
 
 
 def is_near_white_margin_pixel(pixel: tuple[int, int, int, int]) -> bool:
@@ -68,10 +69,16 @@ def clear_transparent_rgb(image: Image.Image) -> Image.Image:
     rgba = image.convert("RGBA")
     data = bytearray(rgba.tobytes())
     for index in range(0, len(data), 4):
-        if data[index + 3] == 0:
+        red = data[index]
+        green = data[index + 1]
+        blue = data[index + 2]
+        alpha = data[index + 3]
+        is_low_alpha_chroma = alpha <= CHROMA_FRINGE_ALPHA_MAX and red >= 220 and green <= 70 and blue >= 220
+        if alpha == 0 or is_low_alpha_chroma:
             data[index] = 0
             data[index + 1] = 0
             data[index + 2] = 0
+            data[index + 3] = 0
     return Image.frombytes("RGBA", rgba.size, bytes(data))
 
 
