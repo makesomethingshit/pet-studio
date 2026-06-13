@@ -24,10 +24,6 @@ runs/fresh-custom-pet-room/
 # Local Pet Studio runtime selection/state
 .codex/hooks.json
 .codex/hooks.json.bak-pet-studio-*
-project-room-widget/project-room-active.json
-project-room-widget/project-room-layouts.json
-project-room-widget/project-room-state.json
-project-room-widget/project-room-window.json
 pet-studio-widget/project-room-active.json
 pet-studio-widget/project-room-layouts.json
 pet-studio-widget/project-room-state.json
