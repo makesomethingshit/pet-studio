@@ -33,13 +33,13 @@ Clone the repo and install the skill:
 ```powershell
 git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
 cd codex-pet-studio-skill
-python tools\install_pet_studio_skill.py
+.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
 ```
 
 To replace an older installed copy:
 
 ```powershell
-python tools\install_pet_studio_skill.py --force
+.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py --force
 ```
 
 The installer copies the skill to:
@@ -49,6 +49,8 @@ The installer copies the skill to:
 ```
 
 The repository also keeps the older `project-room-*` file names as the v1 compatibility format. New public commands use Pet Studio names.
+
+The Windows examples use `tools\pet_studio_python.cmd` instead of calling `python` directly. The wrapper uses `PET_STUDIO_PYTHON` when set, then tries the Codex bundled runtime, `py -3`, `python`, and `python3`. This avoids broken Windows Python shims.
 
 ## Use It With Codex
 
@@ -81,7 +83,7 @@ This repository includes a public Gakju archive room sample built from separated
 You can render or inspect the checked-in sample without generating new art:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\gakju-imagegen-room-v1\widget-render-test.png
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\gakju-imagegen-room-v1\widget-render-test.png
 ```
 
 The sample files under `runs/gakju-imagegen-room-v1/` are intended as public examples. Local QA reports, private test runs, and fresh project experiments stay ignored by git.
@@ -91,19 +93,19 @@ The sample files under `runs/gakju-imagegen-room-v1/` are intended as public exa
 List registered room projects:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --list-projects
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --list-projects
 ```
 
 Launch the included demo room:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
 ```
 
 Render one frame without opening the widget:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
 
 ## Widget Controls
@@ -122,19 +124,19 @@ Registered projects persist moved anchors and window scale locally.
 Update the active project state directly:
 
 ```powershell
-python project-room-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
+.\tools\pet_studio_python.cmd project-room-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
 ```
 
 Publish a Codex-style event:
 
 ```powershell
-python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "working"
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "working"
 ```
 
 Or send a structured JSON payload, which is the command target used by the lifecycle hook bridge:
 
 ```powershell
-'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | python project-room-widget\pet_studio_event_adapter.py --event-json -
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | .\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --event-json -
 ```
 
 When no project id is provided, the adapter resolves project identity in this order:
@@ -146,7 +148,7 @@ When no project id is provided, the adapter resolves project identity in this or
 Pin an active project when several rooms share one workspace:
 
 ```powershell
-python project-room-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
+.\tools\pet_studio_python.cmd project-room-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
 ```
 
 State messages appear as runtime speech bubbles. Long messages are whitespace-normalized and capped at 80 characters so hook output stays compact.
@@ -154,7 +156,7 @@ State messages appear as runtime speech bubbles. Long messages are whitespace-no
 For local Codex bubble integration, install the Pet Studio Codex bridge:
 
 ```powershell
-python tools\install_pet_studio_codex_integration.py
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py
 ```
 
 The installer:
@@ -202,7 +204,7 @@ Local QA evidence and experimental run folders are intentionally ignored by git 
 If Codex's system skill validator is installed:
 
 ```powershell
-python %USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py %USERPROFILE%\.codex\skills\pet-studio
+.\tools\pet_studio_python.cmd "%USERPROFILE%\.codex\skills\.system\skill-creator\scripts\quick_validate.py" "%USERPROFILE%\.codex\skills\pet-studio"
 ```
 
 Expected result:
@@ -214,8 +216,8 @@ Skill is valid!
 Development checks:
 
 ```powershell
-python -m unittest project-room-widget.tests.test_project_room_registry project-room-kit.tests.test_project_room_pipeline
-python -m py_compile project-room-widget\pet_studio_event_adapter.py project-room-widget\set_pet_studio_state.py project-room-widget\set_active_pet_studio.py project-room-widget\pet_studio_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
+.\tools\pet_studio_python.cmd -m unittest project-room-widget.tests.test_project_room_registry project-room-kit.tests.test_project_room_pipeline
+.\tools\pet_studio_python.cmd -m py_compile project-room-widget\pet_studio_event_adapter.py project-room-widget\set_pet_studio_state.py project-room-widget\set_active_pet_studio.py project-room-widget\pet_studio_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
 ```
 
 ## Notes

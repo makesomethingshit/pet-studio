@@ -19,6 +19,7 @@ ADAPTER_SCRIPT = WIDGET_DIR / "pet_studio_event_adapter.py"
 HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
 ACTIVE_SCRIPT = WIDGET_DIR / "set_active_pet_studio.py"
 TOOLS_DIR = ROOT / "tools"
+PYTHON_CMD_WRAPPER = TOOLS_DIR / "pet_studio_python.cmd"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 README_SCREENSHOT = ROOT / "docs" / "images" / "gakju-widget-bubble-example.png"
 if str(WIDGET_DIR) not in sys.path:
@@ -349,9 +350,19 @@ class ProjectRoomSceneTests(unittest.TestCase):
         for launcher in WIDGET_DIR.glob("run-*.bat"):
             with self.subTest(launcher=launcher.name):
                 text = launcher.read_text(encoding="utf-8").lower()
+                self.assertIn("pet_studio_widget_python", text)
                 self.assertIn("pythonw", text)
                 self.assertIn("start \"pet studio widget\"", text)
-                self.assertNotIn("\\python.exe", text)
+                self.assertIn("pet_studio_pythonw", text)
+
+    def test_cmd_python_wrapper_avoids_broken_windows_python_shims(self) -> None:
+        text = PYTHON_CMD_WRAPPER.read_text(encoding="utf-8").lower()
+
+        self.assertIn("pet_studio_python", text)
+        self.assertIn("codex-primary-runtime", text)
+        self.assertIn("py -3 --version", text)
+        self.assertIn("python --version", text)
+        self.assertIn("no working python 3 runtime was found", text)
 
 
 class ProjectRoomRegistryTests(unittest.TestCase):

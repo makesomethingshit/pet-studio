@@ -9,19 +9,19 @@ The widget keeps room, props, main pet, helper pets, and speech bubbles as separ
 Launch the checked-in Gakju sample:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --scale 1.25
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --scale 1.25
 ```
 
 Launch a registered project:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
 ```
 
 List registered projects:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --list-projects
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --list-projects
 ```
 
 Registered projects live in the v1 compatibility registry file `project-room-projects.json`.
@@ -62,16 +62,16 @@ Bubble styling follows the selected Pet Studio kit. The runtime resolves style i
 Write the bridge file with:
 
 ```powershell
-python project-room-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
+.\tools\pet_studio_python.cmd project-room-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
 ```
 
 For Codex-like task events, use the adapter instead of writing bridge states directly:
 
 ```powershell
-python project-room-widget\pet_studio_event_adapter.py --event start --message "working"
-python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
-python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
-python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event done --message "finished"
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --event start --message "working"
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event done --message "finished"
 ```
 
 When `--project-id` is omitted, the adapter resolves project identity in this order:
@@ -83,19 +83,19 @@ When `--project-id` is omitted, the adapter resolves project identity in this or
 Pin an active project when multiple room projects share a workspace:
 
 ```powershell
-python project-room-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
+.\tools\pet_studio_python.cmd project-room-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
 ```
 
 Codex host hooks can call the same adapter with a JSON payload:
 
 ```powershell
-'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | python project-room-widget\pet_studio_event_adapter.py --event-json -
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | .\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --event-json -
 ```
 
 For local Codex Desktop bubble integration, install the Pet Studio Codex bridge:
 
 ```powershell
-python tools\install_pet_studio_codex_integration.py
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py
 ```
 
 That installer installs the skill as `$pet-studio` and writes project-local `.codex\hooks.json` lifecycle hooks. Pass `--project-id <id>` when you also want to write an active project pin during installation. Pass `--install-notify` only if you intentionally want to wrap the user-level Codex `notify` command.
@@ -107,18 +107,18 @@ The installed hooks cover `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `Pos
 Render a direct kit:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\widget-render-test.png
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\widget-render-test.png
 ```
 
 Render a registered project:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
 
 Use custom persistence files:
 
 ```powershell
-python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --layout-file project-room-widget\project-room-layouts.json
-python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --window-file project-room-widget\project-room-window.json
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --layout-file project-room-widget\project-room-layouts.json
+.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --window-file project-room-widget\project-room-window.json
 ```
