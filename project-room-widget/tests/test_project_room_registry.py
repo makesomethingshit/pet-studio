@@ -141,6 +141,35 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertTrue(desk.flip_x)
 
+    def test_widget_prefers_installed_noto_fonts_for_multilingual_bubbles(self) -> None:
+        import project_room_widget
+
+        self.assertEqual(
+            project_room_widget.bubble_font_family("한글 bubble 확인", {"Segoe UI", "Noto Sans CJK KR"}),
+            "Noto Sans CJK KR",
+        )
+        self.assertEqual(
+            project_room_widget.bubble_font_family("مرحبا", {"Segoe UI", "Noto Sans Arabic"}),
+            "Noto Sans Arabic",
+        )
+        self.assertEqual(
+            project_room_widget.bubble_font_family("Working", {"Segoe UI", "Noto Sans"}),
+            "Noto Sans",
+        )
+        self.assertEqual(project_room_widget.bubble_font_family("Working", set()), "Segoe UI")
+
+    def test_widget_uses_platform_fallback_when_noto_font_is_missing(self) -> None:
+        import project_room_widget
+
+        self.assertEqual(
+            project_room_widget.bubble_font_family("한글 bubble 확인", {"Segoe UI", "Malgun Gothic"}),
+            "Malgun Gothic",
+        )
+        self.assertEqual(
+            project_room_widget.bubble_font_family("नमस्ते", {"Segoe UI", "Nirmala UI"}),
+            "Nirmala UI",
+        )
+
     def test_public_demo_helper_pet_is_visible_only_in_review_states(self) -> None:
         from project_room_scene import scene_entities_from_kit, visible_scene_entities
 
@@ -1053,6 +1082,34 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["state"], "running")
             self.assertEqual(data["message"], "Working: Make the sub pet visible")
 
+    def test_codex_pet_hook_preserves_utf8_prompt_text(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            payload = json.dumps(
+                {"prompt": "한글 bubble 확인", "projectId": "gakju-demo"},
+                ensure_ascii=False,
+            ).encode("utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--hook",
+                    "user_prompt_submit",
+                ],
+                cwd=ROOT,
+                input=payload,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="replace") + result.stdout.decode("utf-8", errors="replace"))
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["message"], "Working: 한글 bubble 확인")
+            self.assertIn("한글 bubble 확인", state_file.read_text(encoding="utf-8"))
+
     def test_codex_pet_hook_stop_moves_bubble_to_review(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
@@ -1067,6 +1124,33 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     "gakju-demo",
                     "--hook",
                     "stop",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(data["projectId"], "gakju-demo")
+            self.assertEqual(data["state"], "review")
+            self.assertEqual(data["message"], "Ready for review")
+
+    def test_codex_pet_hook_post_tool_use_returns_to_review_state(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--hook",
+                    "post_tool_use",
                 ],
                 cwd=ROOT,
                 text=True,

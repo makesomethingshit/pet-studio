@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import locale
 import subprocess
 import sys
 from pathlib import Path
@@ -17,20 +18,32 @@ HOOK_TO_EVENT = {
     "session_start": ("idle", "Pet Studio ready"),
     "user_prompt_submit": ("start", "Working"),
     "pre_tool_use": ("start", "Using tool"),
-    "post_tool_use": ("start", "Working"),
+    "post_tool_use": ("review", "Ready for review"),
     "pre_compact": ("wait", "Compacting context"),
     "stop": ("review", "Ready for review"),
     "notify": ("review", "Turn ended"),
 }
 
 
+def decode_stdin_bytes(raw: bytes) -> str:
+    for encoding in ("utf-8-sig", sys.stdin.encoding, locale.getpreferredencoding(False)):
+        if not encoding:
+            continue
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+
 def load_stdin_payload() -> dict[str, Any]:
     if sys.stdin is None or sys.stdin.closed or sys.stdin.isatty():
         return {}
     try:
-        raw = sys.stdin.read()
+        raw_bytes = sys.stdin.buffer.read()
     except OSError:
         return {}
+    raw = decode_stdin_bytes(raw_bytes)
     if not raw.strip():
         return {}
     try:

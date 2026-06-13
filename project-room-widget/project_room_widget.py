@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 import tkinter as tk
+import tkinter.font as tkfont
 from pathlib import Path
 
 from PIL import Image, ImageTk
@@ -59,6 +60,81 @@ from project_room_scene import (  # noqa: E402
 
 
 CHROMA = "#ff00ff"
+DEFAULT_BUBBLE_FONT = "Segoe UI"
+FONT_CANDIDATES = {
+    "base": ["Noto Sans", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial", "TkDefaultFont"],
+    "cjk": [
+        "Noto Sans CJK KR",
+        "Noto Sans CJK SC",
+        "Noto Sans CJK JP",
+        "Noto Sans CJK TC",
+        "Noto Sans KR",
+        "Noto Sans SC",
+        "Noto Sans JP",
+        "Noto Sans TC",
+        "Malgun Gothic",
+        "Microsoft YaHei UI",
+        "Yu Gothic UI",
+        "Apple SD Gothic Neo",
+        "PingFang SC",
+        "Hiragino Sans",
+    ],
+    "arabic": ["Noto Sans Arabic", "Nirmala UI", "Segoe UI", "Arial"],
+    "hebrew": ["Noto Sans Hebrew", "Segoe UI", "Arial"],
+    "indic": [
+        "Noto Sans Devanagari",
+        "Noto Sans Bengali",
+        "Noto Sans Tamil",
+        "Noto Sans Telugu",
+        "Noto Sans Gujarati",
+        "Nirmala UI",
+    ],
+    "thai": ["Noto Sans Thai", "Leelawadee UI", "Nirmala UI"],
+    "emoji": ["Noto Color Emoji", "Segoe UI Emoji", "Apple Color Emoji"],
+}
+
+
+def bubble_font_categories(text: str) -> list[str]:
+    categories: list[str] = []
+    for char in text:
+        codepoint = ord(char)
+        if (
+            0x3040 <= codepoint <= 0x30FF
+            or 0x3400 <= codepoint <= 0x4DBF
+            or 0x4E00 <= codepoint <= 0x9FFF
+            or 0xAC00 <= codepoint <= 0xD7AF
+        ):
+            categories.append("cjk")
+        elif 0x0590 <= codepoint <= 0x05FF:
+            categories.append("hebrew")
+        elif 0x0600 <= codepoint <= 0x06FF or 0x0750 <= codepoint <= 0x077F or 0x08A0 <= codepoint <= 0x08FF:
+            categories.append("arabic")
+        elif 0x0900 <= codepoint <= 0x0DFF:
+            categories.append("indic")
+        elif 0x0E00 <= codepoint <= 0x0E7F:
+            categories.append("thai")
+        elif 0x1F300 <= codepoint <= 0x1FAFF:
+            categories.append("emoji")
+    return list(dict.fromkeys(categories))
+
+
+def bubble_font_candidates(text: str) -> list[str]:
+    candidates: list[str] = []
+    for category in bubble_font_categories(text):
+        candidates.extend(FONT_CANDIDATES[category])
+    candidates.extend(FONT_CANDIDATES["base"])
+    return list(dict.fromkeys(candidates))
+
+
+def bubble_font_family(text: str, available_families: set[str] | None = None) -> str:
+    if not available_families:
+        return DEFAULT_BUBBLE_FONT
+    normalized = {family.casefold(): family for family in available_families}
+    for candidate in bubble_font_candidates(text):
+        family = normalized.get(candidate.casefold())
+        if family:
+            return family
+    return DEFAULT_BUBBLE_FONT
 
 
 def resolve_kit_path(value: str) -> Path:
@@ -262,7 +338,7 @@ class ProjectRoomWidget:
             text=text,
             width=max_width,
             fill=self.bubble_style["text"],
-            font=("Segoe UI", font_size, "normal"),
+            font=(bubble_font_family(text, set(tkfont.families(self.root))), font_size, "normal"),
             anchor=tk.S,
             tags=("bubble",),
         )

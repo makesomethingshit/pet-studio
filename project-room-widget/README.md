@@ -59,6 +59,8 @@ If the state file includes `message`, the scene host shows that message as a run
 
 Bubble styling follows the selected Pet Studio kit. The runtime resolves style in this order: `project-room.json` `bubbleStyle`, main pet `spritesheet.asset.json` `bubbleStyle`, automatic color extraction from the main pet spritesheet, then the default compact style.
 
+Bubble text prefers installed Noto Sans families first, including Noto Sans CJK, Arabic, Hebrew, Indic, Thai, and emoji variants when the message contains those scripts. If Noto fonts are not installed, the widget falls back to common platform fonts such as Segoe UI, Malgun Gothic, Microsoft YaHei UI, Yu Gothic UI, Nirmala UI, Apple SD Gothic Neo, PingFang SC, DejaVu Sans, and TkDefaultFont.
+
 Write the bridge file with:
 
 ```powershell

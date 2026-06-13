@@ -36,7 +36,7 @@ def write_project_state(
         "updatedAt": updated_at or utc_now(),
     }
     state_file.parent.mkdir(parents=True, exist_ok=True)
-    state_file.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    state_file.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
     return payload
 
 
