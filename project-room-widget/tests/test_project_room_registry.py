@@ -50,7 +50,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
         entities = scene_entities_from_kit(kit)
         by_id = {entity.id: entity for entity in entities}
 
-        self.assertEqual([entity.id for entity in entities], ["room", "desk", "helper-reviewer", "main-owner", "book-stack"])
+        self.assertEqual([entity.id for entity in entities], ["room", "desk", "main-owner", "book-stack", "helper-reviewer"])
         self.assertTrue(by_id["room"].locked)
         self.assertFalse(by_id["room"].draggable)
         self.assertTrue(by_id["desk"].draggable)
@@ -174,7 +174,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
             if left != right
         )
 
-        self.assertGreater(diff_pixels, 100)
+        self.assertGreater(diff_pixels, 1000)
 
     def test_readme_screenshot_has_no_visible_magenta_chroma_key(self) -> None:
         with Image.open(README_SCREENSHOT) as image:
@@ -186,26 +186,6 @@ class ProjectRoomSceneTests(unittest.TestCase):
             )
 
         self.assertEqual(visible_chroma, 0)
-
-    def test_widget_canvas_image_hardens_partial_alpha_without_light_halo(self) -> None:
-        import project_room_widget
-
-        image = Image.new("RGBA", (3, 1), (0, 0, 0, 0))
-        image.putpixel((0, 0), (120, 80, 40, 128))
-        image.putpixel((1, 0), (255, 0, 255, 32))
-        image.putpixel((2, 0), (30, 20, 10, 255))
-
-        prepared = project_room_widget.prepare_canvas_image_for_tk(image)
-
-        self.assertEqual(prepared.getpixel((0, 0)), (120, 80, 40, 255))
-        self.assertEqual(prepared.getpixel((1, 0)), (0, 0, 0, 0))
-        self.assertEqual(prepared.getpixel((2, 0)), (30, 20, 10, 255))
-        self.assertFalse(
-            any(
-                alpha > 0 and red >= 220 and green <= 70 and blue >= 220
-                for red, green, blue, alpha in rgba_pixels(prepared)
-            )
-        )
 
     def test_widget_imports_local_room_kit_tools_before_installed_skill(self) -> None:
         import project_room_widget

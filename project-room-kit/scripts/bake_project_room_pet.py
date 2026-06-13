@@ -20,7 +20,6 @@ STATE_ROWS = {
     "running": {"row": 7, "frames": 6},
     "review": {"row": 8, "frames": 6},
 }
-CHROMA_FRINGE_ALPHA_MAX = 64
 
 
 def load_image(path: Path) -> Image.Image:
@@ -43,16 +42,10 @@ def clear_transparent_rgb(image: Image.Image) -> Image.Image:
     rgba = image.convert("RGBA")
     data = bytearray(rgba.tobytes())
     for index in range(0, len(data), 4):
-        red = data[index]
-        green = data[index + 1]
-        blue = data[index + 2]
-        alpha = data[index + 3]
-        is_low_alpha_chroma = alpha <= CHROMA_FRINGE_ALPHA_MAX and red >= 220 and green <= 70 and blue >= 220
-        if alpha == 0 or is_low_alpha_chroma:
+        if data[index + 3] == 0:
             data[index] = 0
             data[index + 1] = 0
             data[index + 2] = 0
-            data[index + 3] = 0
     return Image.frombytes("RGBA", rgba.size, bytes(data))
 
 

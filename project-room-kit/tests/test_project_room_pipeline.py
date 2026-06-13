@@ -669,38 +669,6 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertNotEqual(validation.returncode, 0)
             self.assertIn("transparent RGB residue", validation.stderr + validation.stdout)
 
-    def test_asset_cleanup_removes_low_alpha_chroma_fringe(self) -> None:
-        spec = importlib.util.spec_from_file_location("project_room_assets", ASSET_HELPERS)
-        assert spec is not None and spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        image = Image.new("RGBA", (3, 1), (0, 0, 0, 0))
-        image.putpixel((0, 0), (255, 0, 255, 12))
-        image.putpixel((1, 0), (255, 0, 255, 96))
-        image.putpixel((2, 0), (200, 80, 160, 12))
-
-        cleaned = module.clear_transparent_rgb(image)
-
-        self.assertEqual(cleaned.getpixel((0, 0)), (0, 0, 0, 0))
-        self.assertEqual(cleaned.getpixel((1, 0)), (255, 0, 255, 96))
-        self.assertEqual(cleaned.getpixel((2, 0)), (200, 80, 160, 12))
-
-    def test_bake_cleanup_removes_low_alpha_chroma_fringe(self) -> None:
-        spec = importlib.util.spec_from_file_location("bake_project_room_pet", BAKE_SCRIPT)
-        assert spec is not None and spec.loader is not None
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-
-        image = Image.new("RGBA", (2, 1), (0, 0, 0, 0))
-        image.putpixel((0, 0), (255, 0, 255, 12))
-        image.putpixel((1, 0), (255, 0, 255, 96))
-
-        cleaned = module.clear_transparent_rgb(image)
-
-        self.assertEqual(cleaned.getpixel((0, 0)), (0, 0, 0, 0))
-        self.assertEqual(cleaned.getpixel((1, 0)), (255, 0, 255, 96))
-
 
 if __name__ == "__main__":
     unittest.main()

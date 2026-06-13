@@ -59,7 +59,6 @@ from project_room_scene import (  # noqa: E402
 
 
 CHROMA = "#ff00ff"
-TK_CHROMA_FRINGE_ALPHA_MAX = 64
 
 
 def resolve_kit_path(value: str) -> Path:
@@ -113,25 +112,6 @@ def composite_for_tk(frame: Image.Image) -> Image.Image:
     background = Image.new("RGBA", frame.size, CHROMA)
     background.alpha_composite(frame)
     return background.convert("RGB")
-
-
-def prepare_canvas_image_for_tk(image: Image.Image) -> Image.Image:
-    rgba = image.convert("RGBA")
-    data = bytearray(rgba.tobytes())
-    for index in range(0, len(data), 4):
-        red = data[index]
-        green = data[index + 1]
-        blue = data[index + 2]
-        alpha = data[index + 3]
-        is_low_alpha_chroma = alpha <= TK_CHROMA_FRINGE_ALPHA_MAX and red >= 220 and green <= 70 and blue >= 220
-        if alpha == 0 or is_low_alpha_chroma:
-            data[index] = 0
-            data[index + 1] = 0
-            data[index + 2] = 0
-            data[index + 3] = 0
-        elif alpha < 255:
-            data[index + 3] = 255
-    return Image.frombytes("RGBA", rgba.size, bytes(data))
 
 
 class ProjectRoomWidget:
@@ -236,7 +216,7 @@ class ProjectRoomWidget:
         return clear_transparent_rgb(scaled)
 
     def draw_entity(self, entity: SceneEntity, frame_index: int) -> None:
-        image = prepare_canvas_image_for_tk(self.entity_image(entity, frame_index))
+        image = self.entity_image(entity, frame_index)
         photo = ImageTk.PhotoImage(image)
         self.entity_photos[entity.id] = photo
         x = int(round(entity.anchor["x"] * self.scale))
@@ -362,7 +342,6 @@ class ProjectRoomWidget:
             if entity.role not in {"mainPet", "helperPet"} or entity.id not in self.entity_items:
                 continue
             image = self.entity_image(entity, self.index)
-            image = prepare_canvas_image_for_tk(image)
             photo = ImageTk.PhotoImage(image)
             self.entity_photos[entity.id] = photo
             self.canvas.itemconfigure(self.entity_items[entity.id], image=photo)

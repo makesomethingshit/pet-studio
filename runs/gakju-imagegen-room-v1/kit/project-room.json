@@ -89,9 +89,9 @@
       "id": "helper-reviewer",
       "role": "helperPet",
       "path": "pets/helper-reviewer/spritesheet.webp",
-      "z": 18,
+      "z": 32,
       "anchor": "helper",
-      "scale": 0.56,
+      "scale": 0.72,
       "visibleWhen": [
         "review",
         "failed"
@@ -128,8 +128,8 @@
       "y": 206
     },
     "helper": {
-      "x": 285,
-      "y": 204
+      "x": 318,
+      "y": 178
     },
     "book-stack": {
       "x": 308,
