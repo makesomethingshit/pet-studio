@@ -394,11 +394,51 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
     def test_widget_cmd_wrapper_launches_widget_without_console_python(self) -> None:
         text = WIDGET_CMD_WRAPPER.read_text(encoding="utf-8").lower()
+        ps1_text = (TOOLS_DIR / "pet_studio_widget.ps1").read_text(encoding="utf-8").lower()
 
+        self.assertIn("powershell.exe", text)
+        self.assertIn("-windowstyle hidden", text)
         self.assertIn("pet_studio_pythonw", text)
         self.assertIn("pythonw.exe", text)
         self.assertIn("start \"pet studio widget\"", text)
         self.assertIn("pet_studio_widget.py", text)
+        self.assertIn("start-process", ps1_text)
+        self.assertIn("-windowstyle hidden", ps1_text)
+
+    def test_widget_script_relaunches_gui_runs_on_windows_python_exe(self) -> None:
+        import argparse
+        import project_room_widget
+
+        args = argparse.Namespace(
+            list_projects=False,
+            render_once=None,
+            render_project_once=None,
+            foreground=False,
+        )
+        foreground_args = argparse.Namespace(
+            list_projects=False,
+            render_once=None,
+            render_project_once=None,
+            foreground=True,
+        )
+        render_args = argparse.Namespace(
+            list_projects=False,
+            render_once="out.png",
+            render_project_once=None,
+            foreground=False,
+        )
+
+        self.assertTrue(project_room_widget.should_relaunch_background(args, platform="win32", env={}))
+        self.assertFalse(project_room_widget.should_relaunch_background(args, platform="linux", env={}))
+        self.assertFalse(project_room_widget.should_relaunch_background(foreground_args, platform="win32", env={}))
+        self.assertFalse(project_room_widget.should_relaunch_background(render_args, platform="win32", env={}))
+        self.assertFalse(
+            project_room_widget.should_relaunch_background(
+                args,
+                platform="win32",
+                env={project_room_widget.BACKGROUND_CHILD_ENV: "1"},
+            )
+        )
 
     def test_topmost_helper_sets_attribute_and_lifts_window(self) -> None:
         import project_room_widget
@@ -1122,6 +1162,7 @@ class ProjectRoomRegistryTests(unittest.TestCase):
     def test_codex_pet_hook_user_prompt_updates_bubble_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
             payload = json.dumps({"prompt": "Make the sub pet visible", "projectId": "gakju-demo"})
 
             result = subprocess.run(
@@ -1130,6 +1171,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(HOOK_SCRIPT),
                     "--state-file",
                     str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
                     "--hook",
                     "user_prompt_submit",
                 ],
@@ -1145,10 +1188,16 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["projectId"], "gakju-demo")
             self.assertEqual(data["state"], "running")
             self.assertEqual(data["message"], "Working: Make the sub pet visible")
+            log_entry = json.loads(log_file.read_text(encoding="utf-8").splitlines()[-1])
+            self.assertEqual(log_entry["hook"], "user_prompt_submit")
+            self.assertEqual(log_entry["event"], "start")
+            self.assertEqual(log_entry["state"], "running")
+            self.assertEqual(log_entry["projectId"], "gakju-demo")
 
     def test_codex_pet_hook_preserves_utf8_prompt_text(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
             payload = json.dumps(
                 {"prompt": "한글 bubble 확인", "projectId": "gakju-demo"},
                 ensure_ascii=False,
@@ -1160,6 +1209,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(HOOK_SCRIPT),
                     "--state-file",
                     str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
                     "--hook",
                     "user_prompt_submit",
                 ],
@@ -1177,6 +1228,7 @@ class ProjectRoomRegistryTests(unittest.TestCase):
     def test_codex_pet_hook_stop_moves_bubble_to_done(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
 
             result = subprocess.run(
                 [
@@ -1184,6 +1236,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(HOOK_SCRIPT),
                     "--state-file",
                     str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
                     "--project-id",
                     "gakju-demo",
                     "--hook",
@@ -1206,6 +1260,7 @@ class ProjectRoomRegistryTests(unittest.TestCase):
     def test_codex_pet_hook_post_tool_use_returns_to_review_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
 
             result = subprocess.run(
                 [
@@ -1213,6 +1268,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                     str(HOOK_SCRIPT),
                     "--state-file",
                     str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
                     "--project-id",
                     "gakju-demo",
                     "--hook",

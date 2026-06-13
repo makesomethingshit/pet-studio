@@ -3,6 +3,12 @@ setlocal
 
 if "%~1"=="" goto no_args
 
+set "PET_STUDIO_WIDGET_PS1=%~dp0pet_studio_widget.ps1"
+if exist "%PET_STUDIO_WIDGET_PS1%" (
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%PET_STUDIO_WIDGET_PS1%" %*
+    exit /b %ERRORLEVEL%
+)
+
 if defined PET_STUDIO_PYTHONW (
     "%PET_STUDIO_PYTHONW%" --version >nul 2>nul
     if not errorlevel 1 (

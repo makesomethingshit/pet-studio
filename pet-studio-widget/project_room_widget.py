@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
@@ -62,6 +64,7 @@ from project_room_scene import (  # noqa: E402
 CHROMA = "#ff00ff"
 DEFAULT_BUBBLE_FONT = "Segoe UI"
 TOPMOST_REFRESH_MS = 2000
+BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
 FONT_CANDIDATES = {
     "base": ["Noto Sans", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial", "TkDefaultFont"],
     "cjk": [
@@ -230,6 +233,56 @@ def apply_topmost(root: tk.Tk, enabled: bool) -> None:
     root.wm_attributes("-topmost", bool(enabled))
     if enabled:
         root.lift()
+
+
+def is_gui_launch(args: argparse.Namespace) -> bool:
+    return not bool(args.list_projects or args.render_once or args.render_project_once)
+
+
+def pythonw_for(executable: str | Path) -> Path | None:
+    current = Path(executable)
+    if current.name.lower() == "pythonw.exe":
+        return None
+    sibling = current.with_name("pythonw.exe")
+    if sibling.exists():
+        return sibling
+    bundled = Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "python" / "pythonw.exe"
+    if bundled.exists():
+        return bundled
+    return None
+
+
+def should_relaunch_background(args: argparse.Namespace, platform: str = sys.platform, env: dict[str, str] | None = None) -> bool:
+    if platform != "win32" or not is_gui_launch(args):
+        return False
+    if getattr(args, "foreground", False):
+        return False
+    return (env or os.environ).get(BACKGROUND_CHILD_ENV) != "1"
+
+
+def relaunch_background(argv: list[str], executable: str | Path = sys.executable) -> bool:
+    pythonw = pythonw_for(executable)
+    if pythonw is None:
+        return False
+    env = dict(os.environ)
+    env[BACKGROUND_CHILD_ENV] = "1"
+    creation_flags = 0
+    if sys.platform == "win32":
+        creation_flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+    try:
+        subprocess.Popen(
+            [str(pythonw), str(Path(__file__).resolve()), *argv],
+            cwd=str(ROOT),
+            env=env,
+            close_fds=True,
+            creationflags=creation_flags,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        return False
+    return True
 
 
 class ProjectRoomWidget:
@@ -737,6 +790,7 @@ def main() -> None:
     parser.add_argument("--y", type=int)
     parser.add_argument("--no-topmost", action="store_true")
     parser.add_argument("--click-through", action="store_true")
+    parser.add_argument("--foreground", action="store_true", help="Keep the widget attached to this console for debugging")
     parser.add_argument("--render-once", help="Write one rendered full-size frame to PNG and exit")
     parser.add_argument("--render-project-once", help="Write one project-selected full-size frame to PNG and exit")
     args = parser.parse_args()
@@ -765,6 +819,9 @@ def main() -> None:
         kit_path = resolve_kit_path(args.kit)
     else:
         parser.error("Provide --kit or --project-id.")
+
+    if should_relaunch_background(args) and relaunch_background(sys.argv[1:]):
+        return
 
     state_file = Path(args.state_file).expanduser() if args.state_file else (DEFAULT_STATE_FILE if project_id and args.state is None else None)
     layout_file = Path(args.layout_file).expanduser() if project_id and args.layout_file else None

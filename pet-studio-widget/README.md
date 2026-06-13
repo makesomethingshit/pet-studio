@@ -106,6 +106,8 @@ That installer installs the skill as `$pet-studio` and writes project-local `.co
 
 The installed hooks cover `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, and `Stop`. Restart Codex or open `/hooks` to review and trust the command hooks if Codex asks.
 
+Hook events are also appended to the local ignored file `project-room-hook-events.jsonl`. Use it to confirm that `UserPromptSubmit`, tool use, and `Stop` are reaching the widget bridge.
+
 ## Render Checks
 
 Render a direct kit:

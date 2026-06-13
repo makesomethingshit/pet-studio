@@ -7,6 +7,7 @@ import json
 import locale
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from project_room_registry import DEFAULT_ACTIVE_PROJECT_FILE, DEFAULT_REGISTRY,
 
 
 DONE_RESET_AFTER_MS = 1500
+DEFAULT_HOOK_LOG_FILE = Path(__file__).with_name("project-room-hook-events.jsonl")
 HOOK_TO_EVENT = {
     "session_start": ("idle", "Pet Studio ready"),
     "user_prompt_submit": ("start", "Working"),
@@ -101,6 +103,18 @@ def run_passthrough(command: list[str]) -> int:
     return int(completed.returncode)
 
 
+def utc_now() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def append_hook_log(log_file: Path | None, entry: dict[str, Any]) -> None:
+    if log_file is None:
+        return
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    with log_file.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, ensure_ascii=False, sort_keys=True) + "\n")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--hook", choices=sorted(HOOK_TO_EVENT), default="notify")
@@ -110,6 +124,7 @@ def main() -> None:
     parser.add_argument("--project-id", default=None)
     parser.add_argument("--cwd", default=None)
     parser.add_argument("--message", default=None)
+    parser.add_argument("--hook-log-file", default=str(DEFAULT_HOOK_LOG_FILE))
     parser.add_argument("--passthrough", nargs=argparse.REMAINDER, help="Optional command to run after updating the pet state")
     args = parser.parse_args()
 
@@ -125,8 +140,23 @@ def main() -> None:
         print(f"pet-studio hook skipped: {error}", file=sys.stderr)
         project_id = None
 
+    state_payload = None
     if project_id:
-        publish_codex_event(Path(args.state_file).expanduser(), project_id, event, message, **reset_options_for_hook(args.hook))
+        state_payload = publish_codex_event(Path(args.state_file).expanduser(), project_id, event, message, **reset_options_for_hook(args.hook))
+    append_hook_log(
+        Path(args.hook_log_file).expanduser() if args.hook_log_file else None,
+        {
+            "timestamp": utc_now(),
+            "hook": args.hook,
+            "event": event,
+            "projectId": project_id,
+            "state": state_payload.get("state") if state_payload else None,
+            "message": message,
+            "cwd": cwd,
+            "payloadKeys": sorted(payload.keys()),
+            "skipped": project_id is None,
+        },
+    )
 
     passthrough = args.passthrough or []
     if passthrough and passthrough[0] == "--":
