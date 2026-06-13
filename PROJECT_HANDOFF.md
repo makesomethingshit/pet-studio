@@ -17,10 +17,10 @@ The old `project-room-*` names remain as v1 compatibility filenames and module n
 
 Prefer the new wrappers in docs and examples:
 
-- `project-room-widget/pet_studio_widget.py`
-- `project-room-widget/pet_studio_event_adapter.py`
-- `project-room-widget/set_pet_studio_state.py`
-- `project-room-widget/set_active_pet_studio.py`
+- `pet-studio-widget/pet_studio_widget.py`
+- `pet-studio-widget/pet_studio_event_adapter.py`
+- `pet-studio-widget/set_pet_studio_state.py`
+- `pet-studio-widget/set_active_pet_studio.py`
 - `tools/install_pet_studio_skill.py`
 
 ## Release Checklist
@@ -28,16 +28,16 @@ Prefer the new wrappers in docs and examples:
 - Keep local QA output under `tester/`; it is ignored by git.
 - Keep local generated experiments under ignored run folders unless they are explicitly promoted as public examples.
 - Do not commit local runtime state files:
-  - `project-room-widget/project-room-active.json`
-  - `project-room-widget/project-room-layouts.json`
-  - `project-room-widget/project-room-state.json`
-  - `project-room-widget/project-room-window.json`
+  - `pet-studio-widget/project-room-active.json`
+  - `pet-studio-widget/project-room-layouts.json`
+  - `pet-studio-widget/project-room-state.json`
+  - `pet-studio-widget/project-room-window.json`
 - Before pushing, run:
 
 ```powershell
-python -m unittest discover -s project-room-widget\tests
-python -m unittest discover -s project-room-kit\tests
-python -m py_compile project-room-widget\pet_studio_widget.py project-room-widget\pet_studio_event_adapter.py project-room-widget\set_pet_studio_state.py project-room-widget\set_active_pet_studio.py project-room-widget\codex_pet_hook.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py
+python -m unittest discover -s pet-studio-widget\tests
+python -m unittest discover -s pet-studio-kit\tests
+python -m py_compile pet-studio-widget\pet_studio_widget.py pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\codex_pet_hook.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py
 ```
 
 ## Current Demo

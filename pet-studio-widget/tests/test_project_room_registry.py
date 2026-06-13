@@ -12,7 +12,7 @@ from PIL import Image
 
 
 ROOT = Path(__file__).resolve().parents[2]
-WIDGET_DIR = ROOT / "project-room-widget"
+WIDGET_DIR = ROOT / "pet-studio-widget"
 WIDGET_SCRIPT = WIDGET_DIR / "pet_studio_widget.py"
 STATE_SCRIPT = WIDGET_DIR / "set_pet_studio_state.py"
 ADAPTER_SCRIPT = WIDGET_DIR / "pet_studio_event_adapter.py"
@@ -223,7 +223,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
         signature = inspect.signature(project_room_widget.scale_visible_layer)
 
         self.assertIn("flip_x", signature.parameters)
-        self.assertEqual(Path(project_room_widget.scale_visible_layer.__code__.co_filename).resolve().parents[1], ROOT / "project-room-kit")
+        self.assertEqual(Path(project_room_widget.scale_visible_layer.__code__.co_filename).resolve().parents[1], ROOT / "pet-studio-kit")
 
     def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
         from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor, save_project_z_order

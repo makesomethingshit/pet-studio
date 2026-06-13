@@ -1,4 +1,4 @@
-﻿# Pet Studio
+# Pet Studio
 
 [![Version](https://img.shields.io/badge/version-0.1.1-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -83,7 +83,7 @@ This repository includes a public Gakju archive room sample built from separated
 You can render or inspect the checked-in sample without generating new art:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\gakju-imagegen-room-v1\widget-render-test.png
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\gakju-imagegen-room-v1\widget-render-test.png
 ```
 
 The sample files under `runs/gakju-imagegen-room-v1/` are intended as public examples. Local QA reports, private test runs, and fresh project experiments stay ignored by git.
@@ -93,19 +93,19 @@ The sample files under `runs/gakju-imagegen-room-v1/` are intended as public exa
 List registered room projects:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --list-projects
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --list-projects
 ```
 
 Launch the included demo room:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
 ```
 
 Render one frame without opening the widget:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
 
 ## Widget Controls
@@ -124,19 +124,19 @@ Registered projects persist moved anchors and window scale locally.
 Update the active project state directly:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
+.\tools\pet_studio_python.cmd pet-studio-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
 ```
 
 Publish a Codex-style event:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "working"
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "working"
 ```
 
 Or send a structured JSON payload, which is the command target used by the lifecycle hook bridge:
 
 ```powershell
-'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | .\tools\pet_studio_python.cmd project-room-widget\pet_studio_event_adapter.py --event-json -
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | .\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --event-json -
 ```
 
 When no project id is provided, the adapter resolves project identity in this order:
@@ -148,7 +148,7 @@ When no project id is provided, the adapter resolves project identity in this or
 Pin an active project when several rooms share one workspace:
 
 ```powershell
-.\tools\pet_studio_python.cmd project-room-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
+.\tools\pet_studio_python.cmd pet-studio-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
 ```
 
 State messages appear as runtime speech bubbles. Long messages are whitespace-normalized and capped at 80 characters so hook output stays compact.
@@ -191,10 +191,10 @@ Local QA evidence and experimental run folders are intentionally ignored by git 
 
 ## Repository Layout
 
-- `project-room-kit/` - source folder for the installable `$pet-studio` skill and kit creation scripts.
-- `project-room-widget/` - desktop scene-host runtime and project registry.
+- `pet-studio-kit/` - source folder for the installable `$pet-studio` skill and kit creation scripts.
+- `pet-studio-widget/` - desktop scene-host runtime and project registry.
 - `runs/` - checked-in demo outputs plus ignored local experiments.
-- `docs/PROJECT_ROOM_ROADMAP.md` - roadmap and data model notes.
+- `docs/PET_STUDIO_ROADMAP.md` - roadmap and data model notes.
 - `tools/install_pet_studio_skill.py` - local installer.
 - `CHANGELOG.md` - release notes.
 - `VERSION` - current release version.
@@ -216,8 +216,9 @@ Skill is valid!
 Development checks:
 
 ```powershell
-.\tools\pet_studio_python.cmd -m unittest project-room-widget.tests.test_project_room_registry project-room-kit.tests.test_project_room_pipeline
-.\tools\pet_studio_python.cmd -m py_compile project-room-widget\pet_studio_event_adapter.py project-room-widget\set_pet_studio_state.py project-room-widget\set_active_pet_studio.py project-room-widget\pet_studio_widget.py project-room-widget\project_room_registry.py project-room-kit\scripts\create_project_room_kit.py
+.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
+.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
+.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py
 ```
 
 ## Notes

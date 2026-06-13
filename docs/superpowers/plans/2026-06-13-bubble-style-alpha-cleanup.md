@@ -13,9 +13,9 @@
 ### Task 1: Bubble Style Resolution
 
 **Files:**
-- Modify: `project-room-widget/project_room_scene.py`
-- Modify: `project-room-widget/project_room_widget.py`
-- Test: `project-room-widget/tests/test_project_room_registry.py`
+- Modify: `pet-studio-widget/project_room_scene.py`
+- Modify: `pet-studio-widget/project_room_widget.py`
+- Test: `pet-studio-widget/tests/test_project_room_registry.py`
 
 - [ ] Add failing tests for kit-level `bubbleStyle`, pet sidecar `bubbleStyle`, and pet-color fallback.
 - [ ] Implement `resolve_bubble_style(kit, kit_dir)` with priority: kit manifest, main pet sidecar, pet image extraction, default compact style.
@@ -25,9 +25,9 @@
 ### Task 2: Room Alpha Cleanup Modes
 
 **Files:**
-- Modify: `project-room-kit/scripts/project_room_assets.py`
-- Modify: `project-room-kit/scripts/create_project_room_kit.py`
-- Test: `project-room-kit/tests/test_project_room_pipeline.py`
+- Modify: `pet-studio-kit/scripts/project_room_assets.py`
+- Modify: `pet-studio-kit/scripts/create_project_room_kit.py`
+- Test: `pet-studio-kit/tests/test_project_room_pipeline.py`
 
 - [ ] Add failing tests for `safe`, `balanced`, and `aggressive` cleanup behavior.
 - [ ] Implement mode-aware edge-connected cleanup while preserving interior bright pixels.

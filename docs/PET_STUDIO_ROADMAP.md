@@ -1,16 +1,16 @@
-# Project Room Roadmap
+# Pet Studio Roadmap
 
 ## Vision
 
-Project Room turns each project or chat room into a small pet room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a full dashboard or game.
+Pet Studio turns each project or chat room into a small pet room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a full dashboard or game.
 
 The long-term experience should feel like a living Codex pet scene: a compact side-view room near the edge of the desktop, one main owner pet as the emotional focus, optional helper pets for review or handoff moments, draggable props, and project-specific layout details that make each workspace recognizable.
 
 ## Current State
 
-- `project-room-kit` can create, validate, preview, and optionally bake layered `384x240` room kits.
+- `pet-studio-kit` can create, validate, preview, and optionally bake layered `384x240` room kits.
 - `create_project_room_kit.py` accepts an arbitrary hatch-pet package plus generated or authored room/prop assets.
-- `project-room-widget` can render a layered kit as independent Canvas entities in a frameless desktop scene host.
+- `pet-studio-widget` can render a layered kit as independent Canvas entities in a frameless desktop scene host.
 - `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge and infer project ids from registered workspace paths.
 - `project-room-layouts.json` stores project-specific moved entity anchors without changing kit files.
 - `project-room-window.json` stores registered project host window position and scale.
@@ -27,7 +27,7 @@ Create a local registry that maps project ids to pet packages and room kits.
 
 Done when:
 
-- `project-room-widget/project-room-projects.json` exists.
+- `pet-studio-widget/project-room-projects.json` exists.
 - Each project entry has `projectId`, `displayName`, `kitPath`, `petPackagePath`, `defaultState`, `theme`, and `enabled`.
 - Disabled, unknown, or missing-kit projects produce clear errors.
 
@@ -48,7 +48,7 @@ Use a small state file as the first external event bridge.
 
 Done when:
 
-- `project-room-widget/project-room-state.json` documents the active project state shape.
+- `pet-studio-widget/project-room-state.json` documents the active project state shape.
 - `--state-file <path>` can switch a project between `idle`, `running`, `waiting`, `review`, `failed`, and `done`.
 - State aliases are deterministic: `done` maps to `jumping`, `blocked` maps to `failed`, and `handoff` maps to `review`.
 

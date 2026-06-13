@@ -47,7 +47,7 @@ def parse_notify_line(line: str) -> list[str] | None:
 def build_notify_command(previous_notify: list[str] | None) -> list[str]:
     command = [
         str(PYTHON_EXE),
-        str(ROOT / "project-room-widget" / "codex_pet_hook.py"),
+        str(ROOT / "pet-studio-widget" / "codex_pet_hook.py"),
         "--hook",
         "notify",
     ]
@@ -74,7 +74,7 @@ def build_hook_command(hook_name: str) -> str:
     return command_string(
         [
             str(PYTHON_EXE),
-            str(ROOT / "project-room-widget" / "codex_pet_hook.py"),
+            str(ROOT / "pet-studio-widget" / "codex_pet_hook.py"),
             "--hook",
             hook_name,
         ]
@@ -216,10 +216,10 @@ def install_notify_bridge(config_path: Path, dry_run: bool = False) -> dict:
 
 
 def write_active_project(project_id: str, dry_run: bool = False) -> dict:
-    active_file = ROOT / "project-room-widget" / "project-room-active.json"
+    active_file = ROOT / "pet-studio-widget" / "project-room-active.json"
     if dry_run:
         return {"activeProjectFile": str(active_file), "projectId": project_id, "dryRun": True}
-    widget_dir = ROOT / "project-room-widget"
+    widget_dir = ROOT / "pet-studio-widget"
     if str(widget_dir) not in sys.path:
         sys.path.insert(0, str(widget_dir))
     from set_active_project import write_active_project as write_project_pin

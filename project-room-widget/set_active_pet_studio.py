@@ -1,9 +1,10 @@
-"""Pin the active Pet Studio project for Codex event adapters."""
-
 from __future__ import annotations
 
-from set_active_project import main
+import runpy
+import sys
+from pathlib import Path
 
-
-if __name__ == "__main__":
-    main()
+target_dir = Path(__file__).resolve().parents[1] / "pet-studio-widget"
+sys.path.insert(0, str(target_dir))
+target = target_dir / Path(__file__).name
+runpy.run_path(str(target), run_name="__main__")

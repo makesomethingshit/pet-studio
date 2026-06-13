@@ -12,10 +12,10 @@ from PIL import Image, ImageDraw
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "project-room-kit" / "scripts" / "create_project_room_kit.py"
-VALIDATOR = ROOT / "project-room-kit" / "scripts" / "validate_project_room_kit.py"
-ASSET_HELPERS = ROOT / "project-room-kit" / "scripts" / "project_room_assets.py"
-BAKE_SCRIPT = ROOT / "project-room-kit" / "scripts" / "bake_project_room_pet.py"
+SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "create_project_room_kit.py"
+VALIDATOR = ROOT / "pet-studio-kit" / "scripts" / "validate_project_room_kit.py"
+ASSET_HELPERS = ROOT / "pet-studio-kit" / "scripts" / "project_room_assets.py"
+BAKE_SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "bake_project_room_pet.py"
 
 
 STATE_FRAMES = {
