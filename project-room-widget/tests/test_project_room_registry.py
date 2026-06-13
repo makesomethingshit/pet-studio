@@ -51,7 +51,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
         entities = scene_entities_from_kit(kit)
         by_id = {entity.id: entity for entity in entities}
 
-        self.assertEqual([entity.id for entity in entities], ["room", "desk", "main-owner", "book-stack", "helper-reviewer"])
+        self.assertEqual([entity.id for entity in entities], ["room", "desk", "main-owner", "book-stack", "helper-prop-creature"])
         self.assertTrue(by_id["room"].locked)
         self.assertFalse(by_id["room"].draggable)
         self.assertTrue(by_id["desk"].draggable)
@@ -76,12 +76,12 @@ class ProjectRoomSceneTests(unittest.TestCase):
         from project_room_scene import scene_entities_from_kit
 
         kit = self.load_demo_kit()
-        helper_layer = next(layer for layer in kit["layers"] if layer["id"] == "helper-reviewer")
+        helper_layer = next(layer for layer in kit["layers"] if layer["id"] == "helper-prop-creature")
         original_anchor = dict(kit["anchors"][helper_layer["anchor"]])
-        layout = {"anchors": {"helper-reviewer": {"x": -1050, "y": 611}}}
+        layout = {"anchors": {"helper-prop-creature": {"x": -1050, "y": 611}}}
 
         entities = scene_entities_from_kit(kit, layout)
-        helper = next(entity for entity in entities if entity.id == "helper-reviewer")
+        helper = next(entity for entity in entities if entity.id == "helper-prop-creature")
 
         self.assertEqual(helper.anchor, original_anchor)
 
@@ -151,9 +151,9 @@ class ProjectRoomSceneTests(unittest.TestCase):
         review_ids = [entity.id for entity in visible_scene_entities(kit, entities, "review")]
         failed_ids = [entity.id for entity in visible_scene_entities(kit, entities, "failed")]
 
-        self.assertNotIn("helper-reviewer", idle_ids)
-        self.assertIn("helper-reviewer", review_ids)
-        self.assertIn("helper-reviewer", failed_ids)
+        self.assertNotIn("helper-prop-creature", idle_ids)
+        self.assertIn("helper-prop-creature", review_ids)
+        self.assertIn("helper-prop-creature", failed_ids)
 
     def test_public_demo_review_render_contains_helper_pet_pixels(self) -> None:
         import project_room_widget
@@ -163,7 +163,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
         kit_without_helper["states"]["review"]["visibleLayers"] = [
             layer_id
             for layer_id in kit_without_helper["states"]["review"]["visibleLayers"]
-            if layer_id != "helper-reviewer"
+            if layer_id != "helper-prop-creature"
         ]
         layer_assets = project_room_widget.load_layer_assets(DEMO_KIT.parent, kit["layers"], [])
 
