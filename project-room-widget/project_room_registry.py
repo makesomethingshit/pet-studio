@@ -1,4 +1,4 @@
-"""Project assignment registry for Project Room Widget."""
+"""Project assignment registry for Pet Studio widgets."""
 
 from __future__ import annotations
 
@@ -73,7 +73,7 @@ def resolve_kit_manifest(value: str, base_dir: Path) -> Path:
     if path.is_dir():
         path = path / "project-room.json"
     if not path.exists():
-        raise ProjectRegistryError(f"Project Room Kit manifest not found: {path}")
+        raise ProjectRegistryError(f"Pet Studio kit manifest not found: {path}")
     return path
 
 

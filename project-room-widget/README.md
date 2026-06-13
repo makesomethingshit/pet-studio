@@ -1,28 +1,32 @@
-# Project Room Widget
+# Pet Studio Widget
 
-Frameless desktop scene-host runtime for Project Room Kit packages.
+Frameless desktop scene-host runtime for Pet Studio kits.
 
-The runtime keeps room, props, main pet, and helper pets as separate Canvas entities inside one transparent host window. It is not a single precomposited widget image.
+The widget keeps room, props, main pet, helper pets, and speech bubbles as separate Canvas entities inside one transparent host window. It is not a single precomposited image.
 
-## Run Gakju Archive Room
+## Run A Sample
 
-```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --kit D:\pet-studio\runs\gakju-archive-room-skill-run\kit --scale 1.25 --x 1200 --y 620
-```
-
-## Run A Registered Project
+Launch the checked-in Gakju sample:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --scale 1.25 --x 1200 --y 620
+python project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --scale 1.25
 ```
 
-Registered projects live in `project-room-projects.json`. The widget also supports:
+Launch a registered project:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --list-projects
+python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --scale 1.25
 ```
 
-Controls:
+List registered projects:
+
+```powershell
+python project-room-widget\pet_studio_widget.py --list-projects
+```
+
+Registered projects live in the v1 compatibility registry file `project-room-projects.json`.
+
+## Controls
 
 - Drag a prop or pet with the left mouse button.
 - Drag locked room/background or empty space to move the host window.
@@ -30,15 +34,15 @@ Controls:
 - Right-click to open the context menu.
 - Use the context menu to cycle state, reset a registered project layout, adjust a selected entity's layer order, resize the widget, toggle the speech bubble, or close.
 - Press `Ctrl` + `+` / `Ctrl` + `-` to resize the widget, or `Ctrl` + `0` to reset size.
-- Escape closes the host.
+- Press `Escape` to close.
 
-Registered projects persist moved entity anchors and layer-order overrides in `project-room-layouts.json`, and host window position/scale in `project-room-window.json`. Direct `--kit` runs allow session-only movement and do not write project layout or window overrides.
+Registered projects persist moved entity anchors and layer-order overrides in `project-room-layouts.json`, and host window position/scale in `project-room-window.json`. Those filenames remain the v1 compatibility storage contract. Direct `--kit` runs allow session-only movement and do not write layout or window overrides.
 
-When a registered project is launched with `--project-id`, the widget also writes `project-room-active.json` so Codex event adapters can resolve the currently selected room project. Saved entity anchors outside the source room canvas are ignored on load and new drag positions are clamped to the canvas, so a helper or prop cannot stay permanently off-screen after an accidental drag. Use the context menu's reset layout action to return all entities to the kit defaults.
+When a registered project is launched with `--project-id`, the widget also writes `project-room-active.json` so Codex event adapters can resolve the currently selected Pet Studio project. Saved entity anchors outside the source room canvas are ignored on load and new drag positions are clamped to the canvas.
 
 ## State Bridge
 
-Use `project-room-state.json` as the first file-based bridge from external project status to widget state:
+Use `project-room-state.json` as the v1 file-based bridge from external task status to widget state:
 
 ```json
 {
@@ -51,70 +55,68 @@ Use `project-room-state.json` as the first file-based bridge from external proje
 
 Supported external states are `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`. The widget maps `done` to the hatch-pet `jumping` row, `blocked` to `failed`, and `handoff` to `review`.
 
-If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Messages are whitespace-normalized and capped at 80 characters so long hook output cannot crowd the room. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`; idle can stay quiet. Speech bubbles are not included in `--render-once`, fallback baking, or kit assets.
+If the state file includes `message`, the scene host shows that message as a runtime-only speech bubble near the main pet. Messages are whitespace-normalized and capped at 80 characters. Without a message, the host uses short state defaults such as `Working`, `Waiting`, `Reviewing`, `Need input`, or `Done`.
 
-Bubble styling follows the selected room kit. The runtime resolves style in this order: `project-room.json` `bubbleStyle`, main pet `spritesheet.asset.json` `bubbleStyle`, automatic color extraction from the main pet spritesheet, then the default compact style.
+Bubble styling follows the selected Pet Studio kit. The runtime resolves style in this order: `project-room.json` `bubbleStyle`, main pet `spritesheet.asset.json` `bubbleStyle`, automatic color extraction from the main pet spritesheet, then the default compact style.
 
 Write the bridge file with:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\set_project_state.py --project-id gakju-archive-demo --state running --message "building room kit"
+python project-room-widget\set_pet_studio_state.py --project-id gakju-archive-demo --state running --message "building room kit"
 ```
-
-Helper pets appear in `review`/`handoff` scenes and in the `failed` scene used by `blocked`, when the selected kit has a helper layer. Kits without helper assets continue rendering the main pet only.
 
 For Codex-like task events, use the adapter instead of writing bridge states directly:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event start --message "working"
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event start --message "implementing adapter"
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --project-id gakju-archive-demo --event done --message "finished"
+python project-room-widget\pet_studio_event_adapter.py --event start --message "working"
+python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event review --message "ready for review"
+python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event block --message "needs input"
+python project-room-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event done --message "finished"
 ```
 
-The adapter maps `start` to `running`, `wait` to `waiting`, `review` to `review`, `block` to `blocked`, `fail` to `failed`, `done` to `done`, and `idle` to `idle`. When `--project-id` is omitted, the adapter resolves project identity in this order: explicit `projectId`, active project pin, then registry `workspacePaths`.
+When `--project-id` is omitted, the adapter resolves project identity in this order:
+
+1. Explicit `projectId`
+2. Active project pin
+3. Registry `workspacePaths`
 
 Pin an active project when multiple room projects share a workspace:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\set_active_project.py --project-id gakju-archive-demo --cwd D:\pet-studio
+python project-room-widget\set_active_pet_studio.py --project-id gakju-archive-demo --cwd .
 ```
 
-Codex host hooks can call the same adapter with a JSON payload. This is the stable local command target:
+Codex host hooks can call the same adapter with a JSON payload:
 
 ```powershell
-'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\codex_state_adapter.py --event-json -
+'{"event":"start","message":"working","projectId":"gakju-archive-demo"}' | python project-room-widget\pet_studio_event_adapter.py --event-json -
 ```
 
-For the local Codex desktop setup, install the Pet Studio notify bridge:
+For local Codex Desktop bubble integration, install the Pet Studio notify bridge:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\tools\install_pet_studio_codex_integration.py
+python tools\install_pet_studio_codex_integration.py
 ```
 
-That installer backs up `%USERPROFILE%\.codex\config.toml`, wraps the existing Codex `notify` command, installs the skill as `$pet-studio`, and writes the active project pin. The repo also includes `.codex-plugin/plugin.json` and `hooks/hooks.codex.json` for fuller lifecycle events when the Codex plugin hook surface loads this repo as a plugin.
+That installer backs up `%USERPROFILE%\.codex\config.toml`, wraps the existing Codex `notify` command, and installs the skill as `$pet-studio`. Pass `--project-id <id>` when you also want to write an active project pin during installation.
 
-## Render Test
+## Render Checks
+
+Render a direct kit:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --kit D:\pet-studio\runs\gakju-archive-room-skill-run\kit --render-once D:\pet-studio\runs\widget-render-test.png
+python project-room-widget\pet_studio_widget.py --kit runs\gakju-imagegen-room-v1\kit --render-once runs\widget-render-test.png
 ```
 
-Render a registered project once:
+Render a registered project:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --render-project-once D:\pet-studio\runs\widget-render-test.png
+python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
 
-Use a custom layout file:
+Use custom persistence files:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --layout-file D:\pet-studio\project-room-widget\project-room-layouts.json
-```
-
-Use a custom window persistence file:
-
-```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe D:\pet-studio\project-room-widget\project_room_widget.py --project-id gakju-archive-demo --window-file D:\pet-studio\project-room-widget\project-room-window.json
+python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --layout-file project-room-widget\project-room-layouts.json
+python project-room-widget\pet_studio_widget.py --project-id gakju-archive-demo --window-file project-room-widget\project-room-window.json
 ```

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "styleId": "project-room-soft-sticker-v1",
-  "name": "Project Room Soft Sticker",
+  "name": "Pet Studio Soft Sticker",
   "sourcePolicy": {
     "requiredAtRuntime": true,
     "preferredSource": "hatch-pet package",

@@ -1,4 +1,4 @@
-"""Create simple sample assets for Project Room Kit bake verification."""
+"""Create simple sample assets for Pet Studio bake verification."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def write_asset_metadata(
         "perspective": PERSPECTIVE,
         "role": role,
         "features": features or [],
-        "notes": "Sample asset generated for Project Room Kit pipeline validation."
+        "notes": "Sample asset generated for Pet Studio pipeline validation."
     }
     asset_path.with_name(asset_path.stem + ".asset.json").write_text(
         json.dumps(metadata, indent=2),

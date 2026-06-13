@@ -13,11 +13,11 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
 WIDGET_DIR = ROOT / "project-room-widget"
-WIDGET_SCRIPT = WIDGET_DIR / "project_room_widget.py"
-STATE_SCRIPT = WIDGET_DIR / "set_project_state.py"
-ADAPTER_SCRIPT = WIDGET_DIR / "codex_state_adapter.py"
+WIDGET_SCRIPT = WIDGET_DIR / "pet_studio_widget.py"
+STATE_SCRIPT = WIDGET_DIR / "set_pet_studio_state.py"
+ADAPTER_SCRIPT = WIDGET_DIR / "pet_studio_event_adapter.py"
 HOOK_SCRIPT = WIDGET_DIR / "codex_pet_hook.py"
-ACTIVE_SCRIPT = WIDGET_DIR / "set_active_project.py"
+ACTIVE_SCRIPT = WIDGET_DIR / "set_active_pet_studio.py"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 if str(WIDGET_DIR) not in sys.path:
     sys.path.insert(0, str(WIDGET_DIR))
@@ -291,8 +291,8 @@ class ProjectRoomSceneTests(unittest.TestCase):
         for launcher in WIDGET_DIR.glob("run-*.bat"):
             with self.subTest(launcher=launcher.name):
                 text = launcher.read_text(encoding="utf-8").lower()
-                self.assertIn("pythonw.exe", text)
-                self.assertIn("start \"project room widget\"", text)
+                self.assertIn("pythonw", text)
+                self.assertIn("start \"pet studio widget\"", text)
                 self.assertNotIn("\\python.exe", text)
 
 
@@ -333,7 +333,7 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                 select_project(config, "gakju-demo")
 
             missing_config = self.make_config(Path(tmp) / "missing.json", kitPath="missing-kit")
-            with self.assertRaisesRegex(ProjectRegistryError, "Project Room Kit manifest not found"):
+            with self.assertRaisesRegex(ProjectRegistryError, "Pet Studio kit manifest not found"):
                 select_project(missing_config, "gakju-demo")
 
             with self.assertRaisesRegex(ProjectRegistryError, "Unknown project id"):

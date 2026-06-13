@@ -1,4 +1,4 @@
-"""Register a hatch-pet package as a Project Room Kit pet layer."""
+"""Register a hatch-pet package as a Pet Studio pet layer."""
 
 from __future__ import annotations
 
@@ -28,7 +28,7 @@ def validate_spritesheet(path: Path, expected_width: int, expected_height: int) 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kit-dir", required=True, help="Path to project-room-kit/kit")
+    parser.add_argument("--kit-dir", required=True, help="Path to a Pet Studio kit directory")
     parser.add_argument("--package-dir", required=True, help="Path to a hatch-pet package containing pet.json and spritesheet.webp")
     parser.add_argument("--layer-id", required=True, help="Kit pet layer id, for example main-owner or helper-reviewer")
     parser.add_argument("--feature", action="append", default=[], help="Extra metadata feature; may be repeated")
@@ -59,7 +59,7 @@ def main() -> None:
         "sourcePetId": pet_json.get("id"),
         "sourceDisplayName": pet_json.get("displayName"),
         "features": ["hatch-pet-atlas", args.layer_id, *args.feature],
-        "notes": "Registered from a hatch-pet package for Project Room Kit composition."
+        "notes": "Registered from a hatch-pet package for Pet Studio composition."
     }
     write_json(target_dir / "spritesheet.asset.json", metadata)
 

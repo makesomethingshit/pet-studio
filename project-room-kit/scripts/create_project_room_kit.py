@@ -1,4 +1,4 @@
-"""Create a production Project Room Kit from a hatch-pet and generated assets."""
+"""Create a production Pet Studio kit from a hatch-pet and generated assets."""
 
 from __future__ import annotations
 
@@ -152,7 +152,7 @@ def copy_pet_package(package_dir: Path, kit_dir: Path, layer_id: str, style: dic
         "sourcePetId": pet_json.get("id"),
         "sourceDisplayName": pet_json.get("displayName"),
         "features": ["hatch-pet-atlas", layer_id, *features],
-        "notes": "Registered from a hatch-pet package for Project Room Kit composition.",
+        "notes": "Registered from a hatch-pet package for Pet Studio composition.",
     }
     write_json(target_dir / "spritesheet.asset.json", metadata)
     return pet_json
@@ -162,7 +162,7 @@ def build_style_lock(pet_json: dict, pet_package: Path) -> dict:
     return {
         "schemaVersion": 1,
         "styleId": STYLE_ID,
-        "name": "Project Room Soft Sticker",
+        "name": "Pet Studio Soft Sticker",
         "sourcePolicy": {
             "requiredAtRuntime": True,
             "preferredSource": "hatch-pet package",
@@ -325,7 +325,7 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
         "description": "A side-view room-decorating kit for a Codex pet widget.",
         "styleLock": "style-lock.json",
         "cell": {"width": CELL_WIDTH, "height": CELL_HEIGHT, "purpose": "hatch-pet preview/fallback atlas cell, not the source room size"},
-        "sourceCanvas": {"width": ROOM_WIDTH, "height": ROOM_HEIGHT, "purpose": "layered project-room widget canvas"},
+        "sourceCanvas": {"width": ROOM_WIDTH, "height": ROOM_HEIGHT, "purpose": "layered Pet Studio widget canvas"},
         "roomModule": {
             "width": ROOM_WIDTH,
             "height": ROOM_HEIGHT,
@@ -369,7 +369,7 @@ def write_prompts(out_dir: Path, theme: str, prop_ids: list[str]) -> None:
     )
     for prop_id in prop_ids:
         (prompt_dir / f"prop-{prop_id}-prompt.txt").write_text(
-            f"Create a transparent PNG prop named {prop_id} for a {theme} Project Room Kit. "
+            f"Create a transparent PNG prop named {prop_id} for a {theme} Pet Studio kit. "
             "Use the same SD/chibi soft sticker style, eye-level side-view perspective, rounded furniture proportions, "
             "simple readable shapes, and no readable text, letters, numbers, logos, watermark, UI frame, or character.",
             encoding="utf-8",
@@ -445,12 +445,12 @@ def main() -> None:
         help="Prop layer placement in id=background|behind-pet|front-of-pet|foreground format; may be repeated",
     )
     parser.add_argument("--helper-package", action="append", default=[], help="Helper pet in id=path format; may be repeated")
-    parser.add_argument("--theme", default="project room")
+    parser.add_argument("--theme", default="pet studio room")
     parser.add_argument("--display-name", default=None)
     parser.add_argument("--render-preview", action="store_true")
     parser.add_argument("--render-contact", action="store_true")
     parser.add_argument("--bake-fallback", action="store_true")
-    parser.add_argument("--register-project", action="store_true", help="Register the created kit in a project-room registry")
+    parser.add_argument("--register-project", action="store_true", help="Register the created kit in a Pet Studio registry")
     parser.add_argument("--project-id", default=None, help="Project id to use with --register-project")
     parser.add_argument("--registry", default=None, help="Project registry path to update")
     parser.add_argument("--workspace-path", action="append", default=[], help="Workspace path to associate with the registered project; may be repeated")

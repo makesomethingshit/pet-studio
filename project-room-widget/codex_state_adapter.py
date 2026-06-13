@@ -1,4 +1,4 @@
-"""Translate Codex-like task events into Project Room Widget state updates."""
+"""Translate Codex-like task events into Pet Studio widget state updates."""
 
 from __future__ import annotations
 

@@ -21,5 +21,8 @@ Thumbs.db
 tester/
 runs/fresh-custom-pet-room/
 
-# Local Project Room runtime selection/state
+# Local Pet Studio runtime selection/state
 project-room-widget/project-room-active.json
+project-room-widget/project-room-layouts.json
+project-room-widget/project-room-state.json
+project-room-widget/project-room-window.json

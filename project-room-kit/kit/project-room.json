@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "project-room",
-  "displayName": "Project Room",
+  "displayName": "Pet Studio Sample",
   "description": "A side-view room-decorating kit for a Codex pet widget.",
   "styleLock": "style-lock.json",
   "cell": {
@@ -12,7 +12,7 @@
   "sourceCanvas": {
     "width": 384,
     "height": 240,
-    "purpose": "layered project-room widget canvas"
+    "purpose": "layered Pet Studio widget canvas"
   },
   "roomModule": {
     "width": 384,

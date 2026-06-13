@@ -1,6 +1,6 @@
-# Project Room Kit
+﻿# Pet Studio Kit
 
-Project Room Kit is a modular pet-room asset format for a windowless Codex scene-host runtime.
+Pet Studio Kit is a modular pet-room asset format for a windowless Codex scene-host runtime.
 
 The idea is closer to room decorating than to a standalone app:
 
@@ -15,7 +15,7 @@ The idea is closer to room decorating than to a standalone app:
 
 The current hatch-pet package is a single `pet.json` plus `spritesheet.webp`. That is great for compatibility, but it is not enough for room decorating by itself.
 
-Project Room Kit keeps the authoring model modular, then supports two output modes:
+Pet Studio keeps the authoring model modular, then supports two output modes:
 
 1. **Scene-host output** where the live runtime renders room, prop, main pet, and helper pet as independent entities.
 2. **Baked output** for compatibility, where the room, props, and pet frames are composed into one normal hatch-pet spritesheet.
@@ -55,7 +55,7 @@ The kit should not require a dashboard or editor window. The live runtime uses o
 
 Every room background should use the same module size:
 
-- `384x240` source canvas for the layered project-room widget.
+- `384x240` source canvas for the layered Pet Studio widget.
 - `192x208` hatch-pet cell only for compatibility preview/fallback baking.
 - Eye-level side view.
 - Left and right doors in consistent positions.
@@ -148,13 +148,13 @@ This is also captured in `generation-workflow.json`.
 Create a production kit from an arbitrary hatch-pet package and generated or hand-authored room/prop PNGs:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\create_project_room_kit.py `
-  --out-dir D:\pet-studio\runs\my-project-room `
-  --pet-package C:\Users\USER\.codex\pets\gakju `
-  --room-image D:\pet-studio\runs\my-assets\room.png `
+python `
+  project-room-kit\scripts\create_project_room_kit.py `
+  --out-dir runs\my-project-room `
+  --pet-package %USERPROFILE%\.codex\pets\gakju `
+  --room-image runs\my-assets\room.png `
   --room-alpha-mode balanced `
-  --prop desk=D:\pet-studio\runs\my-assets\desk.png `
+  --prop desk=runs\my-assets\desk.png `
   --prop-placement desk=behind-pet `
   --theme "quiet archive nook" `
   --display-name "Archive Nook" `
@@ -163,10 +163,10 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
   --bake-fallback `
   --register-project `
   --project-id archive-nook `
-  --registry D:\pet-studio\project-room-widget\project-room-projects.json
+  --registry project-room-widget\project-room-projects.json
 ```
 
-This writes `kit/project-room.json`, `kit/style-lock.json`, copied layer assets, sidecar `.asset.json` files, `generation-brief.json`, prompt text files, `kit-validation.json`, and `production-report.json`. The fallback package is optional and is only for runtimes that still need a normal hatch-pet package.
+This writes `kit/project-room.json`, `kit/style-lock.json`, copied layer assets, sidecar `.asset.json` files, `generation-brief.json`, prompt text files, `kit-validation.json`, and `production-report.json`. The `project-room.json` filename remains the v1 manifest contract for Pet Studio kits. The fallback package is optional and is only for runtimes that still need a normal hatch-pet package.
 
 During room registration, edge-connected room borders are cleared to alpha so generated room images do not leave visible white or bright halo fringe in the transparent scene host. The source room size stays `384x240`.
 
@@ -186,20 +186,20 @@ When `--register-project` is used, the new kit is also added to a project assign
 Register a hatch-pet package as a kit pet layer:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\register_pet_package.py `
-  --kit-dir D:\pet-studio\project-room-kit\kit `
-  --package-dir D:\pet-studio\runs\some-hatch-pet-package `
+python `
+  project-room-kit\scripts\register_pet_package.py `
+  --kit-dir project-room-kit\kit `
+  --package-dir runs\some-hatch-pet-package `
   --layer-id main-owner
 ```
 
 For a helper:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\register_pet_package.py `
-  --kit-dir D:\pet-studio\project-room-kit\kit `
-  --package-dir D:\pet-studio\runs\some-helper-pet-package `
+python `
+  project-room-kit\scripts\register_pet_package.py `
+  --kit-dir project-room-kit\kit `
+  --package-dir runs\some-helper-pet-package `
   --layer-id helper-reviewer `
   --feature review-helper
 ```
@@ -207,10 +207,10 @@ C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\py
 Run the whole compatibility experiment:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\run_full_experiment.py `
-  --source-kit-dir D:\pet-studio\project-room-kit\kit `
-  --out-dir D:\pet-studio\runs\full-pipeline-experiment
+python `
+  project-room-kit\scripts\run_full_experiment.py `
+  --source-kit-dir project-room-kit\kit `
+  --out-dir runs\full-pipeline-experiment
 ```
 
 This creates sample assets, validates style-lock metadata, bakes a normal pet package, validates the hatch-pet atlas, and writes a contact sheet.
@@ -218,9 +218,9 @@ This creates sample assets, validates style-lock metadata, bakes a normal pet pa
 Create sample assets for pipeline testing:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\create_sample_assets.py `
-  --kit-dir D:\pet-studio\project-room-kit\kit
+python `
+  project-room-kit\scripts\create_sample_assets.py `
+  --kit-dir project-room-kit\kit
 ```
 
 Bake the kit into a standard pet package:
@@ -228,37 +228,37 @@ Bake the kit into a standard pet package:
 Validate style consistency first:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\validate_project_room_kit.py `
-  --kit D:\pet-studio\project-room-kit\kit\project-room.json `
-  --json-out D:\pet-studio\runs\project-room-kit-sample\kit-style-validation.json
+python `
+  project-room-kit\scripts\validate_project_room_kit.py `
+  --kit project-room-kit\kit\project-room.json `
+  --json-out runs\project-room-kit-sample\kit-style-validation.json
 ```
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  D:\pet-studio\project-room-kit\scripts\bake_project_room_pet.py `
-  --kit D:\pet-studio\project-room-kit\kit\project-room.json `
-  --out-dir D:\pet-studio\runs\project-room-kit-sample `
+python `
+  project-room-kit\scripts\bake_project_room_pet.py `
+  --kit project-room-kit\kit\project-room.json `
+  --out-dir runs\project-room-kit-sample `
   --pet-id project-room-kit-sample `
-  --display-name "Project Room Kit Sample"
+  --display-name "Pet Studio Sample"
 ```
 
 Validate the baked atlas:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  C:\Users\USER\.codex\skills\hatch-pet\scripts\validate_atlas.py `
-  D:\pet-studio\runs\project-room-kit-sample\spritesheet.webp `
-  --json-out D:\pet-studio\runs\project-room-kit-sample\validation.json
+python `
+  %USERPROFILE%\.codex\skills\hatch-pet\scripts\validate_atlas.py `
+  runs\project-room-kit-sample\spritesheet.webp `
+  --json-out runs\project-room-kit-sample\validation.json
 ```
 
 Generate a contact sheet:
 
 ```powershell
-C:\Users\USER\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe `
-  C:\Users\USER\.codex\skills\hatch-pet\scripts\make_contact_sheet.py `
-  D:\pet-studio\runs\project-room-kit-sample\spritesheet.webp `
-  --output D:\pet-studio\runs\project-room-kit-sample\contact-sheet.png
+python `
+  %USERPROFILE%\.codex\skills\hatch-pet\scripts\make_contact_sheet.py `
+  runs\project-room-kit-sample\spritesheet.webp `
+  --output runs\project-room-kit-sample\contact-sheet.png
 ```
 
 ## Next Real Art Step

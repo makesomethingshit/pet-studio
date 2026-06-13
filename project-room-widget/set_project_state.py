@@ -1,4 +1,4 @@
-"""Write the Project Room Widget file-based state bridge."""
+"""Write the Pet Studio widget file-based state bridge."""
 
 from __future__ import annotations
 
@@ -42,9 +42,9 @@ def write_project_state(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--state-file", default=str(DEFAULT_STATE_FILE), help="Project room state JSON path")
+    parser.add_argument("--state-file", default=str(DEFAULT_STATE_FILE), help="Pet Studio state JSON path")
     parser.add_argument("--project-id", required=True)
-    parser.add_argument("--state", required=True, help="External project state to publish")
+    parser.add_argument("--state", required=True, help="External Pet Studio state to publish")
     parser.add_argument("--message", default="")
     parser.add_argument("--updated-at", default=None, help="Override updatedAt; mainly useful for deterministic tests")
     args = parser.parse_args()

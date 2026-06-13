@@ -1,4 +1,4 @@
-"""Bake a modular Project Room Kit into a normal hatch-pet package."""
+"""Bake a modular Pet Studio kit into a normal hatch-pet package."""
 
 from __future__ import annotations
 

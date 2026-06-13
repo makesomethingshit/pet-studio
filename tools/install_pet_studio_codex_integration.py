@@ -9,14 +9,13 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from install_project_room_skill import install as install_skill
+from install_pet_studio_skill import install as install_skill
 
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON_EXE = Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "python" / "python.exe"
 CONFIG_PATH = Path.home() / ".codex" / "config.toml"
 SKILL_DESTINATION = Path.home() / ".codex" / "skills" / "pet-studio"
-PROJECT_ID = "fresh-custom-pet-room"
 
 
 def toml_string(value: str) -> str:
@@ -114,7 +113,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=str(CONFIG_PATH))
     parser.add_argument("--skill-dest", default=str(SKILL_DESTINATION))
-    parser.add_argument("--project-id", default=PROJECT_ID)
+    parser.add_argument("--project-id", default=None, help="Optional project id to pin as the active Pet Studio room")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--skip-skill", action="store_true")
     parser.add_argument("--skip-notify", action="store_true")
@@ -128,7 +127,7 @@ def main() -> None:
         results["skill"] = {"destination": str(Path(args.skill_dest).expanduser()), "dryRun": args.dry_run}
     if not args.skip_notify:
         results["notify"] = install_notify_bridge(Path(args.config).expanduser(), dry_run=args.dry_run)
-    if not args.skip_active_project:
+    if not args.skip_active_project and args.project_id:
         results["activeProject"] = write_active_project(args.project_id, dry_run=args.dry_run)
     print(json.dumps({"ok": True, **results}, indent=2))
 

@@ -1,4 +1,4 @@
-"""Codex hook/notify bridge for Project Room Widget bubbles."""
+"""Codex hook/notify bridge for Pet Studio widget bubbles."""
 
 from __future__ import annotations
 

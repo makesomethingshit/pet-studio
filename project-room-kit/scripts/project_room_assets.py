@@ -1,4 +1,4 @@
-"""Shared image helpers for Project Room Kit assets."""
+"""Shared image helpers for Pet Studio assets."""
 
 from __future__ import annotations
 

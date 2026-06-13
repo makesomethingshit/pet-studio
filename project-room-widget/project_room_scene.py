@@ -1,4 +1,4 @@
-"""Scene entity helpers for Project Room widget runtime."""
+"""Scene entity helpers for Pet Studio widget runtime."""
 
 from __future__ import annotations
 

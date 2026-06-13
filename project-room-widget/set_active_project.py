@@ -1,4 +1,4 @@
-"""Pin the active Project Room project for Codex event adapters."""
+"""Pin the active Pet Studio project for Codex event adapters."""
 
 from __future__ import annotations
 

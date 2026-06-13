@@ -1,4 +1,4 @@
-"""Render full-size previews from a layered Project Room Kit."""
+"""Render full-size previews from a layered Pet Studio kit."""
 
 from __future__ import annotations
 

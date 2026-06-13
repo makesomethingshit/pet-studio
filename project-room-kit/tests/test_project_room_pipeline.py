@@ -148,7 +148,7 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             report = json.loads((out / "production-report.json").read_text(encoding="utf-8"))
 
             self.assertEqual(manifest["displayName"], "Archive Nook")
-            self.assertEqual(manifest["sourceCanvas"], {"width": 384, "height": 240, "purpose": "layered project-room widget canvas"})
+            self.assertEqual(manifest["sourceCanvas"], {"width": 384, "height": 240, "purpose": "layered Pet Studio widget canvas"})
             self.assertEqual(style["sourcePolicy"]["selectedSource"]["type"], "existing hatch-pet pet package")
             self.assertEqual(style["sourcePolicy"]["selectedSource"]["petId"], "sample-pet")
             self.assertEqual(prop_meta["role"], "prop")

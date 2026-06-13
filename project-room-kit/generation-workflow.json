@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
   "id": "project-room-generation-workflow",
-  "description": "Production workflow for generating a modular Project Room Kit without mixing asset styles.",
+  "description": "Production workflow for generating a modular Pet Studio kit without mixing asset styles.",
   "order": [
     {
       "id": "choose-style-source",
-      "owner": "project-room-kit",
+      "owner": "pet-studio",
       "output": "style source decision",
       "notes": "Ask which pet should define the room/prop/helper style before generating room or prop assets. Accept an existing hatch-pet package, create a new hatch-pet first, or use an explicit style-lock file."
     },
     {
       "id": "lock-style",
-      "owner": "project-room-kit",
+      "owner": "pet-studio",
       "output": "kit/style-lock.json",
       "notes": "Freeze perspective, palette, outline, room size, door positions, and rendering language from the chosen style source before generating assets."
     },
@@ -23,7 +23,7 @@
     },
     {
       "id": "register-main-pet",
-      "owner": "project-room-kit",
+      "owner": "pet-studio",
       "output": "kit/pets/main-owner/spritesheet.webp and spritesheet.asset.json",
       "notes": "Copy the hatch-pet package into the kit and attach style-lock metadata."
     },
@@ -35,19 +35,19 @@
     },
     {
       "id": "generate-room-and-props",
-      "owner": "project-room-kit",
+      "owner": "pet-studio",
       "output": "kit/rooms/*.png and kit/props/*.png with .asset.json sidecars",
       "notes": "Generate or author modular 384x240 source room backgrounds and small props using the same style-lock. The 192x208 hatch-pet cell is only for fallback baking."
     },
     {
       "id": "validate-kit",
-      "owner": "project-room-kit",
+      "owner": "pet-studio",
       "output": "kit-style-validation.json",
       "notes": "Block mismatched styleId, perspective, room module size, missing door features, wrong atlas size, and oversized props."
     },
     {
       "id": "bake-package",
-      "owner": "project-room-kit",
+      "owner": "pet-studio",
       "output": "standard pet.json and spritesheet.webp",
       "notes": "Composite room, props, main pet, and helper pet layers into a hatch-pet-compatible package."
     },

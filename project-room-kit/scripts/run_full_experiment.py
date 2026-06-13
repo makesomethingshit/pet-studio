@@ -1,4 +1,4 @@
-"""Run the full Project Room Kit compatibility experiment."""
+"""Run the full Pet Studio compatibility experiment."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ def main() -> None:
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--hatch-pet-dir", default=r"C:\Users\USER\.codex\skills\hatch-pet")
     parser.add_argument("--pet-id", default="project-room-full-experiment")
-    parser.add_argument("--display-name", default="Project Room Full Experiment")
+    parser.add_argument("--display-name", default="Pet Studio Full Experiment")
     args = parser.parse_args()
 
     source_kit_dir = Path(args.source_kit_dir)

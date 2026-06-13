@@ -1,4 +1,4 @@
-"""Validate Project Room Kit structure and style-lock metadata."""
+"""Validate Pet Studio kit structure and style-lock metadata."""
 
 from __future__ import annotations
 

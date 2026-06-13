@@ -1,4 +1,4 @@
-"""Frameless desktop widget runtime for Project Room Kit packages."""
+"""Frameless desktop widget runtime for Pet Studio kits."""
 
 from __future__ import annotations
 
@@ -66,7 +66,7 @@ def resolve_kit_path(value: str) -> Path:
     if path.is_dir():
         path = path / "project-room.json"
     if not path.exists():
-        raise FileNotFoundError(f"Project Room Kit manifest not found: {path}")
+        raise FileNotFoundError(f"Pet Studio kit manifest not found: {path}")
     return path
 
 
@@ -164,7 +164,7 @@ class ProjectRoomWidget:
         self.root.configure(bg=CHROMA)
         self.root.wm_attributes("-transparentcolor", CHROMA)
         self.root.wm_attributes("-topmost", bool(topmost))
-        self.root.title("Project Room Widget")
+        self.root.title("Pet Studio Widget")
 
         if x is not None and y is not None:
             self.root.geometry(f"+{x}+{y}")
@@ -596,7 +596,7 @@ class ProjectRoomWidget:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--kit", help="Path to project-room.json or a kit directory")
+    parser.add_argument("--kit", help="Path to a Pet Studio kit manifest (project-room.json) or kit directory")
     parser.add_argument("--config", default=str(DEFAULT_REGISTRY), help="Project assignment registry path")
     parser.add_argument("--project-id", help="Project id from the registry")
     parser.add_argument("--list-projects", action="store_true", help="List registered projects and exit")
