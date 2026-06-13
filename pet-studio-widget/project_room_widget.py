@@ -65,6 +65,7 @@ CHROMA = "#ff00ff"
 DEFAULT_BUBBLE_FONT = "Segoe UI"
 TOPMOST_REFRESH_MS = 2000
 BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
+HIT_TEST_ALPHA_THRESHOLD = 16
 FONT_CANDIDATES = {
     "base": ["Noto Sans", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial", "TkDefaultFont"],
     "cjk": [
@@ -285,6 +286,23 @@ def relaunch_background(argv: list[str], executable: str | Path = sys.executable
     return True
 
 
+def image_anchor_s_pixel_is_opaque(
+    image: Image.Image,
+    anchor_x: float,
+    anchor_y: float,
+    x: int,
+    y: int,
+    alpha_threshold: int = HIT_TEST_ALPHA_THRESHOLD,
+) -> bool:
+    left = int(round(anchor_x - image.width / 2))
+    top = int(round(anchor_y - image.height))
+    px = int(x - left)
+    py = int(y - top)
+    if px < 0 or py < 0 or px >= image.width or py >= image.height:
+        return False
+    return image.convert("RGBA").getpixel((px, py))[3] > alpha_threshold
+
+
 class ProjectRoomWidget:
     def __init__(
         self,
@@ -327,6 +345,7 @@ class ProjectRoomWidget:
         self.drag_entity_id: str | None = None
         self.drag_last: tuple[int, int] | None = None
         self.entity_items: dict[str, int] = {}
+        self.entity_images: dict[str, Image.Image] = {}
         self.entity_photos: dict[str, ImageTk.PhotoImage] = {}
         self.bubble_items: list[int] = []
         self.topmost = bool(topmost)
@@ -403,11 +422,13 @@ class ProjectRoomWidget:
             tags=("entity", f"entity:{entity.id}", f"role:{entity.role}"),
         )
         self.entity_items[entity.id] = item
+        self.entity_images[entity.id] = image
 
     def redraw_scene(self) -> None:
         self.canvas.delete("entity")
         self.canvas.delete("bubble")
         self.entity_items.clear()
+        self.entity_images.clear()
         self.entity_photos.clear()
         self.bubble_items.clear()
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
@@ -517,6 +538,7 @@ class ProjectRoomWidget:
                 continue
             image = self.entity_image(entity, self.index)
             photo = ImageTk.PhotoImage(image)
+            self.entity_images[entity.id] = image
             self.entity_photos[entity.id] = photo
             self.canvas.itemconfigure(self.entity_items[entity.id], image=photo)
 
@@ -530,6 +552,13 @@ class ProjectRoomWidget:
         items = self.canvas.find_overlapping(x, y, x, y)
         for item in reversed(items):
             entity = self.item_entity(item)
+            if not entity:
+                continue
+            image = self.entity_images.get(entity.id)
+            if image is not None:
+                anchor_x, anchor_y = self.canvas.coords(item)
+                if not image_anchor_s_pixel_is_opaque(image, anchor_x, anchor_y, x, y):
+                    continue
             if entity and entity.draggable and not entity.locked:
                 return entity
             if entity and entity.locked:

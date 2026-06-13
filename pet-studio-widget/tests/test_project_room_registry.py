@@ -440,6 +440,15 @@ class ProjectRoomSceneTests(unittest.TestCase):
             )
         )
 
+    def test_entity_hit_testing_ignores_transparent_image_pixels(self) -> None:
+        import project_room_widget
+
+        image = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
+        image.putpixel((5, 8), (255, 120, 80, 255))
+
+        self.assertFalse(project_room_widget.image_anchor_s_pixel_is_opaque(image, 100, 100, 95, 90))
+        self.assertTrue(project_room_widget.image_anchor_s_pixel_is_opaque(image, 100, 100, 100, 98))
+
     def test_topmost_helper_sets_attribute_and_lifts_window(self) -> None:
         import project_room_widget
 
@@ -1257,7 +1266,7 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["resetAfterMs"], 1500)
             self.assertEqual(data["resetToState"], "idle")
 
-    def test_codex_pet_hook_post_tool_use_returns_to_review_state(self) -> None:
+    def test_codex_pet_hook_post_tool_use_keeps_working_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
             log_file = Path(tmp) / "project-room-hook-events.jsonl"
@@ -1284,8 +1293,8 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             data = json.loads(state_file.read_text(encoding="utf-8"))
             self.assertEqual(data["projectId"], "gakju-demo")
-            self.assertEqual(data["state"], "review")
-            self.assertEqual(data["message"], "Ready for review")
+            self.assertEqual(data["state"], "running")
+            self.assertEqual(data["message"], "Working")
 
 
 class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):

@@ -21,7 +21,7 @@ HOOK_TO_EVENT = {
     "session_start": ("idle", "Pet Studio ready"),
     "user_prompt_submit": ("start", "Working"),
     "pre_tool_use": ("start", "Using tool"),
-    "post_tool_use": ("review", "Ready for review"),
+    "post_tool_use": ("start", "Working"),
     "pre_compact": ("wait", "Compacting context"),
     "stop": ("done", "Done"),
     "notify": ("done", "Turn ended"),
