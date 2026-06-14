@@ -770,6 +770,70 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertIn("--force", result.stderr + result.stdout)
             self.assertEqual((out / "keep.txt").read_text(encoding="utf-8"), "existing work")
 
+    def test_guided_create_room_force_refuses_workspace_root_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "danger-demo",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(ROOT),
+                    "--force",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Refusing to replace unsafe output directory", result.stderr + result.stdout)
+            self.assertTrue((ROOT / ".git").exists())
+
+    def test_guided_create_room_force_refuses_workspace_code_dir_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "danger-demo",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(ROOT / "pet-studio-kit"),
+                    "--force",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Refusing to replace unsafe output directory", result.stderr + result.stdout)
+            self.assertTrue((ROOT / "pet-studio-kit" / "SKILL.md").exists())
+
     def test_qa_pack_creates_local_evidence_from_custom_registry(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

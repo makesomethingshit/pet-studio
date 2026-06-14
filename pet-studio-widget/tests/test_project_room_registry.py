@@ -1327,6 +1327,72 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             self.assertEqual(data["state"], "running")
             self.assertEqual(data["message"], "Working")
 
+    def test_codex_pet_hook_refuses_unapproved_passthrough(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
+            marker = Path(tmp) / "marker.txt"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--hook",
+                    "notify",
+                    "--passthrough",
+                    sys.executable,
+                    "-c",
+                    f"from pathlib import Path; Path({str(marker)!r}).write_text('ran')",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("passthrough requires --allow-passthrough", result.stderr + result.stdout)
+            self.assertFalse(marker.exists())
+
+    def test_codex_pet_hook_runs_approved_passthrough(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            log_file = Path(tmp) / "project-room-hook-events.jsonl"
+            marker = Path(tmp) / "marker.txt"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(HOOK_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--hook-log-file",
+                    str(log_file),
+                    "--project-id",
+                    "gakju-demo",
+                    "--hook",
+                    "notify",
+                    "--allow-passthrough",
+                    "--passthrough",
+                    sys.executable,
+                    "-c",
+                    f"from pathlib import Path; Path({str(marker)!r}).write_text('ran')",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertEqual(marker.read_text(encoding="utf-8"), "ran")
+
 
 class PetStudioPreflightTests(unittest.TestCase):
     def test_preflight_renders_public_demo_with_skippable_local_install_checks(self) -> None:
@@ -1590,10 +1656,35 @@ class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
             self.assertIn("codex_pet_hook.py", text)
             self.assertIsNone(result["backup"])
 
+    def test_notify_bridge_marks_preserved_notify_as_approved_passthrough(self) -> None:
+        from install_pet_studio_codex_integration import install_notify_bridge
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config_file = Path(tmp) / ".codex" / "config.toml"
+            config_file.parent.mkdir(parents=True)
+            config_file.write_text('notify = [ "python", "existing_notify.py" ]\n', encoding="utf-8")
+
+            result = install_notify_bridge(config_file, dry_run=False)
+
+            text = config_file.read_text(encoding="utf-8")
+            self.assertIn("--allow-passthrough", text)
+            self.assertIn("--passthrough", text)
+            self.assertEqual(result["previousNotify"], ["python", "existing_notify.py"])
+            self.assertIn("--allow-passthrough", result["nextNotify"])
+
     def test_default_hooks_file_is_project_local(self) -> None:
         from install_pet_studio_codex_integration import HOOKS_PATH
 
         self.assertEqual(HOOKS_PATH, ROOT / ".codex" / "hooks.json")
+
+    def test_skill_installer_force_refuses_workspace_root_delete(self) -> None:
+        from install_pet_studio_skill import install
+
+        with self.assertRaises(SystemExit) as raised:
+            install(ROOT, force=True)
+
+        self.assertIn("Refusing to replace unsafe skill destination", str(raised.exception))
+        self.assertTrue((ROOT / ".git").exists())
 
     def test_installer_does_not_wrap_global_notify_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

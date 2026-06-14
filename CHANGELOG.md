@@ -8,6 +8,7 @@ All notable changes to Pet Studio are documented here.
 
 - Started the first-room creation UX with a guided public wrapper for kit creation, validation, rendering, and registry linking.
 - Added a local QA pack generator for validation evidence, renders, and `CODER_TO_QA.md` handoff files.
+- Hardened force-replace and hook passthrough paths to avoid accidental workspace deletion or unapproved command passthrough.
 
 ## 0.1.2 - 2026-06-14
 
