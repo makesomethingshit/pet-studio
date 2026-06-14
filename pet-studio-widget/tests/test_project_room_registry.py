@@ -1452,12 +1452,18 @@ class PetStudioPreflightTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             data = json.loads(result.stdout)
             self.assertTrue(data["ok"])
+            self.assertEqual(data["projectId"], "gakju-archive-demo")
+            self.assertEqual(Path(data["kitManifest"]).name, "project-room.json")
+            self.assertIn("nextCommands", data)
+            self.assertIn("launch", data["nextCommands"])
+            self.assertIn("hookTrustHint", data)
             self.assertTrue(output.exists())
             self.assertGreater(output.stat().st_size, 0)
 
-    def test_preflight_launch_hint_includes_custom_registry(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
+    def test_preflight_validates_custom_registry_relative_project(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT / "runs") as tmp:
             registry = Path(tmp) / "projects.json"
+            kit_dir = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit"
             write_json(
                 registry,
                 {
@@ -1466,7 +1472,7 @@ class PetStudioPreflightTests(unittest.TestCase):
                         {
                             "projectId": "custom-demo",
                             "displayName": "Custom Demo",
-                            "kitPath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit").resolve()),
+                            "kitPath": str(kit_dir.resolve().relative_to(registry.parent.resolve(), walk_up=True)),
                             "petPackagePath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner").resolve()),
                             "workspacePaths": [],
                             "defaultState": "idle",
@@ -1483,7 +1489,9 @@ class PetStudioPreflightTests(unittest.TestCase):
                     str(PREFLIGHT_SCRIPT),
                     "--skip-skill",
                     "--skip-hooks",
-                    "--skip-render",
+                    "--render-output",
+                    str(Path(tmp) / "custom-render.png"),
+                    "--json",
                     "--registry",
                     str(registry),
                     "--project-id",
@@ -1496,8 +1504,13 @@ class PetStudioPreflightTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-            self.assertIn("--config", result.stdout)
-            self.assertIn(str(registry), result.stdout)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["ok"])
+            self.assertEqual(data["projectId"], "custom-demo")
+            self.assertEqual(Path(data["kitManifest"]).resolve(), (kit_dir / "project-room.json").resolve())
+            self.assertIn("--config", data["nextCommands"]["launch"])
+            self.assertIn(str(registry), data["nextCommands"]["launch"])
+            self.assertTrue(any(check["name"] == "kit-validation" and check["ok"] for check in data["checks"]))
 
     def test_preflight_reports_missing_skill_install_target(self) -> None:
         import pet_studio_preflight
@@ -1508,19 +1521,71 @@ class PetStudioPreflightTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("install_pet_studio_skill.py", result.message)
 
-    def test_preflight_validates_demo_registry_and_local_only_ignores(self) -> None:
+    def test_preflight_validates_project_registry_and_local_only_ignores(self) -> None:
         import pet_studio_preflight
 
-        registry_result, project = pet_studio_preflight.check_demo_registry(
+        registry_result, project = pet_studio_preflight.check_project_registry(
             pet_studio_preflight.DEFAULT_REGISTRY,
             "gakju-archive-demo",
         )
-        kit_result = pet_studio_preflight.check_sample_kit(pet_studio_preflight.DEFAULT_REGISTRY, project)
+        kit_result, manifest = pet_studio_preflight.check_project_kit(pet_studio_preflight.DEFAULT_REGISTRY, project)
+        validation_result = pet_studio_preflight.validate_project_kit(ROOT, manifest)
         ignore_result = pet_studio_preflight.check_local_only_ignores(ROOT)
 
         self.assertTrue(registry_result.ok, registry_result.message)
         self.assertTrue(kit_result.ok, kit_result.message)
+        self.assertTrue(validation_result.ok, validation_result.message)
         self.assertTrue(ignore_result.ok, ignore_result.message)
+
+    def test_preflight_reports_registry_and_manifest_failures(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "missing.json"
+            missing_result, missing_project = pet_studio_preflight.check_project_registry(missing, "missing-demo")
+            invalid = Path(tmp) / "invalid.json"
+            invalid.write_text("{", encoding="utf-8")
+            invalid_result, invalid_project = pet_studio_preflight.check_project_registry(invalid, "invalid-demo")
+            no_projects = Path(tmp) / "no-projects.json"
+            write_json(no_projects, {"schemaVersion": 1, "projects": {}})
+            shape_result, shape_project = pet_studio_preflight.check_project_registry(no_projects, "shape-demo")
+            disabled = Path(tmp) / "disabled.json"
+            write_json(disabled, {"schemaVersion": 1, "projects": [{"projectId": "off", "enabled": False}]})
+            disabled_result, disabled_project = pet_studio_preflight.check_project_registry(disabled, "off")
+            missing_kit_path_result, _ = pet_studio_preflight.check_project_kit(disabled, {"projectId": "no-kit", "enabled": True})
+            missing_manifest_result, _ = pet_studio_preflight.check_project_kit(
+                disabled,
+                {"projectId": "missing-manifest", "enabled": True, "kitPath": "missing-kit"},
+            )
+
+        self.assertFalse(missing_result.ok)
+        self.assertIsNone(missing_project)
+        self.assertIn("Missing registry", missing_result.message)
+        self.assertFalse(invalid_result.ok)
+        self.assertIsNone(invalid_project)
+        self.assertIn("Cannot read", invalid_result.message)
+        self.assertFalse(shape_result.ok)
+        self.assertIsNone(shape_project)
+        self.assertIn("projects list", shape_result.message)
+        self.assertFalse(disabled_result.ok)
+        self.assertIsNotNone(disabled_project)
+        self.assertIn("disabled", disabled_result.message)
+        self.assertFalse(missing_kit_path_result.ok)
+        self.assertIn("kitPath", missing_kit_path_result.message)
+        self.assertFalse(missing_manifest_result.ok)
+        self.assertIn("Missing project manifest", missing_manifest_result.message)
+
+    def test_preflight_reports_validator_failure(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "kit" / "project-room.json"
+            write_json(manifest, {"schemaVersion": 1, "layers": []})
+
+            result = pet_studio_preflight.validate_project_kit(ROOT, manifest)
+
+        self.assertFalse(result.ok)
+        self.assertIn("Kit validation failed", result.message)
 
     def test_preflight_warns_for_incomplete_hook_config(self) -> None:
         import pet_studio_preflight
@@ -1545,12 +1610,14 @@ class PetStudioPreflightTests(unittest.TestCase):
                 },
             )
 
-            result = pet_studio_preflight.check_hooks_config(hooks_file)
+            result = pet_studio_preflight.check_hooks_config(hooks_file, "gakju-demo")
 
         self.assertTrue(result.ok)
         self.assertTrue(result.warning)
         self.assertIn("UserPromptSubmit", result.message)
         self.assertIn("Stop", result.message)
+        self.assertIn("--project-id gakju-demo", result.message)
+        self.assertIn("/hooks", result.message)
 
     def test_preflight_summarizes_hook_log_for_debugging(self) -> None:
         import pet_studio_preflight

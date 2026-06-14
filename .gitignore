@@ -23,6 +23,7 @@ runs/fresh-custom-pet-room/
 runs/*-test/
 runs/*/qa-pack/
 runs/pet-studio-preflight-*.png
+runs/*-launch-preflight.png
 
 # Local Pet Studio runtime selection/state
 .codex/hooks.json

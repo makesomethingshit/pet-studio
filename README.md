@@ -74,6 +74,8 @@ Each room can have its own mood, props, main pet, helper pets, speech bubble sty
 Then generate local QA evidence:
 
 ```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room
+.\tools\pet_studio_widget.cmd --project-id my-room --scale 1.25
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
 ```
 

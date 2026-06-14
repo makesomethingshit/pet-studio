@@ -44,13 +44,15 @@ Useful options:
 - `--force` replaces an existing output directory. Use this only when the old `runs\<project-id>` output can be discarded.
 - `--verbose` prints the underlying generator output; the default output is a concise JSON summary with created artifacts and next commands.
 
-Create local QA evidence after generation:
+After generation, run the setup check, launch the room, then create local QA evidence:
 
 ```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room
+.\tools\pet_studio_widget.cmd --project-id my-room --scale 1.25
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
 ```
 
-The QA pack writes validation JSON, an idle render, an all-state contact sheet, a widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json` under `runs\my-room\qa-pack\`. These files are local evidence and are ignored by git.
+Preflight checks Python/Pillow, the registry entry, the selected kit manifest, kit validation, hook configuration, ignored local state, and a render-once output. The QA pack writes validation JSON, an idle render, an all-state contact sheet, a widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json` under `runs\my-room\qa-pack\`. These files are local evidence and are ignored by git.
 
 ## What Gets Created
 

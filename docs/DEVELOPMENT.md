@@ -28,6 +28,7 @@ Skill is valid!
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --show-hook-log
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room --registry pet-studio-widget\project-room-projects.json
 ```
 
 ## Known Limitations
