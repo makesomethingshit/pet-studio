@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Pet Studio social preview placeholder</title>
+  <desc id="desc">A tiny desktop room with a pet, a speech bubble, and project room cards.</desc>
+  <rect width="1280" height="640" fill="#f7efe4"/>
+  <rect x="0" y="0" width="1280" height="640" fill="#f7efe4"/>
+  <g opacity="0.36">
+    <rect x="780" y="92" width="300" height="170" rx="18" fill="#e9d5bd" stroke="#6d5340" stroke-width="6"/>
+    <rect x="840" y="132" width="112" height="84" rx="12" fill="#f8ead8" stroke="#6d5340" stroke-width="5"/>
+    <circle cx="1010" cy="178" r="32" fill="#4f6f6a"/>
+    <rect x="890" y="360" width="300" height="170" rx="18" fill="#eadbc8" stroke="#6d5340" stroke-width="6"/>
+    <rect x="950" y="400" width="112" height="84" rx="12" fill="#f8ead8" stroke="#6d5340" stroke-width="5"/>
+    <circle cx="1120" cy="446" r="32" fill="#7b6252"/>
+  </g>
+  <rect x="104" y="126" width="620" height="350" rx="28" fill="#f4dfc7" stroke="#5e4635" stroke-width="8"/>
+  <rect x="128" y="150" width="572" height="220" rx="8" fill="#fff3df" stroke="#b7936f" stroke-width="4"/>
+  <line x1="128" y1="238" x2="700" y2="238" stroke="#d8b98f" stroke-width="4"/>
+  <line x1="128" y1="370" x2="700" y2="370" stroke="#5e4635" stroke-width="6"/>
+  <rect x="348" y="312" width="220" height="58" rx="20" fill="#8b5f3d" stroke="#5e4635" stroke-width="6"/>
+  <rect x="384" y="276" width="140" height="54" rx="16" fill="#a9784c" stroke="#5e4635" stroke-width="6"/>
+  <rect x="540" y="292" width="66" height="48" rx="9" fill="#f6e3bd" stroke="#5e4635" stroke-width="5"/>
+  <path d="M570 294c16-18 47-10 48 13" fill="none" stroke="#5e4635" stroke-width="5"/>
+  <rect x="602" y="306" width="52" height="26" rx="6" fill="#314662" stroke="#5e4635" stroke-width="5"/>
+  <rect x="622" y="282" width="62" height="26" rx="5" fill="#b58a55" stroke="#5e4635" stroke-width="5"/>
+  <g transform="translate(204 260)">
+    <ellipse cx="88" cy="180" rx="78" ry="20" fill="#d4b38c"/>
+    <circle cx="88" cy="78" r="58" fill="#6a4a3a" stroke="#3f2f27" stroke-width="7"/>
+    <circle cx="66" cy="72" r="8" fill="#2b211c"/>
+    <circle cx="110" cy="72" r="8" fill="#2b211c"/>
+    <path d="M70 102c18 16 39 16 57 0" fill="none" stroke="#2b211c" stroke-width="6" stroke-linecap="round"/>
+    <rect x="42" y="124" width="92" height="74" rx="24" fill="#6f8790" stroke="#3f2f27" stroke-width="7"/>
+  </g>
+  <g transform="translate(566 242)">
+    <rect x="0" y="24" width="78" height="98" rx="14" fill="#f3d58e" stroke="#5e4635" stroke-width="6"/>
+    <rect x="20" y="4" width="62" height="108" rx="10" fill="#46536b" stroke="#5e4635" stroke-width="6"/>
+    <rect x="8" y="20" width="78" height="98" rx="14" fill="#ffe0a1" stroke="#5e4635" stroke-width="6"/>
+    <circle cx="32" cy="62" r="6" fill="#5e4635"/>
+    <circle cx="62" cy="62" r="6" fill="#5e4635"/>
+    <path d="M35 88c10 8 21 8 31 0" fill="none" stroke="#5e4635" stroke-width="5" stroke-linecap="round"/>
+    <path d="M68 4c18 4 24 15 20 32" fill="none" stroke="#5f8a55" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <g>
+    <rect x="438" y="84" width="288" height="92" rx="24" fill="#fff9ee" stroke="#5e4635" stroke-width="6"/>
+    <path d="M520 176l-28 32 10-38" fill="#fff9ee" stroke="#5e4635" stroke-width="6" stroke-linejoin="round"/>
+    <text x="476" y="140" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#4a372b">Using shell...</text>
+  </g>
+  <text x="104" y="552" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="800" fill="#3d2d24">Every project gets a room.</text>
+  <text x="106" y="596" font-family="Segoe UI, Arial, sans-serif" font-size="28" fill="#6d5340">Pet Studio turns Codex workspaces into tiny local agent dashboards.</text>
+</svg>

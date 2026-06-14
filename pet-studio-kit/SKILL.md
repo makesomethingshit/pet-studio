@@ -38,11 +38,28 @@ The selected source controls perspective, palette, outline weight, room size, pe
 
 1. Choose a hatch-pet package or style lock.
 2. Generate or provide a `384x240` room image and optional transparent prop PNGs.
-3. Run `scripts/create_project_room_kit.py` to create a kit, prompt pack, validation report, previews, and optional fallback package.
-4. Run `scripts/validate_project_room_kit.py` before trusting the kit.
-5. Render visual QA with `scripts/render_project_room_preview.py --state idle` and `--state all`.
-6. Register the kit into a project registry when it should be selectable by project id.
-7. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime, or copy the generated kit into another host. `project_room_widget.py` remains as a legacy alias.
+3. Prefer the repository wrapper `tools/pet_studio_create_room.py` when working inside a Pet Studio checkout. It creates the kit, validates it, renders preview/contact images, registers the project, links a workspace, and prints preflight/launch/render commands.
+4. Use `pet-studio-kit/scripts/create_project_room_kit.py` only as a manual/debug fallback when the wrapper is unavailable or the workflow needs low-level control.
+5. Run `scripts/validate_project_room_kit.py` before trusting any kit that was produced outside the guided wrapper.
+6. Render visual QA with `scripts/render_project_room_preview.py --state idle` and `--state all`.
+7. Register the kit into a project registry when it should be selectable by project id.
+8. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime, or copy the generated kit into another host. `project_room_widget.py` remains as a legacy alias.
+
+## Guided First-Room Command
+
+Use this when the user wants to test or create a first custom room from an existing pet package and a room PNG:
+
+```powershell
+python tools/pet_studio_create_room.py `
+  --project-id archive-nook `
+  --pet-package C:\Users\USER\.codex\pets\gakju `
+  --room-image runs\my-assets\room.png `
+  --prop desk=runs\my-assets\desk.png `
+  --prop-placement desk=behind-pet `
+  --theme "quiet archive nook"
+```
+
+The wrapper refuses to overwrite an existing output directory unless `--force` is passed. Use `--dry-run` to inspect the low-level command without writing files. When a custom registry is supplied, the printed preflight/launch/render commands include the matching `--registry` or `--config` argument.
 
 ## Manual/Debug Command
 

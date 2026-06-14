@@ -16,6 +16,7 @@ SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "create_project_room_kit.py"
 VALIDATOR = ROOT / "pet-studio-kit" / "scripts" / "validate_project_room_kit.py"
 ASSET_HELPERS = ROOT / "pet-studio-kit" / "scripts" / "project_room_assets.py"
 BAKE_SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "bake_project_room_pet.py"
+GUIDED_CREATE_SCRIPT = ROOT / "tools" / "pet_studio_create_room.py"
 
 
 STATE_FRAMES = {
@@ -560,6 +561,211 @@ class ProjectRoomPipelineTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Prop placement references unknown prop id", result.stderr + result.stdout)
+
+    def test_guided_create_room_dry_run_uses_first_room_defaults(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--dry-run",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            command = data["command"]
+            self.assertTrue(data["dryRun"])
+            self.assertIn("--render-preview", command)
+            self.assertIn("--render-contact", command)
+            self.assertIn("--register-project", command)
+            self.assertIn("--workspace-path", command)
+            self.assertIn(str(ROOT / "runs" / "first-room"), command)
+            self.assertEqual(data["nextCommands"]["launch"], ".\\tools\\pet_studio_widget.cmd --project-id first-room --scale 1.25")
+
+    def test_guided_create_room_creates_registered_kit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            out = work / "out"
+            registry = work / "projects.json"
+            workspace = work / "workspace"
+            workspace.mkdir()
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--prop",
+                    f"desk={desk}",
+                    "--prop-placement",
+                    "desk=behind-pet",
+                    "--out-dir",
+                    str(out),
+                    "--registry",
+                    str(registry),
+                    "--workspace-path",
+                    str(workspace),
+                    "--theme",
+                    "quiet archive nook",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertTrue((out / "kit" / "project-room.json").exists())
+            self.assertTrue((out / "room-preview.png").exists())
+            self.assertTrue((out / "room-contact.png").exists())
+            config = json.loads(registry.read_text(encoding="utf-8"))
+            self.assertEqual(config["projects"][0]["projectId"], "first-room")
+            self.assertEqual(config["projects"][0]["workspacePaths"], [str(workspace.resolve())])
+            summary = json.loads(result.stdout)
+            self.assertIn("pet_studio_widget.cmd --config", summary["nextCommands"]["launch"])
+            self.assertIn(str(registry), summary["nextCommands"]["launch"])
+            self.assertIn("--project-id first-room --scale 1.25", summary["nextCommands"]["launch"])
+
+    def test_guided_create_room_prints_concise_summary_by_default(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            out = work / "out"
+            registry = work / "projects.json"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(out),
+                    "--registry",
+                    str(registry),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["ok"])
+            self.assertEqual(data["projectId"], "first-room")
+            self.assertEqual(data["artifacts"]["kit"], str(out / "kit" / "project-room.json"))
+            self.assertEqual(data["artifacts"]["validation"], str(out / "kit-validation.json"))
+            self.assertEqual(data["artifacts"]["preview"], str(out / "room-preview.png"))
+            self.assertEqual(data["artifacts"]["contact"], str(out / "room-contact.png"))
+
+    def test_guided_create_room_next_commands_include_custom_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            registry = work / "projects.json"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--registry",
+                    str(registry),
+                    "--dry-run",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            commands = data["nextCommands"]
+            self.assertIn("--registry", commands["preflight"])
+            self.assertIn(str(registry), commands["preflight"])
+            self.assertIn("--config", commands["launch"])
+            self.assertIn(str(registry), commands["launch"])
+            self.assertIn("--config", commands["render"])
+            self.assertIn(str(registry), commands["render"])
+
+    def test_guided_create_room_refuses_existing_output_without_force(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            out = work / "out"
+            out.mkdir()
+            (out / "keep.txt").write_text("existing work", encoding="utf-8")
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(out),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("--force", result.stderr + result.stdout)
+            self.assertEqual((out / "keep.txt").read_text(encoding="utf-8"), "existing work")
 
     def test_helper_pet_is_mapped_for_all_widget_states(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

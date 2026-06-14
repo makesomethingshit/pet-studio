@@ -2,6 +2,12 @@
 
 All notable changes to Pet Studio are documented here.
 
+## Unreleased
+
+0.2.0 development.
+
+- Started the first-room creation UX with a guided public wrapper for kit creation, validation, rendering, and registry linking.
+
 ## 0.1.2 - 2026-06-14
 
 Public stability hardening.

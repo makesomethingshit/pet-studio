@@ -3,23 +3,135 @@
 [![Version](https://img.shields.io/badge/version-0.1.2-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Give a Codex pet its own desktop studio room.
+**Every Codex project gets its own tiny desktop room.**
 
 ![Gakju archive room widget example](docs/images/gakju-widget-bubble-example.png)
 
-Pet Studio is a Codex skill and lightweight widget runtime for turning a hatch-pet into a layered desktop room. It keeps the room, props, main pet, helper pets, and speech bubbles editable instead of flattening them into one image.
+Pet Studio turns local Codex workspaces into layered desktop rooms with pets, props, helper pets, and live speech bubbles.
 
-Current release: `v0.1.2`
+Instead of watching logs, you can watch your project room react as Codex starts working, uses tools, gets blocked, enters review, or finishes.
 
-## What It Does
+It is a local-first agent dashboard disguised as a tiny pet room.
+
+- Current release: `v0.1.2`
+- Primary host: Windows desktop widget
+- Status: experimental, local-first, usable from a fresh clone with the included demo
+
+## Honest Status
+
+Pet Studio is an early open-source prototype with a working local demo, not a polished app store product.
+
+What works today:
+
+- Launch a checked-in Windows desktop room widget for a registered sample project.
+- Render a layered room with background, props, main pet, optional helper pets, and speech bubbles.
+- Move props/pets, resize the widget, and persist registered project layout/scale locally.
+- Send manual project states such as `running`, `waiting`, `review`, `blocked`, `failed`, and `done`.
+- Install local Codex hooks that update the room bubble on prompt/tool/compact/stop events after hook trust approval.
+- Create and validate project-room kits from a hatch-pet style source plus room/prop assets.
+
+Still experimental:
+
+- New room quality depends on the provided or generated art. Visual QA is still required.
+- The first-room creation flow is script-driven, not a GUI editor.
+- Codex integration is a local file/hook bridge, not an official Codex dashboard API.
+- Windows is the primary tested host. macOS/Linux widget hosts are roadmap items.
+- Some internal files still use the older `project-room-*` naming as the v1 compatibility format.
+
+Not yet:
+
+- No multi-room gallery UI.
+- No marketplace or one-click installer.
+- No cloud sync, remote service, or team dashboard.
+- No full simulation/game layer with walking paths or autonomous room behavior.
+
+## Quick Start
+
+Clone the repo and run the public preflight:
+
+```powershell
+git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
+cd codex-pet-studio-skill
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py
+```
+
+Launch the included project room:
+
+```powershell
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
+```
+
+Install the Codex skill locally:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+```
+
+Install the optional Codex hook bridge for live bubbles:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id gakju-archive-demo
+```
+
+After installing hooks, restart Codex or open `/hooks` to review and trust the new commands when Codex asks.
+
+No GIF yet? Use the checked-in screenshot above, then see [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the 10-15 second demo shot this repo is designed around.
+
+## Why?
+
+AI coding agents are usually shown through logs, spinners, terminal output, and abstract status labels. Those views are useful, but they do not make a project feel alive.
+
+Pet Studio explores a softer interface: each project becomes a small room that reflects what the agent is doing. The room is still a local developer tool, but it gives status, context, and personality a place to live.
+
+## Project Rooms
+
+One room maps to one Codex project or repo.
+
+Each room can have its own mood, props, main pet, helper pets, speech bubble style, saved layout, and current state. Switching projects can feel like moving between small workspaces instead of staring at another log stream.
+
+The room is not only decoration. It acts as a compact visual project dashboard:
+
+- the main pet shows the current state row
+- helper pets can appear during review, handoff, or blocked states
+- speech bubbles show local Codex hook messages
+- props and pets stay as editable layers
+- registered projects persist their room layout and widget scale locally
+
+## Features
 
 - Builds a layered `384x240` Pet Studio room from a hatch-pet package.
 - Keeps room, props, pets, and helper pets as separate editable layers.
-- Validates room kits so mismatched assets are caught early.
-- Renders preview and contact-sheet images for visual QA.
-- Registers rooms to local project ids.
-- Runs a frameless desktop widget that can show project state such as working, waiting, review, blocked, and done.
-- Accepts Codex-style event payloads through a small local adapter.
+- Project-bound room registry for local workspaces.
+- Editable pets, props, helper pets, anchors, layer order, and widget size.
+- Codex hook integration for `SessionStart`, prompt submit, tool use, compact, and stop events.
+- Live speech bubbles that follow the project state.
+- Visual QA renders, preview sheets, and kit validation.
+- Local-first file bridge; no network service required.
+- Windows-focused frameless widget host.
+- Compatibility path for hatch-pet style sources and fallback pet packages.
+
+## Roadmap
+
+Pet Studio's final vision is a small local dashboard where every Codex workspace has a recognizable room, state, mood, and companion behavior. The current repo is the first working slice of that idea.
+
+Near-term roadmap:
+
+- smoother first-room creation and QA pack generation
+- clearer setup checks for hooks, Pillow, registries, and missing assets
+- more room themes and prop packs
+- more state-specific room animations
+- helper pet behavior beyond simple state visibility
+- richer Codex event mapping
+
+Longer-term roadmap:
+
+- multi-project room switcher
+- macOS/Linux widget host
+- shareable room presets
+- project progress visualization
+- a lightweight room editor for non-script users
+
+See [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md) for the detailed implementation roadmap and current state.
 
 ## Requirements
 
@@ -28,7 +140,7 @@ Current release: `v0.1.2`
 - Codex Desktop or a local Codex skill folder for `$pet-studio`.
 - A hatch-pet package to use as the style source when creating new rooms.
 
-## Install
+## Full Install
 
 Clone the repo and install the skill:
 
@@ -54,7 +166,7 @@ The repository also keeps the older `project-room-*` file names as the v1 compat
 
 The Windows examples use repository wrappers instead of calling `python` directly. `tools\pet_studio_widget.cmd` launches the desktop widget through `pythonw` so the terminal does not stay attached. `tools\pet_studio_python.cmd` is the console/debug wrapper used for commands that print output, render files, or run tests.
 
-## 30-Second Demo
+## 30-Second Local Demo
 
 Run the preflight first. It checks Python/Pillow, the installed skill, the public demo registry, the sample kit, local-only ignore rules, and a one-frame render. It also reports whether Codex hook entries are installed:
 
@@ -174,6 +286,28 @@ Register this room to the current workspace and launch the widget.
 
 Codex should ask for missing art inputs, keep the style source locked, run validation, and report generated files. Helper/sub-pet art should be confirmed before generation because mismatched helper style is hard to repair later.
 
+## Create Your First Room
+
+For a direct command-line first room, use the guided wrapper. It keeps the low-level kit creation defaults aligned with the public demo flow:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_create_room.py `
+  --project-id my-room `
+  --pet-package "$env:USERPROFILE\.codex\pets\my-pet" `
+  --room-image runs\my-assets\room.png `
+  --prop desk=runs\my-assets\desk.png `
+  --prop-placement desk=behind-pet `
+  --theme "quiet archive nook"
+```
+
+The wrapper validates the pet and room inputs, creates `runs\my-room\kit`, renders preview/contact images, registers the project, links the current workspace, and prints preflight/launch/render commands.
+
+Useful options:
+
+- `--dry-run` prints the planned low-level command without writing files.
+- `--force` replaces an existing output directory. Use this only when the old `runs\<project-id>` output can be discarded.
+- `--verbose` prints the underlying generator output; the default output is a concise JSON summary with created artifacts and next commands.
+
 ## What Gets Created
 
 Typical generated output includes:
@@ -224,7 +358,7 @@ Development checks:
 ```powershell
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
-.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py tools\pet_studio_preflight.py
+.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py tools\pet_studio_preflight.py tools\pet_studio_create_room.py
 ```
 
 Release preflight:
@@ -244,5 +378,5 @@ Release preflight:
 ## Notes
 
 - The real room format is layered. The fallback baked pet package is only for compatibility.
-- Helper pets are optional, but when a kit includes one the widget keeps it visible across normal working, waiting, review, blocked, and done states.
+- Helper pets are optional. Kits can show them in collaboration/problem-solving states such as review, handoff, blocked, or failed without turning them into a second main pet.
 - This repository provides a Codex event adapter, optional notify bridge, and lifecycle hook installer. Use `--install-notify` only if you intentionally want a user-level `notify` wrapper.

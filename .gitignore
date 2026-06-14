@@ -20,6 +20,7 @@ Thumbs.db
 # Local QA evidence and generated room runs
 tester/
 runs/fresh-custom-pet-room/
+runs/*-test/
 runs/pet-studio-preflight-*.png
 
 # Local Pet Studio runtime selection/state

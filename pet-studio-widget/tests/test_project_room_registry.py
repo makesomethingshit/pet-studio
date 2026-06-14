@@ -1355,6 +1355,50 @@ class PetStudioPreflightTests(unittest.TestCase):
             self.assertTrue(output.exists())
             self.assertGreater(output.stat().st_size, 0)
 
+    def test_preflight_launch_hint_includes_custom_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(
+                registry,
+                {
+                    "schemaVersion": 1,
+                    "projects": [
+                        {
+                            "projectId": "custom-demo",
+                            "displayName": "Custom Demo",
+                            "kitPath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit").resolve()),
+                            "petPackagePath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner").resolve()),
+                            "workspacePaths": [],
+                            "defaultState": "idle",
+                            "theme": "quiet archive nook",
+                            "enabled": True,
+                        }
+                    ],
+                },
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--skip-skill",
+                    "--skip-hooks",
+                    "--skip-render",
+                    "--registry",
+                    str(registry),
+                    "--project-id",
+                    "custom-demo",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertIn("--config", result.stdout)
+            self.assertIn(str(registry), result.stdout)
+
     def test_preflight_reports_missing_skill_install_target(self) -> None:
         import pet_studio_preflight
 

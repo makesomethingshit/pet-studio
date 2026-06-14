@@ -65,6 +65,17 @@ def display_path(path: Path, root: Path = ROOT) -> str:
         return str(path)
 
 
+def command_preview(command: list[str]) -> str:
+    return " ".join(json.dumps(part) if any(char.isspace() for char in part) else part for part in command)
+
+
+def demo_launch_command(project_id: str, registry: Path) -> str:
+    command = [".\\tools\\pet_studio_widget.cmd", "--project-id", project_id, "--scale", "1.25"]
+    if registry.expanduser().resolve() != DEFAULT_REGISTRY.resolve():
+        command[1:1] = ["--config", str(registry.expanduser())]
+    return command_preview(command)
+
+
 def load_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
@@ -266,7 +277,7 @@ def print_text_report(results: list[CheckResult], args: argparse.Namespace) -> N
     if all(result.ok for result in results):
         print()
         print("Demo launch command:")
-        print(f".\\tools\\pet_studio_widget.cmd --project-id {args.project_id} --scale 1.25")
+        print(demo_launch_command(args.project_id, Path(args.registry)))
         print(f"Render output: {display_path(Path(args.render_output).expanduser())}")
         print("Hook trust hint: restart Codex or open /hooks if Codex asks you to trust the commands.")
     if args.show_hook_log:
