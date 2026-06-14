@@ -43,14 +43,17 @@ from project_room_registry import (  # noqa: E402
 from set_active_project import write_active_project  # noqa: E402
 from project_room_scene import (  # noqa: E402
     DEFAULT_LAYOUT_FILE,
+    DEFAULT_SESSION_FILE,
     DEFAULT_WINDOW_FILE,
     SceneEntity,
     bubble_text_for_state,
     kit_with_layout,
     load_project_layout,
+    load_project_session,
     load_project_window,
     reset_project_layout,
     save_project_anchor,
+    save_project_session,
     save_project_window,
     save_project_z_order,
     scene_entities_from_kit,
@@ -66,6 +69,8 @@ DEFAULT_BUBBLE_FONT = "Segoe UI"
 TOPMOST_REFRESH_MS = 2000
 BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
 HIT_TEST_ALPHA_THRESHOLD = 16
+DEFAULT_STATE_STALE_AFTER_MS = 300000
+STALE_BRIDGE_STATES = {"running", "waiting", "review", "failed", "blocked", "handoff"}
 FONT_CANDIDATES = {
     "base": ["Noto Sans", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial", "TkDefaultFont"],
     "cjk": [
@@ -182,17 +187,38 @@ def reset_state_for_payload(data: dict, now: datetime | None = None) -> str | No
     return reset_to_state if isinstance(reset_to_state, str) and reset_to_state.strip() else "idle"
 
 
+def read_project_state_document(state_file: Path) -> dict | None:
+    if not state_file.exists():
+        return None
+    try:
+        data = json.loads(state_file.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def bridge_payload_is_stale(data: dict, stale_after_ms: int, now: datetime | None = None) -> bool:
+    state = normalize_state(data.get("state"), "idle")
+    reset_state = reset_state_for_payload(data, now)
+    if reset_state is not None:
+        return False
+    if state not in STALE_BRIDGE_STATES:
+        return False
+    updated_at = parse_utc_timestamp(data.get("updatedAt"))
+    if updated_at is None:
+        return True
+    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    return (current - updated_at).total_seconds() * 1000 > stale_after_ms
+
+
 def read_project_state_payload(
     state_file: Path,
     project_id: str | None,
     fallback: str,
     now: datetime | None = None,
 ) -> tuple[str, str | None]:
-    if not state_file.exists():
-        return normalize_state(fallback, "idle"), None
-    try:
-        data = json.loads(state_file.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError):
+    data = read_project_state_document(state_file)
+    if data is None:
         return normalize_state(fallback, "idle"), None
     if project_id and data.get("projectId") != project_id:
         return normalize_state(fallback, "idle"), None
@@ -201,6 +227,91 @@ def read_project_state_payload(
         return normalize_state(reset_state, "idle"), None
     message = data.get("message")
     return normalize_state(data.get("state"), fallback), message if isinstance(message, str) else None
+
+
+def read_fresh_project_state_payload(
+    state_file: Path,
+    project_id: str | None,
+    fallback: str,
+    stale_after_ms: int = DEFAULT_STATE_STALE_AFTER_MS,
+    now: datetime | None = None,
+) -> tuple[str, str | None, bool]:
+    data = read_project_state_document(state_file)
+    if data is None:
+        return normalize_state(fallback, "idle"), None, False
+    if project_id and data.get("projectId") != project_id:
+        return normalize_state(fallback, "idle"), None, False
+    if bridge_payload_is_stale(data, max(0, stale_after_ms), now):
+        return normalize_state(fallback, "idle"), None, False
+    state, message = read_project_state_payload(state_file, project_id, fallback, now)
+    return state, message, True
+
+
+def session_window_value(session: dict, key: str) -> int | float | None:
+    window = session.get("window")
+    if not isinstance(window, dict):
+        return None
+    value = window.get(key)
+    if key == "scale":
+        return float(value) if isinstance(value, (int, float)) and value > 0 else None
+    return int(value) if isinstance(value, int) else None
+
+
+def resolve_startup_window(
+    saved_window: dict | None,
+    session: dict,
+    restore_session: bool,
+    scale_arg: float | None,
+    x_arg: int | None,
+    y_arg: int | None,
+) -> tuple[float, int | None, int | None]:
+    session_scale = session_window_value(session, "scale") if restore_session else None
+    session_x = session_window_value(session, "x") if restore_session else None
+    session_y = session_window_value(session, "y") if restore_session else None
+    scale = scale_arg if scale_arg is not None else float(session_scale or (saved_window or {}).get("scale", 1.0))
+    x = x_arg if x_arg is not None else session_x if session_x is not None else (saved_window or {}).get("x")
+    y = y_arg if y_arg is not None else session_y if session_y is not None else (saved_window or {}).get("y")
+    return float(scale), x if isinstance(x, int) else None, y if isinstance(y, int) else None
+
+
+def resolve_startup_state(
+    default_state: str,
+    explicit_state: str | None,
+    state_file: Path | None,
+    project_id: str | None,
+    session: dict,
+    restore_session: bool,
+    stale_after_ms: int = DEFAULT_STATE_STALE_AFTER_MS,
+    now: datetime | None = None,
+) -> tuple[str, str | None, str]:
+    if explicit_state is not None:
+        return normalize_state(explicit_state, default_state), None, "cli"
+    state = normalize_state(default_state, "idle")
+    message: str | None = None
+    state_source = "default"
+    if restore_session and isinstance(session.get("state"), str):
+        state = normalize_state(session["state"], state)
+        message = session.get("message") if isinstance(session.get("message"), str) else None
+        state_source = session.get("stateSource") if isinstance(session.get("stateSource"), str) else "session"
+    if state_file is not None:
+        bridge_state, bridge_message, applied = read_fresh_project_state_payload(
+            state_file,
+            project_id,
+            state,
+            stale_after_ms=stale_after_ms,
+            now=now,
+        )
+        if applied:
+            state = bridge_state
+            message = bridge_message
+            state_source = "bridge"
+    return state, message, state_source
+
+
+def restore_session_enabled(project_id: str | None, render_once: str | None, requested: bool | None) -> bool:
+    if render_once or not project_id:
+        return False
+    return True if requested is None else bool(requested)
 
 
 def render_frames(kit_path: Path, state: str, layout: dict | None = None) -> list[Image.Image]:
@@ -303,6 +414,42 @@ def image_anchor_s_pixel_is_opaque(
     return image.convert("RGBA").getpixel((px, py))[3] > alpha_threshold
 
 
+def image_bounds_for_anchor(anchor: dict[str, int], image: Image.Image, widget_scale: float) -> tuple[int, int, int, int]:
+    x = int(round(anchor["x"] * widget_scale))
+    y = int(round(anchor["y"] * widget_scale))
+    left = int(round(x - image.width / 2))
+    top = int(round(y - image.height))
+    return (left, top, left + image.width, top + image.height)
+
+
+def clamp_anchor_to_visible_image_bounds(
+    kit: dict,
+    anchor: dict[str, int],
+    image: Image.Image,
+    widget_scale: float,
+) -> dict[str, int]:
+    source_canvas = kit.get("sourceCanvas", kit.get("cell", {}))
+    source_width = int(source_canvas.get("width", 0))
+    source_height = int(source_canvas.get("height", 0))
+    if source_width <= 0 or source_height <= 0 or widget_scale <= 0:
+        return clamp_anchor_to_source_canvas(kit, anchor)
+    image_width = image.width / widget_scale
+    image_height = image.height / widget_scale
+    if image_width >= source_width:
+        x = source_width // 2
+    else:
+        min_x = image_width / 2
+        max_x = source_width - image_width / 2
+        x = int(round(max(min_x, min(max_x, int(anchor["x"])))))
+    if image_height >= source_height:
+        y = source_height
+    else:
+        min_y = image_height
+        max_y = source_height
+        y = int(round(max(min_y, min(max_y, int(anchor["y"])))))
+    return {"x": x, "y": y}
+
+
 def bounds_overlap(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> bool:
     return a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1]
 
@@ -321,9 +468,9 @@ def bubble_avoid_owner_shift(
     width = right - left
     height = bottom - top
     candidates = [
+        (0, owner_bounds[1] - gap - bottom),
         (owner_bounds[2] + gap - left, 0),
         (owner_bounds[0] - gap - right, 0),
-        (0, owner_bounds[1] - gap - bottom),
     ]
     for dx, dy in candidates:
         shifted = (left + dx, top + dy, right + dx, bottom + dy)
@@ -358,8 +505,12 @@ class ProjectRoomWidget:
         state_file: Path | None = None,
         layout_file: Path | None = None,
         window_file: Path | None = None,
+        session_file: Path | None = None,
         state_refresh_ms: int = 1000,
+        state_stale_after_ms: int = DEFAULT_STATE_STALE_AFTER_MS,
         message: str | None = None,
+        bubble_visible: bool = True,
+        state_source: str = "default",
     ) -> None:
         self.kit_path = kit_path
         self.kit_dir = kit_path.parent
@@ -371,8 +522,10 @@ class ProjectRoomWidget:
         self.state_file = state_file
         self.layout_file = layout_file if project_id else None
         self.window_file = window_file if project_id else None
+        self.session_file = session_file if project_id else None
         self.message = message
-        self.bubble_visible = True
+        self.bubble_visible = bool(bubble_visible)
+        self.state_source = state_source
         self.bubble_style = resolve_bubble_style(self.kit, self.kit_dir)
         self.layout = load_project_layout(layout_file, project_id) if layout_file and project_id else {"anchors": {}, "zOrder": {}}
         self.entities = scene_entities_from_kit(self.kit, self.layout)
@@ -380,6 +533,7 @@ class ProjectRoomWidget:
         self.warnings: list[str] = []
         self.layer_assets = load_layer_assets(self.kit_dir, self.kit["layers"], self.warnings)
         self.state_refresh_ms = max(250, state_refresh_ms)
+        self.state_stale_after_ms = max(0, state_stale_after_ms)
         self.index = 0
         self.drag_start: tuple[int, int] | None = None
         self.drag_entity_id: str | None = None
@@ -418,7 +572,8 @@ class ProjectRoomWidget:
         self.canvas.bind("<ButtonRelease-1>", self.end_drag)
         self.canvas.bind("<Double-Button-1>", self.cycle_state)
         self.canvas.bind("<Button-3>", self.show_context_menu)
-        self.root.bind("<Escape>", lambda _event: self.root.destroy())
+        self.root.protocol("WM_DELETE_WINDOW", self.close)
+        self.root.bind("<Escape>", lambda _event: self.close())
         self.root.bind("<Control-plus>", lambda _event: self.adjust_scale(1.1))
         self.root.bind("<Control-equal>", lambda _event: self.adjust_scale(1.1))
         self.root.bind("<Control-minus>", lambda _event: self.adjust_scale(1 / 1.1))
@@ -450,10 +605,18 @@ class ProjectRoomWidget:
 
     def draw_entity(self, entity: SceneEntity, frame_index: int) -> None:
         image = self.entity_image(entity, frame_index)
+        anchor = entity.anchor
+        if entity.draggable and not entity.locked:
+            anchor = clamp_anchor_to_visible_image_bounds(self.kit, entity.anchor, image, self.scale)
+            if anchor != entity.anchor:
+                self.replace_entity_anchor(entity.id, anchor)
+                self.layout.setdefault("anchors", {})[entity.id] = anchor
+                if self.project_id and self.layout_file:
+                    save_project_anchor(self.layout_file, self.project_id, entity.id, anchor)
         photo = ImageTk.PhotoImage(image)
         self.entity_photos[entity.id] = photo
-        x = int(round(entity.anchor["x"] * self.scale))
-        y = int(round(entity.anchor["y"] * self.scale))
+        x = int(round(anchor["x"] * self.scale))
+        y = int(round(anchor["y"] * self.scale))
         item = self.canvas.create_image(
             x,
             y,
@@ -695,7 +858,11 @@ class ProjectRoomWidget:
                 "x": int(round(entity.anchor["x"] + dx / self.scale)),
                 "y": int(round(entity.anchor["y"] + dy / self.scale)),
             }
-            next_anchor = clamp_anchor_to_source_canvas(self.kit, next_anchor)
+            image = self.entity_images.get(entity.id)
+            if image is not None:
+                next_anchor = clamp_anchor_to_visible_image_bounds(self.kit, next_anchor, image, self.scale)
+            else:
+                next_anchor = clamp_anchor_to_source_canvas(self.kit, next_anchor)
             self.replace_entity_anchor(self.drag_entity_id, next_anchor)
             self.drag_last = (event.x, event.y)
             return
@@ -718,23 +885,38 @@ class ProjectRoomWidget:
         states = list(STATE_ROWS)
         next_index = (states.index(self.state) + 1) % len(states)
         self.state = states[next_index]
+        self.state_source = "manual"
         self.index = 0
         self.redraw_scene()
+        self.save_session("manual")
 
-    def set_state(self, state: str, message: str | None = None) -> None:
+    def set_state(self, state: str, message: str | None = None, state_source: str | None = None) -> None:
         next_state = normalize_state(state, self.state)
         next_message = message if message is not None else self.message
+        next_source = state_source or self.state_source
         if next_state == self.state and next_message == self.message:
+            if state_source and next_source != self.state_source:
+                self.state_source = next_source
+                self.save_session(next_source)
             return
         self.state = next_state
         self.message = next_message
+        self.state_source = next_source
         self.index = 0
         self.redraw_scene()
+        if state_source:
+            self.save_session(next_source)
 
     def refresh_external_state(self) -> None:
         if self.state_file is not None:
-            state, message = read_project_state_payload(self.state_file, self.project_id, self.state)
-            self.set_state(state, message)
+            state, message, applied = read_fresh_project_state_payload(
+                self.state_file,
+                self.project_id,
+                self.state,
+                stale_after_ms=self.state_stale_after_ms,
+            )
+            if applied:
+                self.set_state(state, message, state_source="bridge")
         self.root.after(self.state_refresh_ms, self.refresh_external_state)
 
     def refresh_topmost(self) -> None:
@@ -761,7 +943,7 @@ class ProjectRoomWidget:
         menu.add_separator()
         menu.add_command(label="Hide bubble" if self.bubble_visible else "Show bubble", command=self.toggle_bubble)
         menu.add_separator()
-        menu.add_command(label="Close", command=self.root.destroy)
+        menu.add_command(label="Close", command=self.close)
         try:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
@@ -806,6 +988,7 @@ class ProjectRoomWidget:
     def toggle_bubble(self) -> None:
         self.bubble_visible = not self.bubble_visible
         self.redraw_scene()
+        self.save_session(self.state_source)
 
     def set_scale(self, scale: float) -> None:
         next_scale = max(0.6, min(2.0, round(scale, 3)))
@@ -826,13 +1009,34 @@ class ProjectRoomWidget:
         self.set_scale(1.0)
 
     def save_window_position(self) -> None:
-        if not self.project_id or not self.window_file:
+        if not self.project_id:
             return
-        save_project_window(
-            self.window_file,
+        window = {"x": self.root.winfo_x(), "y": self.root.winfo_y(), "scale": self.scale}
+        if self.window_file:
+            save_project_window(self.window_file, self.project_id, window)
+        self.save_session(self.state_source)
+
+    def save_session(self, state_source: str | None = None) -> None:
+        if not self.project_id or not self.session_file:
+            return
+        if state_source:
+            self.state_source = state_source
+        save_project_session(
+            self.session_file,
             self.project_id,
-            {"x": self.root.winfo_x(), "y": self.root.winfo_y(), "scale": self.scale},
+            {
+                "state": self.state,
+                "message": self.message or "",
+                "bubbleVisible": self.bubble_visible,
+                "window": {"x": self.root.winfo_x(), "y": self.root.winfo_y(), "scale": self.scale},
+                "stateSource": self.state_source,
+                "updatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            },
         )
+
+    def close(self) -> None:
+        self.save_session(self.state_source)
+        self.root.destroy()
 
     def enable_click_through(self) -> None:
         if sys.platform != "win32":
@@ -868,7 +1072,11 @@ def main() -> None:
     parser.add_argument("--state-file", default=None, help="Optional external project state JSON file")
     parser.add_argument("--layout-file", default=str(DEFAULT_LAYOUT_FILE), help="Optional project entity layout JSON file")
     parser.add_argument("--window-file", default=str(DEFAULT_WINDOW_FILE), help="Optional project window placement JSON file")
+    parser.add_argument("--session-file", default=str(DEFAULT_SESSION_FILE), help="Optional project session snapshot JSON file")
+    parser.add_argument("--restore-session", dest="restore_session", action="store_true", default=None, help="Restore the last registered project session")
+    parser.add_argument("--no-restore-session", dest="restore_session", action="store_false", help="Ignore the saved project session for deterministic launches")
     parser.add_argument("--state-refresh-ms", type=int, default=1000)
+    parser.add_argument("--state-stale-after-ms", type=int, default=DEFAULT_STATE_STALE_AFTER_MS)
     parser.add_argument("--state", default=None)
     parser.add_argument("--fps", type=float, default=6.0)
     parser.add_argument("--scale", type=float, default=None, help="Window display scale for the whole room")
@@ -909,18 +1117,26 @@ def main() -> None:
     if should_relaunch_background(args) and relaunch_background(sys.argv[1:]):
         return
 
+    render_once = args.render_project_once or args.render_once
+    restore_session = restore_session_enabled(project_id, render_once, args.restore_session)
     state_file = Path(args.state_file).expanduser() if args.state_file else (DEFAULT_STATE_FILE if project_id and args.state is None else None)
     layout_file = Path(args.layout_file).expanduser() if project_id and args.layout_file else None
     window_file = Path(args.window_file).expanduser() if project_id and args.window_file else None
+    session_file = Path(args.session_file).expanduser() if project_id and args.session_file else None
     saved_window = load_project_window(window_file, project_id) if window_file and project_id else None
-    scale = args.scale if args.scale is not None else float((saved_window or {}).get("scale", 1.0))
-    x = args.x if args.x is not None else (saved_window or {}).get("x")
-    y = args.y if args.y is not None else (saved_window or {}).get("y")
-    message: str | None = None
-    if state_file is not None:
-        state, message = read_project_state_payload(state_file, project_id, state)
+    session = load_project_session(session_file, project_id) if restore_session and session_file else {}
+    scale, x, y = resolve_startup_window(saved_window, session, restore_session, args.scale, args.x, args.y)
+    state, message, state_source = resolve_startup_state(
+        state,
+        args.state,
+        state_file,
+        project_id,
+        session,
+        restore_session,
+        stale_after_ms=args.state_stale_after_ms,
+    )
+    bubble_visible = session.get("bubbleVisible", True) if restore_session else True
 
-    render_once = args.render_project_once or args.render_once
     if render_once:
         layout = load_project_layout(layout_file, project_id) if layout_file and project_id else None
         frame = scaled_frame(render_frames(kit_path, state, layout)[0], scale)
@@ -947,8 +1163,12 @@ def main() -> None:
         state_file=state_file,
         layout_file=layout_file,
         window_file=window_file,
+        session_file=session_file if restore_session else None,
         state_refresh_ms=args.state_refresh_ms,
+        state_stale_after_ms=args.state_stale_after_ms,
         message=message,
+        bubble_visible=bool(bubble_visible),
+        state_source=state_source,
     )
     widget.run()
 

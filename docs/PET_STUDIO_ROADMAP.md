@@ -68,7 +68,7 @@ Done when:
 
 #### M3. First Room Setup Check
 
-Status: next.
+Status: implemented in development.
 
 Done when:
 

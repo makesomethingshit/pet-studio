@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image
@@ -94,6 +95,41 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(clamp_anchor_to_source_canvas(kit, {"x": -1050, "y": 611}), {"x": 0, "y": 240})
         self.assertEqual(clamp_anchor_to_source_canvas(kit, {"x": 302, "y": 204}), {"x": 302, "y": 204})
+
+    def test_widget_clamps_entity_anchor_using_rendered_sprite_bounds(self) -> None:
+        import project_room_widget
+
+        kit = self.load_demo_kit()
+        image = Image.new("RGBA", (64, 87), (80, 130, 170, 255))
+
+        anchor = project_room_widget.clamp_anchor_to_visible_image_bounds(
+            kit,
+            {"x": 380, "y": 0},
+            image,
+            widget_scale=1.25,
+        )
+
+        bounds = project_room_widget.image_bounds_for_anchor(anchor, image, widget_scale=1.25)
+        self.assertGreaterEqual(bounds[0], 0)
+        self.assertGreaterEqual(bounds[1], 0)
+        self.assertLessEqual(bounds[2], 480)
+        self.assertLessEqual(bounds[3], 300)
+        self.assertNotEqual(anchor, {"x": 380, "y": 0})
+
+    def test_widget_keeps_visible_entity_anchor_when_sprite_bounds_fit(self) -> None:
+        import project_room_widget
+
+        kit = self.load_demo_kit()
+        image = Image.new("RGBA", (64, 87), (80, 130, 170, 255))
+
+        anchor = project_room_widget.clamp_anchor_to_visible_image_bounds(
+            kit,
+            {"x": 302, "y": 204},
+            image,
+            widget_scale=1.25,
+        )
+
+        self.assertEqual(anchor, {"x": 302, "y": 204})
 
     def test_project_layout_file_round_trips_entity_anchor(self) -> None:
         from project_room_scene import load_project_layout, save_project_anchor
@@ -250,6 +286,222 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
             self.assertEqual(window, {"x": 120, "y": 340, "scale": 1.25})
 
+    def test_project_session_file_round_trips_widget_state(self) -> None:
+        from project_room_scene import load_project_session, save_project_session
+
+        with tempfile.TemporaryDirectory() as tmp:
+            session_file = Path(tmp) / "project-room-session.json"
+
+            save_project_session(
+                session_file,
+                "gakju-demo",
+                {
+                    "state": "review",
+                    "message": "Working: restore check",
+                    "bubbleVisible": False,
+                    "window": {"x": 120, "y": 340, "scale": 1.25},
+                    "stateSource": "manual",
+                    "updatedAt": "2026-06-14T00:00:00Z",
+                },
+            )
+            session = load_project_session(session_file, "gakju-demo")
+
+        self.assertEqual(session["state"], "review")
+        self.assertEqual(session["message"], "Working: restore check")
+        self.assertFalse(session["bubbleVisible"])
+        self.assertEqual(session["window"], {"x": 120, "y": 340, "scale": 1.25})
+        self.assertEqual(session["stateSource"], "manual")
+
+    def test_project_session_file_ignores_unknown_and_malformed_sessions(self) -> None:
+        from project_room_scene import load_project_session
+
+        with tempfile.TemporaryDirectory() as tmp:
+            session_file = Path(tmp) / "project-room-session.json"
+            session_file.write_text("{", encoding="utf-8")
+
+            self.assertEqual(load_project_session(session_file, "gakju-demo"), {})
+
+            write_json(session_file, {"schemaVersion": 1, "projects": {"other-demo": {"state": "review"}}})
+
+            self.assertEqual(load_project_session(session_file, "gakju-demo"), {})
+
+    def test_widget_startup_restores_session_state_window_and_bubble(self) -> None:
+        import project_room_widget
+
+        session = {
+            "state": "review",
+            "message": "Restored message",
+            "bubbleVisible": False,
+            "window": {"x": 88, "y": 99, "scale": 1.4},
+            "stateSource": "manual",
+        }
+
+        state, message, source = project_room_widget.resolve_startup_state(
+            "idle",
+            None,
+            None,
+            "gakju-demo",
+            session,
+            restore_session=True,
+        )
+        scale, x, y = project_room_widget.resolve_startup_window(None, session, True, None, None, None)
+
+        self.assertEqual((state, message, source), ("review", "Restored message", "manual"))
+        self.assertEqual((scale, x, y), (1.4, 88, 99))
+
+    def test_widget_startup_cli_values_override_session(self) -> None:
+        import project_room_widget
+
+        session = {
+            "state": "review",
+            "message": "Restored message",
+            "window": {"x": 88, "y": 99, "scale": 1.4},
+        }
+
+        state, message, source = project_room_widget.resolve_startup_state(
+            "idle",
+            "failed",
+            None,
+            "gakju-demo",
+            session,
+            restore_session=True,
+        )
+        scale, x, y = project_room_widget.resolve_startup_window(
+            {"x": 10, "y": 20, "scale": 1.1},
+            session,
+            True,
+            1.25,
+            120,
+            620,
+        )
+
+        self.assertEqual((state, message, source), ("failed", None, "cli"))
+        self.assertEqual((scale, x, y), (1.25, 120, 620))
+
+    def test_widget_startup_fresh_bridge_overrides_session(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            write_json(
+                state_file,
+                {
+                    "projectId": "gakju-demo",
+                    "state": "running",
+                    "message": "Working: fresh bridge",
+                    "updatedAt": "2026-06-14T00:00:00Z",
+                },
+            )
+
+            state, message, source = project_room_widget.resolve_startup_state(
+                "idle",
+                None,
+                state_file,
+                "gakju-demo",
+                {"state": "review", "message": "Restored message"},
+                restore_session=True,
+                stale_after_ms=300000,
+                now=datetime(2026, 6, 14, 0, 1, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual((state, message, source), ("running", "Working: fresh bridge", "bridge"))
+
+    def test_widget_startup_ignores_stale_running_bridge_and_uses_session(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            write_json(
+                state_file,
+                {
+                    "projectId": "gakju-demo",
+                    "state": "running",
+                    "message": "Working: old bridge",
+                    "updatedAt": "2026-06-14T00:00:00Z",
+                },
+            )
+
+            state, message, source = project_room_widget.resolve_startup_state(
+                "idle",
+                None,
+                state_file,
+                "gakju-demo",
+                {"state": "review", "message": "Restored message", "stateSource": "manual"},
+                restore_session=True,
+                stale_after_ms=300000,
+                now=datetime(2026, 6, 14, 0, 6, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual((state, message, source), ("review", "Restored message", "manual"))
+
+    def test_widget_startup_no_restore_session_ignores_session_file_values(self) -> None:
+        import project_room_widget
+
+        session = {
+            "state": "review",
+            "message": "Restored message",
+            "window": {"x": 88, "y": 99, "scale": 1.4},
+        }
+
+        state, message, source = project_room_widget.resolve_startup_state(
+            "idle",
+            None,
+            None,
+            "gakju-demo",
+            session,
+            restore_session=False,
+        )
+        scale, x, y = project_room_widget.resolve_startup_window(
+            {"x": 10, "y": 20, "scale": 1.1},
+            session,
+            False,
+            None,
+            None,
+            None,
+        )
+
+        self.assertEqual((state, message, source), ("idle", None, "default"))
+        self.assertEqual((scale, x, y), (1.1, 10, 20))
+
+    def test_widget_render_once_disables_session_restore(self) -> None:
+        import project_room_widget
+
+        self.assertFalse(project_room_widget.restore_session_enabled("gakju-demo", "runs/out.png", None))
+        self.assertFalse(project_room_widget.restore_session_enabled(None, None, True))
+        self.assertFalse(project_room_widget.restore_session_enabled("gakju-demo", None, False))
+        self.assertTrue(project_room_widget.restore_session_enabled("gakju-demo", None, None))
+
+    def test_widget_save_session_writes_current_visible_state(self) -> None:
+        import project_room_widget
+        from project_room_scene import load_project_session
+
+        class FakeRoot:
+            def winfo_x(self) -> int:
+                return 321
+
+            def winfo_y(self) -> int:
+                return 654
+
+        with tempfile.TemporaryDirectory() as tmp:
+            widget = object.__new__(project_room_widget.ProjectRoomWidget)
+            widget.project_id = "gakju-demo"
+            widget.session_file = Path(tmp) / "project-room-session.json"
+            widget.root = FakeRoot()
+            widget.state = "failed"
+            widget.message = "Need input"
+            widget.bubble_visible = False
+            widget.scale = 1.25
+            widget.state_source = "manual"
+
+            widget.save_session("manual")
+            session = load_project_session(widget.session_file, "gakju-demo")
+
+        self.assertEqual(session["state"], "failed")
+        self.assertEqual(session["message"], "Need input")
+        self.assertFalse(session["bubbleVisible"])
+        self.assertEqual(session["window"], {"x": 321, "y": 654, "scale": 1.25})
+        self.assertEqual(session["stateSource"], "manual")
+
     def test_bubble_text_prefers_state_message_and_uses_state_defaults(self) -> None:
         from project_room_scene import bubble_text_for_state
 
@@ -352,7 +604,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
             self.assertTrue(style["shadow"].startswith("#"))
             self.assertEqual(style["text"], BUBBLE_STYLE["text"])
 
-    def test_bubble_bounds_shift_to_side_when_overlapping_owner(self) -> None:
+    def test_bubble_bounds_prefers_above_owner_when_overlapping_face(self) -> None:
         import project_room_widget
 
         dx, dy = project_room_widget.bubble_avoid_owner_shift(
@@ -364,17 +616,17 @@ class ProjectRoomSceneTests(unittest.TestCase):
             gap=8,
         )
 
-        self.assertGreater(dx, 0)
-        self.assertEqual(dy, 0)
+        self.assertEqual(dx, 0)
+        self.assertLess(dy, 0)
         shifted = (110 + dx, 70 + dy, 260 + dx, 132 + dy)
-        self.assertGreaterEqual(shifted[0], 248)
+        self.assertLessEqual(shifted[3], 87)
 
     def test_bubble_bounds_shift_left_when_right_side_has_no_room(self) -> None:
         import project_room_widget
 
         dx, dy = project_room_widget.bubble_avoid_owner_shift(
-            bubble_bounds=(240, 70, 390, 132),
-            owner_bounds=(250, 95, 350, 230),
+            bubble_bounds=(240, 12, 390, 74),
+            owner_bounds=(250, 20, 350, 230),
             canvas_width=420,
             canvas_height=300,
             margin=12,
@@ -383,7 +635,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertLess(dx, 0)
         self.assertEqual(dy, 0)
-        shifted = (240 + dx, 70 + dy, 390 + dx, 132 + dy)
+        shifted = (240 + dx, 12 + dy, 390 + dx, 74 + dy)
         self.assertLessEqual(shifted[2], 242)
 
     def test_context_menu_labels_keep_close_as_explicit_action(self) -> None:
@@ -1567,13 +1819,32 @@ class PetStudioPreflightTests(unittest.TestCase):
         self.assertFalse(shape_result.ok)
         self.assertIsNone(shape_project)
         self.assertIn("projects list", shape_result.message)
+        self.assertIn('{"schemaVersion": 1, "projects": [...]', shape_result.message)
         self.assertFalse(disabled_result.ok)
         self.assertIsNotNone(disabled_project)
         self.assertIn("disabled", disabled_result.message)
+        self.assertIn("enabled", disabled_result.message)
         self.assertFalse(missing_kit_path_result.ok)
         self.assertIn("kitPath", missing_kit_path_result.message)
+        self.assertIn("project-room-projects.json", missing_kit_path_result.message)
         self.assertFalse(missing_manifest_result.ok)
         self.assertIn("Missing project manifest", missing_manifest_result.message)
+        self.assertIn("Fix kitPath", missing_manifest_result.message)
+        self.assertIn("tools\\pet_studio_create_room.py", missing_manifest_result.message)
+
+    def test_preflight_unknown_project_message_has_register_and_list_hints(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+
+            result, project = pet_studio_preflight.check_project_registry(registry, "unknown-project")
+
+        self.assertFalse(result.ok)
+        self.assertIsNone(project)
+        self.assertIn("tools\\pet_studio_create_room.py", result.message)
+        self.assertIn("--list-projects", result.message)
 
     def test_preflight_reports_validator_failure(self) -> None:
         import pet_studio_preflight

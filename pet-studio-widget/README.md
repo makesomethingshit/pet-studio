@@ -44,9 +44,28 @@ Run the public preflight when checking a fresh clone or release candidate:
 - Press `Ctrl` + `+` / `Ctrl` + `-` to resize the widget, or `Ctrl` + `0` to reset size.
 - Press `Escape` to close.
 
-Registered projects persist moved entity anchors and layer-order overrides in `project-room-layouts.json`, and host window position/scale in `project-room-window.json`. Those filenames remain the v1 compatibility storage contract. Direct `--kit` runs allow session-only movement and do not write layout or window overrides.
+Registered projects persist moved entity anchors and layer-order overrides in `project-room-layouts.json`, and host window position/scale in `project-room-window.json`. Those filenames remain the v1 compatibility storage contract. Direct `--kit` runs allow temporary movement and do not write layout, window, or session overrides.
 
 When a registered project is launched with `--project-id`, the widget also writes `project-room-active.json` so Codex event adapters can resolve the currently selected Pet Studio project. Saved entity anchors outside the source room canvas are ignored on load and new drag positions are clamped to the canvas.
+
+## Session Restore
+
+Registered project launches restore the last visible session from `project-room-session.json` by default. The session snapshot stores the last widget state, speech bubble visibility, message, window position, scale, update time, and whether the state came from the bridge or a manual widget action. Direct `--kit` launches do not use session restore.
+
+Startup priority is:
+
+1. Explicit CLI values such as `--state`, `--x`, `--y`, and `--scale`
+2. Fresh `project-room-state.json` bridge payloads
+3. `project-room-session.json`
+4. Registry defaults and `project-room-window.json`
+
+The bridge is considered stale after 300000 ms by default for active working states such as `running`, `waiting`, `review`, `failed`, `blocked`, and `handoff`. This prevents an old Codex hook state from reopening the widget in a stale working/review state. Override the threshold with `--state-stale-after-ms`.
+
+Use `--no-restore-session` for deterministic QA, render checks, or debugging:
+
+```powershell
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25 --no-restore-session
+```
 
 ## State Bridge
 
@@ -138,9 +157,12 @@ Render a registered project:
 .\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --render-project-once runs\widget-render-test.png
 ```
 
+Render commands ignore session restore. Add `--state idle` or another explicit state when the output must be independent of any bridge file.
+
 Use custom persistence files:
 
 ```powershell
 .\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --layout-file pet-studio-widget\project-room-layouts.json
 .\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --window-file pet-studio-widget\project-room-window.json
+.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_widget.py --project-id gakju-archive-demo --session-file pet-studio-widget\project-room-session.json
 ```

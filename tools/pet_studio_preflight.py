@@ -35,6 +35,7 @@ LOCAL_ONLY_PATHS = [
     "pet-studio-widget/project-room-active.json",
     "pet-studio-widget/project-room-hook-events.jsonl",
     "pet-studio-widget/project-room-layouts.json",
+    "pet-studio-widget/project-room-session.json",
     "pet-studio-widget/project-room-state.json",
     "pet-studio-widget/project-room-window.json",
 ]
@@ -118,6 +119,24 @@ def hook_trust_hint(project_id: str) -> str:
     return f"Run {install_hooks_command(project_id)}, then restart Codex or open /hooks to trust the commands if prompted."
 
 
+def registry_schema_hint() -> str:
+    return 'Expected {"schemaVersion": 1, "projects": [...]}; recreate or repair the registry file.'
+
+
+def register_project_hint(project_id: str, registry: Path) -> str:
+    return (
+        f"Register it with tools\\pet_studio_create_room.py --project-id {project_id} --registry {registry}, "
+        "or inspect available ids with pet-studio-widget\\pet_studio_widget.py --list-projects."
+    )
+
+
+def kit_repair_hint(project_id: str, registry: Path) -> str:
+    return (
+        f"Fix kitPath for {project_id!r} in {display_path(registry)}, restore the missing kit, "
+        f"or regenerate it with tools\\pet_studio_create_room.py --project-id {project_id} --registry {registry}."
+    )
+
+
 def next_commands(project_id: str, registry: Path, render_output: Path) -> dict[str, str]:
     return {
         "launch": project_launch_command(project_id, registry),
@@ -177,19 +196,22 @@ def check_project_registry(registry: Path, project_id: str) -> tuple[CheckResult
     except (json.JSONDecodeError, OSError) as error:
         return fail_check("registry", f"Cannot read {display_path(registry)}: {error}"), None
     if not isinstance(data, dict):
-        return fail_check("registry", f"{display_path(registry)} must contain a JSON object"), None
+        return fail_check("registry", f"{display_path(registry)} must contain a JSON object. {registry_schema_hint()}"), None
     projects = data.get("projects")
     if not isinstance(projects, list):
-        return fail_check("registry", f"{display_path(registry)} must contain a projects list"), None
+        return fail_check("registry", f"{display_path(registry)} must contain a projects list. {registry_schema_hint()}"), None
     project = None
     for item in projects:
         if isinstance(item, dict) and item.get("projectId") == project_id:
             project = item
             break
     if project is None:
-        return fail_check("registry", f"Project {project_id!r} is not registered in {display_path(registry)}"), None
+        return fail_check(
+            "registry",
+            f"Project {project_id!r} is not registered in {display_path(registry)}. {register_project_hint(project_id, registry)}",
+        ), None
     if project.get("enabled") is not True:
-        return fail_check("registry", f"Project {project_id!r} is registered but disabled"), project
+        return fail_check("registry", f"Project {project_id!r} is registered but disabled. Set enabled to true in {display_path(registry)} or choose another project id."), project
     return pass_check("registry", f"{project_id} is enabled"), project
 
 
@@ -201,12 +223,16 @@ def check_project_kit(registry: Path, project: dict[str, Any] | None) -> tuple[C
     if not project:
         return fail_check("project-kit", "Cannot check project kit because the project was not resolved"), None
     raw_kit_path = project.get("kitPath")
+    project_id = str(project.get("projectId", "?"))
     if not isinstance(raw_kit_path, str) or not raw_kit_path.strip():
-        return fail_check("project-kit", f"Project {project.get('projectId', '?')!r} has no kitPath"), None
+        return fail_check(
+            "project-kit",
+            f"Project {project_id!r} has no kitPath. Add kitPath in project-room-projects.json or {register_project_hint(project_id, registry)}",
+        ), None
     kit_path = resolve_registry_path(registry, raw_kit_path)
     manifest = kit_path if kit_path.name == "project-room.json" else kit_path / "project-room.json"
     if not manifest.exists():
-        return fail_check("project-kit", f"Missing project manifest: {display_path(manifest)}"), manifest
+        return fail_check("project-kit", f"Missing project manifest: {display_path(manifest)}. {kit_repair_hint(project_id, registry)}"), manifest
     try:
         kit = load_json(manifest)
     except (json.JSONDecodeError, OSError) as error:

@@ -6,6 +6,7 @@ import copy
 import json
 import math
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from PIL import Image
 
 DEFAULT_LAYOUT_FILE = Path(__file__).with_name("project-room-layouts.json")
 DEFAULT_WINDOW_FILE = Path(__file__).with_name("project-room-window.json")
+DEFAULT_SESSION_FILE = Path(__file__).with_name("project-room-session.json")
 DEFAULT_BUBBLE_MESSAGES = {
     "running": "Working",
     "waiting": "Waiting",
@@ -195,6 +197,74 @@ def save_project_window(path: Path, project_id: str, window: dict[str, int | flo
         "y": int(window["y"]),
         "scale": float(window["scale"]),
     }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def project_session_document(path: Path) -> dict:
+    if not path.exists():
+        return {"schemaVersion": 1, "projects": {}}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return {"schemaVersion": 1, "projects": {}}
+    if not isinstance(data, dict):
+        return {"schemaVersion": 1, "projects": {}}
+    projects = data.get("projects")
+    if not isinstance(projects, dict):
+        projects = {}
+    data["schemaVersion"] = int(data.get("schemaVersion", 1)) if isinstance(data.get("schemaVersion", 1), int) else 1
+    data["projects"] = projects
+    return data
+
+
+def coerce_session_window(value: Any) -> dict[str, int | float] | None:
+    if not isinstance(value, dict):
+        return None
+    window: dict[str, int | float] = {}
+    if isinstance(value.get("x"), int):
+        window["x"] = value["x"]
+    if isinstance(value.get("y"), int):
+        window["y"] = value["y"]
+    if isinstance(value.get("scale"), (int, float)) and value["scale"] > 0:
+        window["scale"] = float(value["scale"])
+    return window or None
+
+
+def normalize_project_session(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    session: dict[str, Any] = {}
+    if isinstance(value.get("state"), str) and value["state"].strip():
+        session["state"] = value["state"].strip()
+    if isinstance(value.get("message"), str):
+        session["message"] = value["message"]
+    if isinstance(value.get("bubbleVisible"), bool):
+        session["bubbleVisible"] = value["bubbleVisible"]
+    window = coerce_session_window(value.get("window"))
+    if window is not None:
+        session["window"] = window
+    if isinstance(value.get("stateSource"), str) and value["stateSource"].strip():
+        session["stateSource"] = value["stateSource"].strip()
+    if isinstance(value.get("updatedAt"), str) and value["updatedAt"].strip():
+        session["updatedAt"] = value["updatedAt"].strip()
+    return session
+
+
+def load_project_session(path: Path, project_id: str | None) -> dict[str, Any]:
+    if not project_id:
+        return {}
+    data = project_session_document(path)
+    return normalize_project_session(data.get("projects", {}).get(project_id))
+
+
+def save_project_session(path: Path, project_id: str, session: dict[str, Any]) -> None:
+    data = project_session_document(path)
+    projects = data.setdefault("projects", {})
+    normalized = normalize_project_session(session)
+    if "updatedAt" not in normalized:
+        normalized["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    projects[project_id] = normalized
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
