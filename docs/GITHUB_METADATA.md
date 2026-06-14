@@ -1,6 +1,6 @@
 # GitHub Metadata Suggestions
 
-Use this when setting the repository About section manually on GitHub.
+Use this when setting the repository About section manually on GitHub. The shorter copy-ready version is also available in [ABOUT.md](ABOUT.md).
 
 ## Recommended Description
 
