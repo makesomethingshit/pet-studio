@@ -123,6 +123,12 @@ For a direct command-line first room, use the guided wrapper:
 
 Or install `$pet-studio` and ask Codex to create a room for the current workspace.
 
+After generation, create a local QA pack:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
+```
+
 See [docs/CREATE_ROOM.md](docs/CREATE_ROOM.md) for the full workflow.
 
 ## Roadmap

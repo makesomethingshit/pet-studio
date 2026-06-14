@@ -59,7 +59,7 @@ Done when:
 
 #### M2. First Room QA Pack
 
-Status: next.
+Status: implemented in development.
 
 Done when:
 

@@ -36,13 +36,21 @@ Use the guided wrapper for a direct command-line first room:
   --theme "quiet archive nook"
 ```
 
-The wrapper validates the pet and room inputs, creates `runs\my-room\kit`, renders preview/contact images, registers the project, links the current workspace, and prints preflight/launch/render commands.
+The wrapper validates the pet and room inputs, creates `runs\my-room\kit`, renders preview/contact images, registers the project, links the current workspace, and prints preflight/launch/render/QA pack commands.
 
 Useful options:
 
 - `--dry-run` prints the planned low-level command without writing files.
 - `--force` replaces an existing output directory. Use this only when the old `runs\<project-id>` output can be discarded.
 - `--verbose` prints the underlying generator output; the default output is a concise JSON summary with created artifacts and next commands.
+
+Create local QA evidence after generation:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
+```
+
+The QA pack writes validation JSON, an idle render, an all-state contact sheet, a widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json` under `runs\my-room\qa-pack\`. These files are local evidence and are ignored by git.
 
 ## What Gets Created
 
@@ -61,6 +69,13 @@ runs/my-pet-studio-room/
   production-report.json
   room-preview.png
   room-contact.png
+  qa-pack/
+    validation.json
+    idle-render.png
+    all-states-contact.png
+    widget-render.png
+    CODER_TO_QA.md
+    qa-pack-summary.json
 ```
 
 Local QA evidence and experimental run folders are intentionally ignored by git unless you choose to preserve them.

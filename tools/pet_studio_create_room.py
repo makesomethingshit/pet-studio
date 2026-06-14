@@ -127,15 +127,23 @@ def next_commands(project_id: str, registry: Path | None = None) -> dict[str, st
         "--render-project-once",
         f"runs\\{project_id}\\widget-render.png",
     ]
+    qa_pack = [
+        ".\\tools\\pet_studio_python.cmd",
+        "tools\\pet_studio_create_qa_pack.py",
+        "--project-id",
+        project_id,
+    ]
     if not uses_default_registry:
         registry_arg = str(registry)
         preflight.extend(["--registry", registry_arg])
         launch[1:1] = ["--config", registry_arg]
         render[2:2] = ["--config", registry_arg]
+        qa_pack.extend(["--registry", registry_arg])
     return {
         "preflight": command_preview(preflight),
         "launch": command_preview(launch),
         "render": command_preview(render),
+        "qaPack": command_preview(qa_pack),
     }
 
 
