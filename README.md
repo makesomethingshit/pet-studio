@@ -36,20 +36,20 @@ After installing hooks, restart Codex or open `/hooks` to review and trust the n
 
 ## What Works Today
 
-- Windows desktop widget for checked-in sample project rooms
-- Layered room rendering: background, props, main pet, optional helper pets, speech bubbles
-- Local project registry, saved layout, saved scale, and state file bridge
-- Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
-- Optional Codex hooks for prompt/tool/compact/stop bubble updates
-- Script-driven room creation, validation, preview sheets, and local QA packs
+* Windows desktop widget for checked-in sample project rooms
+* Layered room rendering: background, props, main pet, optional helper pets, speech bubbles
+* Local project registry, saved layout, saved scale, and state file bridge
+* Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
+* Optional Codex hooks for prompt/tool/compact/stop bubble updates
+* Script-driven room creation, validation, preview sheets, and local QA packs
 
 ## Still Experimental
 
-- New room quality depends on the provided or generated art; visual QA is required.
-- First-room creation is script-driven, not a GUI editor.
-- Codex integration is a local file/hook bridge, not an official Codex dashboard API.
-- Windows is the primary tested host.
-- Internal storage still uses some `project-room-*` v1 compatibility names.
+* New room quality depends on the provided or generated art; visual QA is required.
+* First-room creation is script-driven, not a GUI editor.
+* Codex integration is a local file/hook bridge, not an official Codex dashboard API.
+* Windows is the primary tested host.
+* Internal storage still uses some `project-room-*` v1 compatibility names.
 
 Not yet: multi-room gallery, one-click installer, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
 
@@ -85,26 +85,26 @@ The long-term vision is a small local dashboard where every Codex workspace has 
 
 Next steps:
 
-- smoother first-room creation and QA pack generation
-- clearer setup checks for hooks, Pillow, registries, and missing assets
-- more room themes, prop packs, and state animations
-- richer helper pet behavior and Codex event mapping
-- multi-project room switcher
-- macOS/Linux widget host
-- lightweight room editor
+* smoother first-room creation
+* clearer setup checks for hooks, Pillow, registries, and missing assets
+* more room themes, prop packs, and state animations
+* richer helper pet behavior and Codex event mapping
+* multi-project room switcher
+* macOS/Linux widget host
+* lightweight room editor
 
 Detailed roadmap: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
 
 ## Docs
 
-- [Install](docs/INSTALL.md)
-- [Create a room](docs/CREATE_ROOM.md)
-- [Codex integration](docs/CODEX_INTEGRATION.md)
-- [Development checks](docs/DEVELOPMENT.md)
-- [Demo script](docs/DEMO_SCRIPT.md)
-- [GitHub About metadata](docs/ABOUT.md)
-- [Social preview](docs/SOCIAL_PREVIEW.md)
-- [Contributing ideas](docs/CONTRIBUTING_IDEAS.md)
+* [Install](docs/INSTALL.md)
+* [Create a room](docs/CREATE_ROOM.md)
+* [Codex integration](docs/CODEX_INTEGRATION.md)
+* [Development checks](docs/DEVELOPMENT.md)
+* [Demo script](docs/DEMO_SCRIPT.md)
+* [GitHub About metadata](docs/ABOUT.md)
+* [Social preview](docs/SOCIAL_PREVIEW.md)
+* [Contributing ideas](docs/CONTRIBUTING_IDEAS.md)
 
 ## License
 
