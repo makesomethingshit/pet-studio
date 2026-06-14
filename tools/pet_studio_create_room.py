@@ -13,6 +13,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = ROOT / "pet-studio-widget" / "project-room-projects.json"
 CREATE_KIT_SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "create_project_room_kit.py"
+KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
+if str(KIT_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(KIT_SCRIPTS))
+
+from asset_guardrails import AssetInput, format_guardrail_failure, run_asset_guardrails  # noqa: E402
 
 
 def slug_to_title(value: str) -> str:
@@ -80,6 +85,8 @@ def build_create_command(args: argparse.Namespace) -> list[str]:
         str(resolve_existing_path(args.room_image, "Room image")),
         "--room-alpha-mode",
         args.room_alpha_mode,
+        "--guardrail-mode",
+        args.guardrail_mode,
         "--theme",
         args.theme,
         "--display-name",
@@ -186,8 +193,23 @@ def success_summary(project_id: str, out_dir: Path, registry: Path) -> dict:
             "generationBrief": str(out_dir / "generation-brief.json"),
         },
         "registeredProject": report.get("registeredProject"),
+        "guardrails": report.get("guardrails"),
         "nextCommands": next_commands(project_id, registry),
     }
+
+
+def guardrails_for_args(args: argparse.Namespace) -> dict:
+    props = [AssetInput(prop_id, path) for prop_id, path in (parse_id_path(value, "Prop") for value in args.prop)]
+    helpers = [AssetInput(helper_id, path) for helper_id, path in (parse_id_path(value, "Helper package") for value in args.helper_package)]
+    return run_asset_guardrails(
+        pet_package=resolve_existing_path(args.pet_package, "Pet package"),
+        room_image=resolve_existing_path(args.room_image, "Room image"),
+        props=props,
+        helpers=helpers,
+        prop_placements=args.prop_placement,
+        mode=args.guardrail_mode,
+        room_alpha_mode=args.room_alpha_mode,
+    )
 
 
 def main() -> None:
@@ -204,6 +226,7 @@ def main() -> None:
     parser.add_argument("--theme", default="pet studio room")
     parser.add_argument("--display-name", default=None)
     parser.add_argument("--room-alpha-mode", choices=("safe", "balanced", "aggressive"), default="balanced")
+    parser.add_argument("--guardrail-mode", choices=("basic", "strict", "off"), default="basic")
     parser.add_argument("--bake-fallback", action="store_true")
     parser.add_argument("--force", action="store_true", help="Replace an existing output directory")
     parser.add_argument("--verbose", action="store_true", help="Print the underlying kit creation output")
@@ -216,11 +239,15 @@ def main() -> None:
         ensure_output_dir_available(out_dir, args.force)
     command = build_create_command(args)
     project_id = args.project_id
+    guardrails = guardrails_for_args(args)
+    if not guardrails["ok"]:
+        raise SystemExit(format_guardrail_failure(guardrails))
     plan = {
         "ok": True,
         "projectId": project_id,
         "command": command,
         "commandPreview": command_preview(command),
+        "guardrails": guardrails,
         "nextCommands": next_commands(project_id, registry),
         "dryRun": args.dry_run,
     }

@@ -43,6 +43,16 @@ Useful options:
 - `--dry-run` prints the planned low-level command without writing files.
 - `--force` replaces an existing output directory. Use this only when the old `runs\<project-id>` output can be discarded.
 - `--verbose` prints the underlying generator output; the default output is a concise JSON summary with created artifacts and next commands.
+- `--guardrail-mode basic|strict|off` controls pre-generation asset checks. `basic` is the default: clear structural problems fail, subjective style issues become warnings.
+
+## Asset Guardrails
+
+The guided command checks common input mistakes before creating a kit:
+
+- The room image must be a `384x240` PNG source. Alpha cleanup only removes edge-connected margin pixels; it is not a general background remover.
+- Props must be visible transparent PNGs that fit inside the `384x240` source canvas. Use `--prop-placement id=background|behind-pet|front-of-pet|foreground` to describe where each prop should render relative to the main pet.
+- Prop ids and helper ids must be unique. A prop placement must reference a supplied prop id.
+- Helper packages must be hatch-pet packages with `pet.json` and a `1536x1872` spritesheet. Codex should still ask before generating helper/sub-pet art, because visual style mismatch is a QA judgment.
 
 After generation, run the setup check, launch the room, then create local QA evidence:
 

@@ -45,7 +45,7 @@ After installing hooks, restart Codex or open `/hooks` to review and trust the n
 * Local project registry, saved layout, saved scale, and state file bridge
 * Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
 * Optional Codex hooks for prompt/tool/compact/stop bubble updates
-* Script-driven room creation, validation, preview sheets, and local QA packs
+* Script-driven room creation, asset guardrails, validation, preview sheets, and local QA packs
 
 ## Still Experimental
 
@@ -84,6 +84,8 @@ Then generate local QA evidence:
 ```
 
 Full workflow: [docs/CREATE_ROOM.md](docs/CREATE_ROOM.md)
+
+The create command checks common asset mistakes before writing a kit: room sources must be `384x240`, props must be visible and fit inside the room canvas, helper packages must contain a valid hatch-pet atlas, and prop placement ids must match supplied props. Subjective style questions remain visual QA instead of automatic rejection.
 
 ## Roadmap
 

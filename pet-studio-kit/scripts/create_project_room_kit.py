@@ -18,6 +18,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from project_room_assets import cleanup_room_image
+from asset_guardrails import AssetInput, format_guardrail_failure, run_asset_guardrails
 
 
 CELL_WIDTH = 192
@@ -435,6 +436,7 @@ def main() -> None:
     parser.add_argument("--pet-package", required=True)
     parser.add_argument("--room-image", required=True)
     parser.add_argument("--room-alpha-mode", choices=("safe", "balanced", "aggressive"), default="balanced")
+    parser.add_argument("--guardrail-mode", choices=("basic", "strict", "off"), default="basic")
     parser.add_argument("--prop", action="append", default=[], help="Prop asset in id=path format; may be repeated")
     parser.add_argument(
         "--prop-placement",
@@ -475,6 +477,17 @@ def main() -> None:
 
     prop_inputs = [parse_id_path(value, "Prop") for value in args.prop]
     helper_inputs = [parse_id_path(value, "Helper package") for value in args.helper_package]
+    guardrails = run_asset_guardrails(
+        pet_package=pet_package,
+        room_image=room_image,
+        props=[AssetInput(prop_id, path) for prop_id, path in prop_inputs],
+        helpers=[AssetInput(helper_id, path) for helper_id, path in helper_inputs],
+        prop_placements=args.prop_placement,
+        mode=args.guardrail_mode,
+        room_alpha_mode=args.room_alpha_mode,
+    )
+    if not guardrails["ok"]:
+        raise SystemExit(format_guardrail_failure(guardrails))
 
     kit_dir.mkdir(parents=True, exist_ok=True)
     style = build_style_lock(pet_json, pet_package)
@@ -599,6 +612,7 @@ def main() -> None:
         "registeredProject": registered_project,
         "projectLink": project_link,
         "roomAlphaMode": args.room_alpha_mode,
+        "guardrails": guardrails,
         "validation": validation,
         "steps": steps,
     }

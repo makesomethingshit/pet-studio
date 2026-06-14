@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import importlib
 import importlib.util
 import subprocess
 import sys
@@ -101,6 +102,17 @@ def make_prop(path: Path) -> None:
     draw.rounded_rectangle((5, 20, 91, 42), radius=5, fill=(170, 120, 80, 255))
     draw.rectangle((16, 42, 24, 53), fill=(120, 80, 55, 255))
     draw.rectangle((72, 42, 80, 53), fill=(120, 80, 55, 255))
+    img.save(path)
+
+
+def make_empty_prop(path: Path) -> None:
+    Image.new("RGBA", (96, 54), (0, 0, 0, 0)).save(path)
+
+
+def make_oversized_prop(path: Path) -> None:
+    img = Image.new("RGBA", (385, 120), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    draw.rounded_rectangle((8, 20, 376, 108), radius=8, fill=(170, 120, 80, 255))
     img.save(path)
 
 
@@ -1001,6 +1013,225 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                 with self.subTest(state=state):
                     self.assertIn("reviewer", manifest["states"][state]["visibleLayers"])
                     self.assertEqual(manifest["states"][state]["helperPetRow"], "review")
+
+    def test_guardrails_reject_duplicate_prop_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            plant = work / "plant.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            make_prop(desk)
+            make_prop(plant)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"desk={desk}",
+                "--prop",
+                f"desk={plant}",
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Duplicate prop id `desk`", result.stderr + result.stdout)
+
+    def test_guardrails_reject_prop_and_helper_id_collision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            helper = work / "helper"
+            room = work / "room.png"
+            desk = work / "desk.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_pet_package(helper)
+            make_room(room)
+            make_prop(desk)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"reviewer={desk}",
+                "--helper-package",
+                f"reviewer={helper}",
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("used by both a prop and helper", result.stderr + result.stdout)
+
+    def test_guardrails_reject_empty_and_oversized_props(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            empty = work / "empty.png"
+            oversized = work / "oversized.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            make_empty_prop(empty)
+            make_oversized_prop(oversized)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"empty={empty}",
+                "--prop",
+                f"oversized={oversized}",
+            )
+
+        output = result.stderr + result.stdout
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("has no visible opaque pixels", output)
+        self.assertIn("must fit inside the 384x240 room canvas", output)
+
+    def test_guardrails_reject_invalid_helper_package_before_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            helper = work / "helper"
+            room = work / "room.png"
+            out = work / "out"
+            make_pet_package(pet)
+            helper.mkdir()
+            write_json(helper / "pet.json", {"id": "bad-helper", "spritesheetPath": "missing.webp"})
+            make_room(room)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--helper-package",
+                f"reviewer={helper}",
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("has no valid spritesheet path", result.stderr + result.stdout)
+
+    def test_guardrails_report_room_alpha_warnings_and_off_mode_suppresses_them(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room-with-margin.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room_with_edge_margin(room)
+
+            basic = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(out),
+                    "--dry-run",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            off = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "first-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(out),
+                    "--guardrail-mode",
+                    "off",
+                    "--dry-run",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertEqual(basic.returncode, 0, basic.stderr + basic.stdout)
+        self.assertEqual(off.returncode, 0, off.stderr + off.stdout)
+        basic_data = json.loads(basic.stdout)
+        off_data = json.loads(off.stdout)
+        self.assertTrue(any(warning["code"] == "room-edge-alpha" for warning in basic_data["guardrails"]["warnings"]))
+        self.assertEqual(off_data["guardrails"]["warnings"], [])
+
+    def test_guardrail_mode_off_keeps_structural_errors(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            empty = work / "empty.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            make_empty_prop(empty)
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--guardrail-mode",
+                "off",
+                "--prop",
+                f"empty={empty}",
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("has no visible opaque pixels", result.stderr + result.stdout)
+
+    def test_guardrail_failure_format_has_single_sentence_boundary_before_fix(self) -> None:
+        scripts_dir = ROOT / "pet-studio-kit" / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        module = importlib.import_module("asset_guardrails")
+
+        text = module.format_guardrail_failure(
+            {
+                "errors": [
+                    {
+                        "message": "Duplicate prop id `desk`.",
+                        "repair": "Use unique ids for each prop.",
+                    }
+                ]
+            }
+        )
+
+        self.assertIn("Duplicate prop id `desk`. Fix:", text)
+        self.assertNotIn(".. Fix:", text)
 
     def test_rejects_bad_pet_atlas_size(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

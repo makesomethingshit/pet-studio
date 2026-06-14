@@ -78,7 +78,7 @@ Done when:
 
 #### M4. Asset Guardrails
 
-Status: next.
+Status: implemented in development.
 
 Done when:
 
