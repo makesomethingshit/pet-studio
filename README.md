@@ -7,13 +7,13 @@
 
 Pet Studio is a desktop status widget for Codex projects.
 
-![Pet Studio project room with main pet, desk props, and helper prop-creature](docs/images/pet-studio-helper-prop-creature-room.png)
+![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
 Pet Studio turns Codex workspaces into layered desktop rooms with pets, props, helper pets, and live speech bubbles. It is a local-first agent dashboard disguised as a tiny pet room.
 
 Instead of watching logs, watch your project room react as Codex starts working, uses tools, gets blocked, enters review, or finishes.
 
-A 10-15 second demo script is available in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md). A real GIF should replace the static screenshot before a wider launch.
+The README GIF follows the 10-15 second demo flow in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 ## Quick Start
 
