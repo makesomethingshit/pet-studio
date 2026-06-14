@@ -18,6 +18,7 @@ The old `project-room-*` names remain as v1 compatibility filenames and module n
 Prefer the new wrappers in docs and examples:
 
 - `tools/pet_studio_create_room.py`
+- `tools/pet_studio_create_qa_pack.py`
 - `pet-studio-widget/pet_studio_widget.py`
 - `pet-studio-widget/pet_studio_event_adapter.py`
 - `pet-studio-widget/set_pet_studio_state.py`
@@ -39,10 +40,10 @@ Prefer the new wrappers in docs and examples:
 python tools\pet_studio_preflight.py --show-hook-log
 python -m unittest discover -s pet-studio-widget\tests
 python -m unittest discover -s pet-studio-kit\tests
-python -m py_compile pet-studio-widget\pet_studio_widget.py pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\codex_pet_hook.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py tools\pet_studio_preflight.py tools\pet_studio_create_room.py
+python -m py_compile pet-studio-widget\pet_studio_widget.py pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\codex_pet_hook.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py tools\pet_studio_preflight.py tools\pet_studio_create_room.py tools\pet_studio_create_qa_pack.py
 ```
 
-Preflight writes `runs/pet-studio-preflight-render.png`, which is ignored by git.
+Preflight writes `runs/pet-studio-preflight-render.png`, and QA packs write under `runs/<project-id>/qa-pack/`; both are ignored by git.
 
 ## Current Demo
 

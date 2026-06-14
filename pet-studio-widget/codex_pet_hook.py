@@ -125,6 +125,7 @@ def main() -> None:
     parser.add_argument("--cwd", default=None)
     parser.add_argument("--message", default=None)
     parser.add_argument("--hook-log-file", default=str(DEFAULT_HOOK_LOG_FILE))
+    parser.add_argument("--allow-passthrough", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--passthrough", nargs=argparse.REMAINDER, help="Optional command to run after updating the pet state")
     args = parser.parse_args()
 
@@ -161,6 +162,8 @@ def main() -> None:
     passthrough = args.passthrough or []
     if passthrough and passthrough[0] == "--":
         passthrough = passthrough[1:]
+    if passthrough and not args.allow_passthrough:
+        raise SystemExit("passthrough requires --allow-passthrough")
     raise SystemExit(run_passthrough(passthrough))
 
 

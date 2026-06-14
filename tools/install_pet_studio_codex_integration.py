@@ -52,7 +52,7 @@ def build_notify_command(previous_notify: list[str] | None) -> list[str]:
         "notify",
     ]
     if previous_notify and not is_pet_studio_notify(previous_notify):
-        command.extend(["--passthrough", *previous_notify])
+        command.extend(["--allow-passthrough", "--passthrough", *previous_notify])
     return command
 
 

@@ -17,6 +17,7 @@ VALIDATOR = ROOT / "pet-studio-kit" / "scripts" / "validate_project_room_kit.py"
 ASSET_HELPERS = ROOT / "pet-studio-kit" / "scripts" / "project_room_assets.py"
 BAKE_SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "bake_project_room_pet.py"
 GUIDED_CREATE_SCRIPT = ROOT / "tools" / "pet_studio_create_room.py"
+QA_PACK_SCRIPT = ROOT / "tools" / "pet_studio_create_qa_pack.py"
 
 
 STATE_FRAMES = {
@@ -732,6 +733,8 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertIn(str(registry), commands["launch"])
             self.assertIn("--config", commands["render"])
             self.assertIn(str(registry), commands["render"])
+            self.assertIn("--registry", commands["qaPack"])
+            self.assertIn(str(registry), commands["qaPack"])
 
     def test_guided_create_room_refuses_existing_output_without_force(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -766,6 +769,203 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("--force", result.stderr + result.stdout)
             self.assertEqual((out / "keep.txt").read_text(encoding="utf-8"), "existing work")
+
+    def test_guided_create_room_force_refuses_workspace_root_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "danger-demo",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(ROOT),
+                    "--force",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Refusing to replace unsafe output directory", result.stderr + result.stdout)
+            self.assertTrue((ROOT / ".git").exists())
+
+    def test_guided_create_room_force_refuses_workspace_code_dir_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "danger-demo",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(ROOT / "pet-studio-kit"),
+                    "--force",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Refusing to replace unsafe output directory", result.stderr + result.stdout)
+            self.assertTrue((ROOT / "pet-studio-kit" / "SKILL.md").exists())
+
+    def test_qa_pack_creates_local_evidence_from_custom_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            kit_out = work / "room-output"
+            registry = work / "projects.json"
+            qa_out = work / "qa-pack"
+            make_pet_package(pet)
+            make_room(room)
+
+            create = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "qa-demo",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--out-dir",
+                    str(kit_out),
+                    "--registry",
+                    str(registry),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(create.returncode, 0, create.stderr + create.stdout)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(QA_PACK_SCRIPT),
+                    "--project-id",
+                    "qa-demo",
+                    "--registry",
+                    str(registry),
+                    "--out-dir",
+                    str(qa_out),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            summary = json.loads(result.stdout)
+            self.assertTrue(summary["ok"])
+            self.assertEqual(summary["projectId"], "qa-demo")
+            self.assertEqual(summary["outDir"], str(qa_out))
+            for name in (
+                "validation",
+                "idleRender",
+                "allStatesContact",
+                "widgetRender",
+                "coderToQa",
+                "summary",
+            ):
+                self.assertTrue(Path(summary["artifacts"][name]).exists(), name)
+            handoff = (qa_out / "CODER_TO_QA.md").read_text(encoding="utf-8")
+            self.assertIn("qa-demo", handoff)
+            self.assertIn("project-room.json", handoff)
+            self.assertIn("all-states-contact.png", handoff)
+            self.assertIn("widget-render.png", handoff)
+
+    def test_qa_pack_fails_clearly_for_unknown_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(QA_PACK_SCRIPT),
+                    "--project-id",
+                    "missing-demo",
+                    "--registry",
+                    str(registry),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Unknown project id", result.stderr + result.stdout)
+
+    def test_qa_pack_fails_clearly_for_disabled_project(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(
+                registry,
+                {
+                    "schemaVersion": 1,
+                    "projects": [
+                        {
+                            "projectId": "disabled-demo",
+                            "displayName": "Disabled Demo",
+                            "kitPath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit").resolve()),
+                            "petPackagePath": None,
+                            "workspacePaths": [],
+                            "defaultState": "idle",
+                            "theme": "",
+                            "enabled": False,
+                        }
+                    ],
+                },
+            )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(QA_PACK_SCRIPT),
+                    "--project-id",
+                    "disabled-demo",
+                    "--registry",
+                    str(registry),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("disabled", result.stderr + result.stdout)
 
     def test_helper_pet_is_mapped_for_all_widget_states(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

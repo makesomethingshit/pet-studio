@@ -35,10 +35,28 @@ def selected_out_dir(args: argparse.Namespace) -> Path:
     return Path(args.out_dir).expanduser() if args.out_dir else default_out_dir(args.project_id)
 
 
+def is_unsafe_replace_target(path: Path) -> bool:
+    resolved = path.resolve()
+    protected = {ROOT.resolve(), ROOT.parent.resolve(), Path.home().resolve()}
+    anchor = Path(resolved.anchor).resolve()
+    if resolved in protected or resolved == anchor:
+        return True
+    runs_root = (ROOT / "runs").resolve()
+    if resolved == runs_root:
+        return True
+    if ROOT.resolve() in resolved.parents and runs_root not in resolved.parents:
+        return True
+    if (resolved / ".git").exists() or (resolved / ".codex").exists():
+        return True
+    return False
+
+
 def ensure_output_dir_available(out_dir: Path, force: bool) -> None:
     if not out_dir.exists():
         return
     if force:
+        if is_unsafe_replace_target(out_dir):
+            raise SystemExit(f"Refusing to replace unsafe output directory: {out_dir}")
         shutil.rmtree(out_dir)
         return
     raise SystemExit(f"Output directory already exists: {out_dir}\nRe-run with --force to replace it.")
@@ -127,15 +145,23 @@ def next_commands(project_id: str, registry: Path | None = None) -> dict[str, st
         "--render-project-once",
         f"runs\\{project_id}\\widget-render.png",
     ]
+    qa_pack = [
+        ".\\tools\\pet_studio_python.cmd",
+        "tools\\pet_studio_create_qa_pack.py",
+        "--project-id",
+        project_id,
+    ]
     if not uses_default_registry:
         registry_arg = str(registry)
         preflight.extend(["--registry", registry_arg])
         launch[1:1] = ["--config", registry_arg]
         render[2:2] = ["--config", registry_arg]
+        qa_pack.extend(["--registry", registry_arg])
     return {
         "preflight": command_preview(preflight),
         "launch": command_preview(launch),
         "render": command_preview(render),
+        "qaPack": command_preview(qa_pack),
     }
 
 

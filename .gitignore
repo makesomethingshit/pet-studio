@@ -21,6 +21,7 @@ Thumbs.db
 tester/
 runs/fresh-custom-pet-room/
 runs/*-test/
+runs/*/qa-pack/
 runs/pet-studio-preflight-*.png
 
 # Local Pet Studio runtime selection/state

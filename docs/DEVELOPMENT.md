@@ -21,7 +21,7 @@ Skill is valid!
 ```powershell
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
-.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py tools\pet_studio_preflight.py tools\pet_studio_create_room.py
+.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\set_pet_studio_state.py pet-studio-widget\set_active_pet_studio.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\project_room_registry.py pet-studio-kit\scripts\create_project_room_kit.py tools\pet_studio_preflight.py tools\pet_studio_create_room.py tools\pet_studio_create_qa_pack.py
 ```
 
 ## Release Preflight
@@ -37,3 +37,4 @@ Skill is valid!
 - The file bridge is local and project-scoped; it is not a network service.
 - `project-room.json` and `project-room-*` runtime files remain as the v1 compatibility format even though user-facing commands use Pet Studio naming.
 - The public demo is a checked-in sample. New generated rooms can vary in quality and should still be visually QA'd.
+- Speech bubbles use the widget host's current text layout path. CJK and Indic messages are covered by font fallback, but full bidirectional RTL layout for Arabic and Hebrew is not implemented yet.

@@ -303,6 +303,46 @@ def image_anchor_s_pixel_is_opaque(
     return image.convert("RGBA").getpixel((px, py))[3] > alpha_threshold
 
 
+def bounds_overlap(a: tuple[int, int, int, int], b: tuple[int, int, int, int]) -> bool:
+    return a[0] < b[2] and a[2] > b[0] and a[1] < b[3] and a[3] > b[1]
+
+
+def bubble_avoid_owner_shift(
+    bubble_bounds: tuple[int, int, int, int],
+    owner_bounds: tuple[int, int, int, int] | None,
+    canvas_width: int,
+    canvas_height: int,
+    margin: int,
+    gap: int,
+) -> tuple[int, int]:
+    if owner_bounds is None or not bounds_overlap(bubble_bounds, owner_bounds):
+        return (0, 0)
+    left, top, right, bottom = bubble_bounds
+    width = right - left
+    height = bottom - top
+    candidates = [
+        (owner_bounds[2] + gap - left, 0),
+        (owner_bounds[0] - gap - right, 0),
+        (0, owner_bounds[1] - gap - bottom),
+    ]
+    for dx, dy in candidates:
+        shifted = (left + dx, top + dy, right + dx, bottom + dy)
+        if (
+            shifted[0] >= margin
+            and shifted[1] >= margin
+            and shifted[2] <= canvas_width - margin
+            and shifted[3] <= canvas_height - margin
+            and not bounds_overlap(shifted, owner_bounds)
+        ):
+            return (dx, dy)
+    if owner_bounds[0] > canvas_width - owner_bounds[2]:
+        target_left = max(margin, owner_bounds[0] - gap - width)
+    else:
+        target_left = min(canvas_width - margin - width, owner_bounds[2] + gap)
+    target_top = min(max(margin, top), canvas_height - margin - height)
+    return (target_left - left, target_top - top)
+
+
 class ProjectRoomWidget:
     def __init__(
         self,
@@ -479,6 +519,23 @@ class ProjectRoomWidget:
         pad_y = max(6, int(round(7 * self.scale)))
         radius = max(8, int(round(9 * self.scale)))
         left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
+        owner_item = self.entity_items.get(owner.id)
+        owner_bbox = self.canvas.bbox(owner_item) if owner_item is not None else None
+        gap = max(8, int(round(8 * self.scale)))
+        dx, dy = bubble_avoid_owner_shift(
+            (left, top, right, bottom),
+            owner_bbox,
+            canvas_width,
+            canvas_height,
+            margin,
+            gap,
+        )
+        if dx or dy:
+            self.canvas.move(text_item, dx, dy)
+            bbox = self.canvas.bbox(text_item)
+            if bbox is None:
+                return
+            left, top, right, bottom = bbox[0] - pad_x, bbox[1] - pad_y, bbox[2] + pad_x, bbox[3] + pad_y
         if bottom + max(8, int(round(9 * self.scale))) > canvas_height - margin:
             shift = canvas_height - margin - bottom - max(8, int(round(9 * self.scale)))
             self.canvas.move(text_item, 0, shift)
