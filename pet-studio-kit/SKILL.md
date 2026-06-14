@@ -22,7 +22,7 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Before generating helper/sub-pet base art, show the user 2-3 compact concept directions that explicitly reference the selected style source, then wait for the user's choice. Do not silently choose a helper creature, mascot, or coworker form, because helper style mismatch is hard to repair after atlas generation.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
-- Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, and project window position persistence. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
+- Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, project window position persistence, and registered-project session restore. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
 
 ## First Choice
 
@@ -119,9 +119,11 @@ Use the Pet Studio registry to map project ids to room kits. The v1 compatibilit
 
 Project linking lives in this registry. Created kit reports also include a `projectLink` block so the assigned project id, registry path, kit path, and workspace paths can be inspected without opening the registry by hand.
 
-Project-specific entity position overrides live in `pet-studio-widget/project-room-layouts.json`. That filename remains the v1 compatibility storage contract. The host writes this file only for registered `--project-id` runs; direct `--kit` runs are session-only.
+Project-specific entity position overrides live in `pet-studio-widget/project-room-layouts.json`. That filename remains the v1 compatibility storage contract. The host writes this file only for registered `--project-id` runs; direct `--kit` runs are temporary and do not persist layout, window, or session overrides.
 
 Project-specific host window position and scale live in `pet-studio-widget/project-room-window.json`. That filename remains the v1 compatibility storage contract. The host writes this file only for registered `--project-id` runs; direct `--kit` runs do not persist window placement.
+
+Registered project session snapshots live in `pet-studio-widget/project-room-session.json`. The session file stores the last visible state, message, bubble visibility, window position/scale, update time, and state source. Registered `--project-id` launches restore this by default; direct `--kit` launches do not. For deterministic QA or render/debug launches, pass `--no-restore-session`. Startup priority is explicit CLI values, fresh state bridge, session snapshot, then registry/window defaults. Stale working bridge states older than five minutes should not pin the widget in `running`, `waiting`, `review`, `failed`, `blocked`, or `handoff` after reopening.
 
 Use `pet-studio-widget/project-room-state.json` as the v1 file-based bridge from external task state to widget state. Supported external states include `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`.
 
