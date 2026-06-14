@@ -5,7 +5,7 @@
 
 **Every Codex project gets its own tiny desktop room.**
 
-![Gakju archive room widget example](docs/images/gakju-widget-bubble-example.png)
+![Pet Studio project room with main pet, desk props, and helper prop-creature](docs/images/pet-studio-helper-prop-creature-room.png)
 
 Pet Studio turns local Codex workspaces into layered desktop rooms with pets, props, helper pets, and live speech bubbles.
 
@@ -16,6 +16,8 @@ It is a local-first agent dashboard disguised as a tiny pet room.
 - Current release: `v0.1.2`
 - Primary host: Windows desktop widget
 - Status: experimental, local-first, usable from a fresh clone with the included demo
+
+The screenshot above is a real QA render from a project room: a main pet, editable desk props, and a small helper prop-creature that appears during review/problem-solving states.
 
 ## Quick Start
 
