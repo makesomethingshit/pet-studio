@@ -2,6 +2,8 @@
 
 Use this for a 10-15 second GitHub README GIF, release post, or X/Twitter clip.
 
+This is the current recommended demo path until a real GIF is checked into the README.
+
 ## Goal
 
 Show the idea in one sentence:
@@ -22,6 +24,15 @@ Show the idea in one sentence:
 ```text
 Every project gets a room.
 ```
+
+## Release Capture Checklist
+
+- Use the included sample project room unless a cleaner generated room is available.
+- Keep private project names, paths, prompts, tokens, and chat content out of frame.
+- Capture a real state change, not only a static room.
+- Show one speech bubble update such as `Using shell...`.
+- Show one collaboration/problem-solving state such as `blocked` or `review`.
+- End on a readable final frame for at least two seconds.
 
 ## Suggested Commands
 

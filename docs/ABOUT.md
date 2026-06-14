@@ -1,11 +1,11 @@
-# GitHub About
+# GitHub About Copy
 
-Use this copy for the GitHub repository sidebar.
+Use this copy for the GitHub repository sidebar before launch or a release post.
 
 ## Description
 
 ```text
-Turn each Codex project into a tiny layered desktop room with pets, props, and live state bubbles.
+A desktop status widget that turns each Codex project into a tiny layered room with pets, props, and live state bubbles.
 ```
 
 ## Short Description Alternatives
@@ -20,6 +20,10 @@ A local-first agent dashboard disguised as a pet room.
 
 ```text
 Watch your Codex project room react instead of watching logs.
+```
+
+```text
+Turn Codex project state into a tiny local desktop room.
 ```
 
 ## Website
@@ -44,7 +48,7 @@ windows
 
 ## Social Preview
 
-Use a real project-room screenshot or GIF frame if possible.
+Use a real project-room screenshot or GIF frame if possible. The preview should make the project readable without opening the README.
 
 Fallback placeholder:
 
@@ -57,3 +61,10 @@ Preferred text:
 ```text
 Every project gets a room.
 ```
+
+## Release Checklist
+
+- Set the description above in the GitHub About sidebar.
+- Add all recommended topics.
+- Upload either a real widget screenshot/GIF frame or `assets/social-preview.svg` as the social preview.
+- Keep the website field blank until a real demo page exists.
