@@ -69,6 +69,8 @@ Bubble styling follows the selected Pet Studio kit. The runtime resolves style i
 
 Bubble text prefers installed Noto Sans families first, including Noto Sans CJK, Arabic, Hebrew, Indic, Thai, and emoji variants when the message contains those scripts. If Noto fonts are not installed, the widget falls back to common platform fonts such as Segoe UI, Malgun Gothic, Microsoft YaHei UI, Yu Gothic UI, Nirmala UI, Apple SD Gothic Neo, PingFang SC, DejaVu Sans, and TkDefaultFont.
 
+Full bidirectional text layout is not implemented yet. CJK and Indic messages can render when matching fonts are available, but Arabic and Hebrew bubble text should be treated as a current limitation until a bidi-aware text layout path is added.
+
 Write the bridge file with:
 
 ```powershell

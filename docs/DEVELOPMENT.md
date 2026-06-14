@@ -37,3 +37,4 @@ Skill is valid!
 - The file bridge is local and project-scoped; it is not a network service.
 - `project-room.json` and `project-room-*` runtime files remain as the v1 compatibility format even though user-facing commands use Pet Studio naming.
 - The public demo is a checked-in sample. New generated rooms can vary in quality and should still be visually QA'd.
+- Speech bubbles use the widget host's current text layout path. CJK and Indic messages are covered by font fallback, but full bidirectional RTL layout for Arabic and Hebrew is not implemented yet.

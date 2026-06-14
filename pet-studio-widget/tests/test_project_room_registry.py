@@ -352,6 +352,40 @@ class ProjectRoomSceneTests(unittest.TestCase):
             self.assertTrue(style["shadow"].startswith("#"))
             self.assertEqual(style["text"], BUBBLE_STYLE["text"])
 
+    def test_bubble_bounds_shift_to_side_when_overlapping_owner(self) -> None:
+        import project_room_widget
+
+        dx, dy = project_room_widget.bubble_avoid_owner_shift(
+            bubble_bounds=(110, 70, 260, 132),
+            owner_bounds=(150, 95, 240, 230),
+            canvas_width=480,
+            canvas_height=300,
+            margin=12,
+            gap=8,
+        )
+
+        self.assertGreater(dx, 0)
+        self.assertEqual(dy, 0)
+        shifted = (110 + dx, 70 + dy, 260 + dx, 132 + dy)
+        self.assertGreaterEqual(shifted[0], 248)
+
+    def test_bubble_bounds_shift_left_when_right_side_has_no_room(self) -> None:
+        import project_room_widget
+
+        dx, dy = project_room_widget.bubble_avoid_owner_shift(
+            bubble_bounds=(240, 70, 390, 132),
+            owner_bounds=(250, 95, 350, 230),
+            canvas_width=420,
+            canvas_height=300,
+            margin=12,
+            gap=8,
+        )
+
+        self.assertLess(dx, 0)
+        self.assertEqual(dy, 0)
+        shifted = (240 + dx, 70 + dy, 390 + dx, 132 + dy)
+        self.assertLessEqual(shifted[2], 242)
+
     def test_context_menu_labels_keep_close_as_explicit_action(self) -> None:
         from project_room_scene import context_menu_labels
 
