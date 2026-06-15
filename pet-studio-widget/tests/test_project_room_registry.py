@@ -2102,8 +2102,6 @@ class PetStudioDemoStateCyclerTests(unittest.TestCase):
                 "state": "done",
                 "message": "Done",
                 "updatedAt": "2026-06-15T00:00:00Z",
-                "resetAfterMs": 2000,
-                "resetToState": "idle",
             },
         )
 
@@ -2168,6 +2166,30 @@ class PetStudioDemoStateCyclerTests(unittest.TestCase):
             self.assertEqual(payload["projectId"], "gakju-archive-demo")
             self.assertEqual(payload["state"], "idle")
             self.assertEqual(payload["message"], "")
+
+    def test_demo_state_delay_alias_matches_delay_seconds(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(TOOLS_DIR / "pet_studio_demo_states.py"),
+                "--project-id",
+                "gakju-archive-demo",
+                "--delay",
+                "1.5",
+                "--dry-run",
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["delaySeconds"], 1.5)
+        done_payload = next(payload for payload in data["payloads"] if payload["state"] == "done")
+        self.assertNotIn("resetAfterMs", done_payload)
+        self.assertNotIn("resetToState", done_payload)
 
 
 class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):

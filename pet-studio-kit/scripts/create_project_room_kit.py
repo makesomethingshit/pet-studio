@@ -13,6 +13,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from image_guardrails import ImageResourceError, safe_image_size
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -77,12 +79,14 @@ def write_json(path: Path, data: dict) -> None:
 
 
 def image_size(path: Path) -> tuple[int, int]:
-    with Image.open(path) as image:
-        return image.size
+    return safe_image_size(path)
 
 
 def validate_image_size(path: Path, expected: tuple[int, int], label: str) -> None:
-    actual = image_size(path)
+    try:
+        actual = image_size(path)
+    except ImageResourceError as exc:
+        raise SystemExit(str(exc)) from exc
     if actual != expected:
         raise SystemExit(f"{label} is {actual[0]}x{actual[1]}; expected {expected[0]}x{expected[1]}")
 

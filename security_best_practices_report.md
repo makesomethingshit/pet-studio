@@ -1,17 +1,23 @@
 # Pet Studio Security Best Practices Review
 
-Date: 2026-06-14
+Date: 2026-06-15
 
 ## Fix Status
 
-This report is retained as a security review record. Several findings have been addressed during the 0.2.0 release-closure work:
+This report is retained as a security review record and was rechecked against the current worktree on 2026-06-15. Several findings have been addressed during the 0.2.0 release-closure work:
 
-- SEC-001: addressed. Kit manifest asset paths are constrained to relative paths inside the kit directory before validation, preview, bake, or widget bubble-style lookup opens them.
-- SEC-002: addressed for the guided room workflow and generator paths covered by guardrails. Project, prop, and helper ids are restricted to slug-like values.
-- SEC-003: addressed for the guided room wrapper. `--force` refuses unsafe replacement targets such as the repository root, code directories, home/root directories, and directories containing `.git` or `.codex`.
-- SEC-004: partially addressed. Direct preview/bake paths now reject role-incompatible oversized manifest layer images before rendering; broader malformed-image and file-size limits remain a future hardening item.
+- SEC-001: addressed. Kit manifest asset paths are constrained to relative paths inside the kit directory before validation, preview, bake, or widget bubble-style lookup opens them. Current evidence: `pet-studio-kit/scripts/bake_project_room_pet.py:25`, `pet-studio-kit/scripts/bake_project_room_pet.py:196`, `pet-studio-kit/scripts/validate_project_room_kit.py:14`, and `pet-studio-widget/project_room_scene.py:311`.
+- SEC-002: addressed for the guided room workflow and generator paths covered by guardrails. Project, prop, and helper ids are restricted to slug-like values. Current evidence: `pet-studio-kit/scripts/asset_guardrails.py:21`, `pet-studio-kit/scripts/asset_guardrails.py:217`, `tools/pet_studio_create_room.py:29`, and `pet-studio-kit/scripts/create_project_room_kit.py:116`.
+- SEC-003: addressed for the guided room wrapper. `--force` refuses unsafe replacement targets such as the repository root, code directories, home/root directories, and directories containing `.git` or `.codex`. Current evidence: `tools/pet_studio_create_room.py:49`.
+- SEC-004: addressed. Shared image guards now enforce a 25 MiB file-size cap, 4M-pixel cap, and `Image.verify()` before room/prop/pet assets are decoded or loaded by validation, preview, bake, registration, or widget color sampling. Current evidence: `pet-studio-kit/scripts/image_guardrails.py:26`, `pet-studio-kit/scripts/bake_project_room_pet.py:54`, `pet-studio-kit/scripts/validate_project_room_kit.py:99`, `pet-studio-kit/scripts/asset_guardrails.py:54`, `pet-studio-kit/scripts/create_project_room_kit.py:81`, `pet-studio-kit/scripts/register_pet_package.py:21`, and `pet-studio-widget/project_room_scene.py:340`.
 
-The affected-code line numbers below are from the original review snapshot and may no longer match exactly after fixes.
+Current verification:
+
+- `python -m unittest pet-studio-kit.tests.test_project_room_pipeline` passed: 48 tests.
+- `python -m unittest pet-studio-widget.tests.test_project_room_registry` passed: 104 tests.
+- Targeted security regression evidence includes `pet-studio-kit/tests/test_project_room_pipeline.py:810`, `pet-studio-kit/tests/test_project_room_pipeline.py:1100`, `pet-studio-kit/tests/test_project_room_pipeline.py:1126`, `pet-studio-kit/tests/test_project_room_pipeline.py:1187`, `pet-studio-kit/tests/test_project_room_pipeline.py:1211`, `pet-studio-kit/tests/test_project_room_pipeline.py:1250`, `pet-studio-kit/tests/test_project_room_pipeline.py:1295`, `pet-studio-kit/tests/test_project_room_pipeline.py:1326`, `pet-studio-kit/tests/test_project_room_pipeline.py:1353`, `pet-studio-widget/tests/test_project_room_registry.py:99`, and `pet-studio-widget/tests/test_project_room_registry.py:2365`.
+
+The affected-code line numbers in the historical finding sections below are from the original review snapshot and may no longer match exactly after fixes.
 
 ## Executive Summary
 
@@ -95,7 +101,7 @@ Affected code:
 - `pet-studio-kit/scripts/validate_project_room_kit.py:94-120`
 - `pet-studio-widget/project_room_scene.py:263`
 
-Several paths open images from user-provided packages or kit manifests. Some fixed-size checks exist for room images and pet atlases, but prop images and manifest-loaded layers can still be decoded before all practical resource bounds are enforced.
+Several paths open images from user-provided packages or kit manifests. The current hardening centralizes image resource checks and verifies files before full decode or pixel-heavy routines.
 
 Impact: a malformed or oversized image can cause excessive CPU/memory use during validation, rendering, or widget startup.
 

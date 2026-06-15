@@ -45,8 +45,9 @@ The selected source controls perspective, palette, outline weight, room size, pe
 5. Run `scripts/validate_project_room_kit.py` before trusting any kit that was produced outside the guided wrapper.
 6. Run `tools/pet_studio_preflight.py --project-id <id>` after registration to verify Python/Pillow, registry, kit validation, render-once, hook config, and ignored local state.
 7. Create local QA evidence with `tools/pet_studio_create_qa_pack.py --project-id <id>` when a registered project should be reviewed.
-8. Register the kit into a project registry when it should be selectable by project id.
-9. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime. When operating from the installed `$pet-studio` skill outside the repo folder, use `scripts/launch_pet_studio_widget.py`; it resolves the cloned repo location recorded by `tools/install_pet_studio_skill.py` and must not create a fallback/minimal widget.
+8. Use `tools/pet_studio_demo_states.py --project-id <id> --once --delay-seconds 2` when README GIF capture or manual QA needs a deterministic state sequence.
+9. Register the kit into a project registry when it should be selectable by project id.
+10. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime. When operating from the installed `$pet-studio` skill outside the repo folder, use `scripts/launch_pet_studio_widget.py`; it resolves the cloned repo location recorded by `tools/install_pet_studio_skill.py` and must not create a fallback/minimal widget.
 
 ## Guided First-Room Command
 

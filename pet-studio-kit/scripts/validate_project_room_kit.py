@@ -7,13 +7,12 @@ import json
 import sys
 from pathlib import Path
 
-from PIL import Image
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from bake_project_room_pet import resolve_asset, resolve_kit_subpath
+from image_guardrails import ImageResourceError, safe_image_size, safe_rgba_image
 from project_room_assets import room_edge_margin_pixel_count
 
 
@@ -34,14 +33,15 @@ def metadata_path_for(asset_path: Path) -> Path:
 
 
 def image_size(path: Path) -> tuple[int, int]:
-    with Image.open(path) as image:
-        return image.size
+    return safe_image_size(path)
 
 
 def transparent_rgb_residue_count(path: Path) -> int:
-    with Image.open(path) as image:
-        rgba = image.convert("RGBA")
-        data = rgba.tobytes()
+    image = safe_rgba_image(path)
+    try:
+        data = image.tobytes()
+    finally:
+        image.close()
     residue = 0
     for index in range(0, len(data), 4):
         if data[index + 3] == 0 and data[index : index + 3] != b"\x00\x00\x00":
@@ -96,7 +96,11 @@ def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: l
     if actual_asset_type != expected_type:
         errors.append(f"Asset type mismatch for `{layer_id}`: {actual_asset_type} != {expected_type}")
 
-    width, height = image_size(asset_path)
+    try:
+        width, height = image_size(asset_path)
+    except ImageResourceError as exc:
+        errors.append(str(exc))
+        return
     if role == "room":
         expected = (kit["roomModule"]["width"], kit["roomModule"]["height"])
         if (width, height) != expected:
@@ -122,7 +126,11 @@ def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: l
         max_h = kit["roomModule"]["height"]
         if width > max_w or height > max_h:
             errors.append(f"Prop `{layer_id}` is {width}x{height}; must fit inside source room {max_w}x{max_h}")
-        residue = transparent_rgb_residue_count(asset_path)
+        try:
+            residue = transparent_rgb_residue_count(asset_path)
+        except ImageResourceError as exc:
+            errors.append(str(exc))
+            return
         if residue:
             errors.append(f"Static layer `{layer_id}` has transparent RGB residue in {residue} pixels.")
     else:

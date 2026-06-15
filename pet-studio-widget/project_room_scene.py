@@ -27,6 +27,8 @@ DEFAULT_BUBBLE_MESSAGES = {
     "done": "Done",
 }
 MAX_BUBBLE_TEXT_LENGTH = 80
+MAX_BUBBLE_STYLE_IMAGE_BYTES = 25 * 1024 * 1024
+MAX_BUBBLE_STYLE_IMAGE_PIXELS = 4_000_000
 BUBBLE_STYLE = {
     "fill": "#fffaf1",
     "outline": "#7a6554",
@@ -339,7 +341,11 @@ def mix_rgb(a: tuple[int, int, int], b: tuple[int, int, int], amount: float) -> 
 
 def average_opaque_rgb(path: Path) -> tuple[int, int, int] | None:
     try:
+        if path.stat().st_size > MAX_BUBBLE_STYLE_IMAGE_BYTES:
+            return None
         with Image.open(path) as source:
+            if source.width * source.height > MAX_BUBBLE_STYLE_IMAGE_PIXELS:
+                return None
             image = source.convert("RGBA")
             image.thumbnail((96, 96), Image.Resampling.LANCZOS)
             source_pixels = image.load()
@@ -349,7 +355,7 @@ def average_opaque_rgb(path: Path) -> tuple[int, int, int] | None:
                 for x in range(image.width)
                 if source_pixels[x, y][3] >= 96
             ]
-    except (OSError, ValueError):
+    except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
         return None
     if not pixels:
         return None

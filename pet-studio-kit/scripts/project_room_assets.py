@@ -7,6 +7,8 @@ from pathlib import Path
 
 from PIL import Image
 
+from image_guardrails import safe_rgba_image
+
 
 ROOM_ALPHA_MODES = {"safe", "balanced", "aggressive"}
 
@@ -88,10 +90,16 @@ def remove_room_edge_margin(image: Image.Image, mode: str = "balanced") -> Image
 
 def cleanup_room_image(source: Path, target: Path, mode: str = "balanced") -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    with Image.open(source) as image:
+    image = safe_rgba_image(source)
+    try:
         remove_room_edge_margin(image, mode).save(target)
+    finally:
+        image.close()
 
 
 def room_edge_margin_pixel_count(path: Path, mode: str = "balanced") -> int:
-    with Image.open(path) as image:
+    image = safe_rgba_image(path)
+    try:
         return len(edge_connected_margin_points(image, mode))
+    finally:
+        image.close()

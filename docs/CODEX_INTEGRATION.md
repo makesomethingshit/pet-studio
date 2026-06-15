@@ -48,6 +48,14 @@ Publish a Codex-style event:
 .\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "working"
 ```
 
+Run the demo state sequence for README GIF capture or manual QA:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 2
+```
+
+Use `--dry-run` to inspect the exact state bridge payloads without writing `project-room-state.json`.
+
 Send a structured JSON payload, which is the command target used by the lifecycle hook bridge:
 
 ```powershell

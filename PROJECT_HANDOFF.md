@@ -94,6 +94,7 @@ docs/images/gakju-widget-bubble-example.png
 - Asset guardrails and style-confirmation guidance.
 - Registered widget session restore.
 - Windows widget launcher single-instance/focus behavior and detached launcher logging.
+- Project state demo cycler for README GIF capture and manual QA.
 - Korean README and minimal Korean CLI repair hints for first-room setup errors.
 - Local security hardening for IDs, replacement paths, hook commands, and kit manifest asset paths.
 

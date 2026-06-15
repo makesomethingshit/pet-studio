@@ -84,6 +84,16 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 
 JSON key, error code, command flag, path, id는 번역하지 않습니다. 자동화가 깨지지 않도록 machine-readable 출력은 영어 구조를 유지합니다.
 
+## 데모 상태 순회
+
+README GIF나 수동 QA를 찍을 때는 기존 state bridge를 쓰는 데모 cycler를 사용할 수 있습니다.
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 2
+```
+
+상태 파일을 쓰지 않고 payload만 확인하려면 `--dry-run`을 붙이세요.
+
 ## 로드맵
 
 장기 방향은 모든 Codex workspace가 알아보기 쉬운 방, 상태, 분위기, companion behavior를 갖는 것입니다. 이는 현재 기능이 아니라 미래 방향입니다.

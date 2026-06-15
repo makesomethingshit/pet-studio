@@ -14,6 +14,7 @@ All notable changes to Pet Studio are documented here.
 - Hardened force-replace, hook passthrough, hook command quoting, id validation, manifest path containment, and direct render/bake image bounds.
 - Added Korean public documentation and minimal Korean CLI repair hints for first-room creation and preflight failures.
 - Fixed the Windows widget launcher path so normal launches focus an existing widget, avoid stacked detached `pythonw.exe` instances, and write detached output to local log files.
+- Added a project state demo cycler for README GIF capture and manual QA that reuses the existing state bridge.
 - Added `docs/PET_STUDIO_WORKROOM_VISION.md` as a long-term direction document without making workroom features part of the current release.
 
 ## 0.1.2 - 2026-06-14

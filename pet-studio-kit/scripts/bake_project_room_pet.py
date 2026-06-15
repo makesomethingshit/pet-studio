@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
+from image_guardrails import safe_image_size, safe_rgba_image
+
 
 STATE_ROWS = {
     "idle": {"row": 0, "frames": 6},
@@ -50,8 +52,7 @@ def layer_max_size(kit: dict, layer: dict) -> tuple[int, int] | None:
 
 
 def image_size(path: Path) -> tuple[int, int]:
-    with Image.open(path) as image:
-        return image.size
+    return safe_image_size(path)
 
 
 def validate_layer_image_bounds(kit: dict, layer: dict, path: Path) -> None:
@@ -68,7 +69,7 @@ def validate_layer_image_bounds(kit: dict, layer: dict, path: Path) -> None:
 
 
 def load_image(path: Path) -> Image.Image:
-    return Image.open(path).convert("RGBA")
+    return safe_rgba_image(path)
 
 
 def visible_bbox(layer: Image.Image) -> tuple[int, int, int, int] | None:

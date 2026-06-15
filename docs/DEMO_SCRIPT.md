@@ -42,7 +42,25 @@ Launch the included room:
 .\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
-Cycle demo state changes:
+Cycle demo state changes from the widget context menu:
+
+```text
+Right-click the Pet Studio Widget → Cycle state
+```
+
+The menu action runs the same 7-step demo cycle used by the CLI helper:
+
+```text
+idle
+running / Working...
+waiting / Compacting context...
+blocked / Needs input
+review / Ready for review
+done / Done
+idle
+```
+
+The CLI helper is still available for scripted capture:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --delay-seconds 2

@@ -96,6 +96,16 @@ DEFAULT_WIDGET_LOG = ROOT / "pet-studio-widget" / "project-room-widget.log"
 DEFAULT_WIDGET_LOCK = ROOT / "pet-studio-widget" / "project-room-widget.lock"
 HIT_TEST_ALPHA_THRESHOLD = 16
 DEFAULT_STATE_STALE_AFTER_MS = 300000
+DEFAULT_DEMO_CYCLE_DELAY_SECONDS = 2.0
+DEMO_CYCLE_STEPS = (
+    ("idle", ""),
+    ("running", "Working..."),
+    ("waiting", "Compacting context..."),
+    ("blocked", "Needs input"),
+    ("review", "Ready for review"),
+    ("done", "Done"),
+    ("idle", ""),
+)
 STALE_BRIDGE_STATES = {"running", "waiting", "review", "failed", "blocked", "handoff"}
 FONT_CANDIDATES = {
     "base": ["Noto Sans", "Segoe UI", "Helvetica Neue", "DejaVu Sans", "Arial", "TkDefaultFont"],
@@ -609,6 +619,7 @@ class ProjectRoomWidget:
         self.layer_assets = load_layer_assets(self.kit_dir, self.kit, self.warnings)
         self.state_refresh_ms = max(250, state_refresh_ms)
         self.state_stale_after_ms = max(0, state_stale_after_ms)
+        self.demo_cycle_job_id: int | None = None
         self.index = 0
         self.drag_start: tuple[int, int] | None = None
         self.drag_entity_id: str | None = None
@@ -956,14 +967,32 @@ class ProjectRoomWidget:
         self.drag_last = None
         self.drag_start = None
 
-    def cycle_state(self, _event: tk.Event) -> None:
-        states = list(STATE_ROWS)
-        next_index = (states.index(self.state) + 1) % len(states)
-        self.state = states[next_index]
-        self.state_source = "manual"
-        self.index = 0
-        self.redraw_scene()
-        self.save_session("manual")
+    def cancel_demo_cycle(self) -> None:
+        if self.demo_cycle_job_id is None:
+            return
+        try:
+            self.root.after_cancel(self.demo_cycle_job_id)
+        except tk.TclError:
+            pass
+        self.demo_cycle_job_id = None
+
+    def run_demo_cycle(self, delay_seconds: float = DEFAULT_DEMO_CYCLE_DELAY_SECONDS) -> None:
+        self.cancel_demo_cycle()
+        steps = list(DEMO_CYCLE_STEPS)
+        delay_ms = max(0, int(round(delay_seconds * 1000)))
+
+        def apply_step(index: int) -> None:
+            if index >= len(steps):
+                self.demo_cycle_job_id = None
+                return
+            state, message = steps[index]
+            self.set_state(state, message, state_source="demo-cycle")
+            if index < len(steps) - 1:
+                self.demo_cycle_job_id = self.root.after(delay_ms, lambda: apply_step(index + 1))
+            else:
+                self.demo_cycle_job_id = None
+
+        apply_step(0)
 
     def set_state(self, state: str, message: str | None = None, state_source: str | None = None) -> None:
         next_state = normalize_state(state, self.state)
@@ -1002,7 +1031,7 @@ class ProjectRoomWidget:
     def show_context_menu(self, event: tk.Event) -> None:
         entity = self.pick_draggable_entity(event.x, event.y)
         menu = tk.Menu(self.root, tearoff=False)
-        menu.add_command(label="Cycle state", command=lambda: self.cycle_state(event))
+        menu.add_command(label="Cycle state", command=self.run_demo_cycle)
         if self.project_id and self.layout_file:
             menu.add_command(label="Reset layout", command=self.reset_layout)
         if self.project_id and self.layout_file and entity is not None:
@@ -1110,6 +1139,7 @@ class ProjectRoomWidget:
         )
 
     def close(self) -> None:
+        self.cancel_demo_cycle()
         self.save_session(self.state_source)
         self.root.destroy()
 

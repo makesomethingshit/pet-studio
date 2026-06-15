@@ -51,20 +51,15 @@ def payload_for_step(project_id: str, step: DemoStep, updated_at: str | None, de
         "message": step.message,
         "updatedAt": updated_at or utc_now(),
     }
-    if step.state == "done":
-        payload["resetAfterMs"] = max(0, int(round(delay_seconds * 1000)))
-        payload["resetToState"] = "idle"
     return payload
 
 
-def write_step(state_file: Path, project_id: str, step: DemoStep, delay_seconds: float) -> dict[str, Any]:
-    reset_after_ms = max(0, int(round(delay_seconds * 1000))) if step.state == "done" else None
+def write_step(state_file: Path, project_id: str, step: DemoStep) -> dict[str, Any]:
     return write_project_state(
         state_file=state_file,
         project_id=project_id,
         state=step.state,
         message=step.message,
-        reset_after_ms=reset_after_ms,
         reset_to_state="idle",
     )
 
@@ -96,7 +91,7 @@ def run_cycler(project_id: str, state_file: Path, delay_seconds: float, once: bo
     try:
         while True:
             for index, step in enumerate(steps):
-                write_step(state_file, project_id, step, delay_seconds)
+                write_step(state_file, project_id, step)
                 writes += 1
                 if delay_seconds > 0 and not (once and index == len(steps) - 1):
                     time.sleep(delay_seconds)

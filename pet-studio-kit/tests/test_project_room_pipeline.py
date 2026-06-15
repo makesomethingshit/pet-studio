@@ -1323,6 +1323,66 @@ class ProjectRoomPipelineTests(unittest.TestCase):
         self.assertIn("has no visible opaque pixels", output)
         self.assertIn("must fit inside the 384x240 room canvas", output)
 
+    def test_guardrails_reject_malformed_prop_image_before_generation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            malformed = work / "malformed.png"
+            out = work / "out"
+            make_pet_package(pet)
+            make_room(room)
+            malformed.write_text("not an image", encoding="utf-8")
+
+            result = self.run_cli(
+                "--out-dir",
+                str(out),
+                "--pet-package",
+                str(pet),
+                "--room-image",
+                str(room),
+                "--prop",
+                f"malformed={malformed}",
+            )
+
+        output = result.stderr + result.stdout
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot be read as an image", output)
+        self.assertFalse((out / "kit" / "props" / "malformed.png").exists())
+
+    def test_validator_preview_and_bake_reject_malformed_manifest_prop_image(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            kit_path = self.create_basic_kit(work)
+            (kit_path.parent / "props" / "desk.png").write_text("not an image", encoding="utf-8")
+
+            validator = subprocess.run(
+                [sys.executable, str(VALIDATOR), "--kit", str(kit_path)],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            preview = subprocess.run(
+                [sys.executable, str(RENDER_SCRIPT), "--kit", str(kit_path), "--state", "idle", "--out", str(work / "preview.png")],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            bake = subprocess.run(
+                [sys.executable, str(BAKE_SCRIPT), "--kit", str(kit_path), "--out-dir", str(work / "baked")],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        for result in (validator, preview, bake):
+            output = result.stderr + result.stdout
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Image cannot be read", output)
+
     def test_guardrails_reject_invalid_helper_package_before_generation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)

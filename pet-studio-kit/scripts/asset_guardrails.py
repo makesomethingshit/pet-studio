@@ -8,8 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
-
+from image_guardrails import ImageResourceError, safe_image_size, safe_rgba_image
 from localized_messages import guardrail_header, guardrail_issue_message, guardrail_issue_repair, repair_label
 from project_room_assets import room_edge_margin_pixel_count
 
@@ -54,19 +53,21 @@ def load_json_object(path: Path) -> dict[str, Any] | None:
 
 def image_size(path: Path) -> tuple[int, int] | None:
     try:
-        with Image.open(path) as image:
-            return image.size
-    except (OSError, ValueError):
+        return safe_image_size(path)
+    except ImageResourceError:
         return None
 
 
 def image_has_opaque_pixels(path: Path) -> bool:
     try:
-        with Image.open(path) as image:
-            alpha = image.convert("RGBA").getchannel("A")
-            return alpha.getbbox() is not None
-    except (OSError, ValueError):
+        image = safe_rgba_image(path)
+    except ImageResourceError:
         return False
+    try:
+        alpha = image.getchannel("A")
+        return alpha.getbbox() is not None
+    finally:
+        image.close()
 
 
 def sidecar_path_for(asset_path: Path) -> Path:
