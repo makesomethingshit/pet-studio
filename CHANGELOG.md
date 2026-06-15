@@ -12,6 +12,7 @@ All notable changes to Pet Studio are documented here.
 - Added asset guardrails for room size, transparent props, oversized props, duplicate ids, prop/helper collisions, invalid placements, and helper package validation.
 - Added registered-project session restore so reopened widgets can restore the last state, bubble visibility, window position, and scale while ignoring stale bridge states.
 - Hardened force-replace, hook passthrough, hook command quoting, id validation, manifest path containment, and direct render/bake image bounds.
+- Added Korean public documentation and minimal Korean CLI repair hints for first-room creation and preflight failures.
 - Added `docs/PET_STUDIO_WORKROOM_VISION.md` as a long-term direction document without making workroom features part of the current release.
 
 ## 0.1.2 - 2026-06-14

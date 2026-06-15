@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import importlib
 import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
@@ -1151,6 +1152,38 @@ class ProjectRoomPipelineTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("not safe for generated file paths", result.stderr + result.stdout)
 
+    def test_guided_create_room_korean_lang_reports_unsafe_project_id(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "..\\escape",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--dry-run",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("프로젝트 id", result.stderr + result.stdout)
+        self.assertIn("안전하지 않습니다", result.stderr + result.stdout)
+
     def test_generator_rejects_unsafe_registered_project_id(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             work = Path(tmp)
@@ -1410,6 +1443,7 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             {
                 "errors": [
                     {
+                        "code": "duplicate-prop-id",
                         "message": "Duplicate prop id `desk`.",
                         "repair": "Use unique ids for each prop.",
                     }
@@ -1419,6 +1453,95 @@ class ProjectRoomPipelineTests(unittest.TestCase):
 
         self.assertIn("Duplicate prop id `desk`. Fix:", text)
         self.assertNotIn(".. Fix:", text)
+
+    def test_guardrail_failure_format_supports_korean_output(self) -> None:
+        scripts_dir = ROOT / "pet-studio-kit" / "scripts"
+        if str(scripts_dir) not in sys.path:
+            sys.path.insert(0, str(scripts_dir))
+        module = importlib.import_module("asset_guardrails")
+
+        text = module.format_guardrail_failure(
+            {
+                "errors": [
+                    {
+                        "code": "duplicate-prop-id",
+                        "message": "Duplicate prop id `desk`.",
+                        "repair": "Use unique ids for each prop.",
+                    }
+                ]
+            },
+            lang="ko",
+        )
+
+        self.assertIn("자산 가드레일 검사 실패", text)
+        self.assertIn("prop id가 중복", text)
+        self.assertIn("해결:", text)
+        self.assertNotIn("Fix:", text)
+
+    def test_guided_create_room_korean_lang_reports_guardrail_failures(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room, size=(100, 100))
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "ko-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--dry-run",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("자산 가드레일 검사 실패", result.stderr + result.stdout)
+        self.assertIn("방 이미지 크기", result.stderr + result.stdout)
+        self.assertIn("해결:", result.stderr + result.stdout)
+
+    def test_guided_create_room_uses_korean_env_language(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            pet = work / "pet"
+            room = work / "room.png"
+            make_pet_package(pet)
+            make_room(room, size=(100, 100))
+            env = dict(os.environ)
+            env["PET_STUDIO_LANG"] = "ko"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(GUIDED_CREATE_SCRIPT),
+                    "--project-id",
+                    "ko-env-room",
+                    "--pet-package",
+                    str(pet),
+                    "--room-image",
+                    str(room),
+                    "--dry-run",
+                ],
+                cwd=ROOT,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("자산 가드레일 검사 실패", result.stderr + result.stdout)
 
     def test_rejects_bad_pet_atlas_size(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

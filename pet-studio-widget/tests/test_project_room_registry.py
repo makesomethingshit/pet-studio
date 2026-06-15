@@ -1874,6 +1874,99 @@ class PetStudioPreflightTests(unittest.TestCase):
         self.assertIn("tools\\pet_studio_create_room.py", result.message)
         self.assertIn("--list-projects", result.message)
 
+    def test_preflight_cli_korean_lang_reports_unknown_project_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--project-id",
+                    "unknown-project",
+                    "--registry",
+                    str(registry),
+                    "--skip-render",
+                    "--skip-hooks",
+                    "--skip-skill",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("프로젝트가 registry에 등록되어 있지 않습니다", result.stdout + result.stderr)
+        self.assertIn("해결:", result.stdout + result.stderr)
+        self.assertIn("--list-projects", result.stdout + result.stderr)
+
+    def test_preflight_cli_korean_lang_reports_missing_kitpath_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": [{"projectId": "no-kit", "enabled": True}]})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--project-id",
+                    "no-kit",
+                    "--registry",
+                    str(registry),
+                    "--skip-render",
+                    "--skip-hooks",
+                    "--skip-skill",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("프로젝트에 kitPath가 없습니다", result.stdout + result.stderr)
+        self.assertIn("해결:", result.stdout + result.stderr)
+
+    def test_preflight_json_output_remains_english_keyed_with_korean_lang(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--project-id",
+                    "unknown-project",
+                    "--registry",
+                    str(registry),
+                    "--skip-render",
+                    "--skip-hooks",
+                    "--skip-skill",
+                    "--json",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            data = json.loads(result.stdout)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("projectId", data)
+        self.assertIn("checks", data)
+        registry_check = next(check for check in data["checks"] if check["name"] == "registry")
+        self.assertIn("is not registered", registry_check["message"])
+        self.assertNotIn("등록", registry_check["message"])
+
     def test_preflight_reports_validator_failure(self) -> None:
         import pet_studio_preflight
 

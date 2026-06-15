@@ -18,6 +18,7 @@ if str(KIT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(KIT_SCRIPTS))
 
 from asset_guardrails import AssetInput, format_guardrail_failure, is_safe_id, run_asset_guardrails  # noqa: E402
+from localized_messages import normalize_lang, unsafe_project_id_message  # noqa: E402
 
 
 def slug_to_title(value: str) -> str:
@@ -25,12 +26,9 @@ def slug_to_title(value: str) -> str:
     return " ".join(word[:1].upper() + word[1:] for word in words) or "Pet Studio Room"
 
 
-def validate_project_id(project_id: str) -> None:
+def validate_project_id(project_id: str, lang: str | None = None) -> None:
     if not is_safe_id(project_id):
-        raise SystemExit(
-            f"Project id `{project_id}` is not safe for generated file paths. "
-            "Use letters, numbers, underscore, and hyphen only; start with a letter or number."
-        )
+        raise SystemExit(unsafe_project_id_message(project_id, lang))
 
 
 def resolve_existing_path(raw: str, label: str) -> Path:
@@ -239,18 +237,20 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="Replace an existing output directory")
     parser.add_argument("--verbose", action="store_true", help="Print the underlying kit creation output")
     parser.add_argument("--dry-run", action="store_true", help="Print the planned command without creating files")
+    parser.add_argument("--lang", choices=("en", "ko"), default=None, help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English")
     args = parser.parse_args()
+    lang = normalize_lang(args.lang)
 
     out_dir = selected_out_dir(args)
     registry = Path(args.registry).expanduser()
-    validate_project_id(args.project_id)
+    validate_project_id(args.project_id, lang)
     if not args.dry_run:
         ensure_output_dir_available(out_dir, args.force)
     command = build_create_command(args)
     project_id = args.project_id
     guardrails = guardrails_for_args(args)
     if not guardrails["ok"]:
-        raise SystemExit(format_guardrail_failure(guardrails))
+        raise SystemExit(format_guardrail_failure(guardrails, lang))
     plan = {
         "ok": True,
         "projectId": project_id,

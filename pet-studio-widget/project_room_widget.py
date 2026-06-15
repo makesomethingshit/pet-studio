@@ -18,9 +18,32 @@ from PIL import Image, ImageTk
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_TOOLS = ROOT / "pet-studio-kit" / "scripts"
 INSTALLED_TOOLS = Path.home() / ".codex" / "skills" / "pet-studio" / "scripts"
-for tools_dir in (INSTALLED_TOOLS, LOCAL_TOOLS):
-    if tools_dir.exists() and str(tools_dir) not in sys.path:
-        sys.path.insert(0, str(tools_dir))
+
+
+def prefer_local_room_kit_tools() -> None:
+    for tools_dir in (INSTALLED_TOOLS, LOCAL_TOOLS):
+        tools_text = str(tools_dir)
+        while tools_text in sys.path:
+            sys.path.remove(tools_text)
+        if tools_dir.exists():
+            sys.path.insert(0, tools_text)
+
+    if not LOCAL_TOOLS.exists() or not INSTALLED_TOOLS.exists():
+        return
+    installed_root = INSTALLED_TOOLS.resolve()
+    for module_name in ("bake_project_room_pet", "project_room_assets", "localized_messages"):
+        module = sys.modules.get(module_name)
+        module_file = getattr(module, "__file__", None)
+        if not module_file:
+            continue
+        try:
+            if installed_root in Path(module_file).resolve().parents:
+                del sys.modules[module_name]
+        except OSError:
+            continue
+
+
+prefer_local_room_kit_tools()
 
 from bake_project_room_pet import (  # noqa: E402
     STATE_ROWS,

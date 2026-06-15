@@ -10,6 +10,7 @@ from typing import Any
 
 from PIL import Image
 
+from localized_messages import guardrail_header, guardrail_issue_message, guardrail_issue_repair, repair_label
 from project_room_assets import room_edge_margin_pixel_count
 
 
@@ -319,11 +320,12 @@ def run_asset_guardrails(
     return {"ok": not errors, "mode": mode, "errors": errors, "warnings": warnings}
 
 
-def format_guardrail_failure(result: dict[str, Any]) -> str:
-    lines = ["Asset guardrails failed:"]
+def format_guardrail_failure(result: dict[str, Any], lang: str | None = None) -> str:
+    lines = [guardrail_header(lang)]
     for issue in result.get("errors", []):
         location = f" ({issue['path']})" if issue.get("path") else ""
-        message = str(issue["message"]).rstrip().rstrip(".!?")
-        repair = f" Fix: {issue['repair']}" if issue.get("repair") else ""
+        message = guardrail_issue_message(issue, lang)
+        repair_text = guardrail_issue_repair(issue, lang)
+        repair = f" {repair_label(lang)} {repair_text}" if repair_text else ""
         lines.append(f"- {message}{location}.{repair}")
     return "\n".join(lines)

@@ -39,7 +39,7 @@ The selected source controls perspective, palette, outline weight, room size, pe
 
 1. Choose a hatch-pet package or style lock.
 2. Generate or provide a `384x240` room image and optional transparent prop PNGs.
-3. Prefer the repository wrapper `tools/pet_studio_create_room.py` when working inside a Pet Studio checkout. It creates the kit, validates it, renders preview/contact images, registers the project, links a workspace, and prints preflight/launch/render/QA pack commands.
+3. Prefer the repository wrapper `tools/pet_studio_create_room.py` when working inside the Pet Studio repo folder, such as the cloned `D:\pet-studio` checkout on this machine. It creates the kit, validates it, renders preview/contact images, registers the project, links a workspace, and prints preflight/launch/render/QA pack commands.
 4. Use `pet-studio-kit/scripts/create_project_room_kit.py` only as a manual/debug fallback when the wrapper is unavailable or the workflow needs low-level control.
 5. Run `scripts/validate_project_room_kit.py` before trusting any kit that was produced outside the guided wrapper.
 6. Run `tools/pet_studio_preflight.py --project-id <id>` after registration to verify Python/Pillow, registry, kit validation, render-once, hook config, and ignored local state.
@@ -65,6 +65,7 @@ The wrapper refuses to overwrite an existing output directory unless `--force` i
 
 The wrapper runs asset guardrails before creating a kit. Default `--guardrail-mode basic` fails clear structural problems, such as wrong room size, invisible props, oversized props, duplicate ids, unknown prop placements, or invalid helper packages. Subjective style consistency remains a warning and QA responsibility. Use `--guardrail-mode strict` to turn warnings into failures, or `--guardrail-mode off` to suppress subjective warnings while keeping required structural validation.
 Project ids, prop ids, and helper ids must be slug-like: letters, numbers, underscore, and hyphen only, starting with a letter or number. They become local file paths and registry keys, so reject path separators, dots, spaces, and shell-like fragments.
+For Korean users, pass `--lang ko` or set `PET_STUDIO_LANG=ko` to show user-facing repair hints in Korean while preserving command flags, paths, JSON keys, and error codes in English.
 
 Run setup check and create the local QA pack after registration:
 

@@ -12,6 +12,12 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
+if str(KIT_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(KIT_SCRIPTS))
+
+from localized_messages import normalize_lang, preflight_heading, preflight_message  # noqa: E402
+
 DEFAULT_PROJECT_ID = "gakju-archive-demo"
 DEFAULT_REGISTRY = ROOT / "pet-studio-widget" / "project-room-projects.json"
 DEFAULT_HOOKS_FILE = ROOT / ".codex" / "hooks.json"
@@ -405,20 +411,21 @@ def run_checks(args: argparse.Namespace) -> list[CheckResult]:
 
 
 def print_text_report(report: dict[str, Any], args: argparse.Namespace) -> None:
+    lang = normalize_lang(args.lang)
     results = [CheckResult(**result) for result in report["checks"]]
     for result in results:
         marker = "WARN" if result.warning else ("OK" if result.ok else "FAIL")
-        print(f"[{marker}] {result.name}: {result.message}")
+        print(f"[{marker}] {result.name}: {preflight_message(result.name, result.message, lang)}")
     if all(result.ok for result in results):
         print()
-        print("Project launch command:")
+        print(preflight_heading("launch", lang))
         print(report["nextCommands"]["launch"])
-        print(f"Render output: {display_path(Path(report['renderOutput']).expanduser())}")
-        print("Hook trust hint:")
+        print(f"{preflight_heading('render', lang)} {display_path(Path(report['renderOutput']).expanduser())}")
+        print(preflight_heading("hook", lang))
         print(report["hookTrustHint"])
     if args.show_hook_log:
         print()
-        print("Recent hook log:")
+        print(preflight_heading("log", lang))
         for line in read_hook_log_summary(Path(args.hook_log).expanduser(), args.hook_log_lines):
             print(f"- {line}")
 
@@ -437,6 +444,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-hooks", action="store_true")
     parser.add_argument("--show-hook-log", action="store_true")
     parser.add_argument("--json", action="store_true", help="Print machine-readable check results")
+    parser.add_argument("--lang", choices=("en", "ko"), default=None, help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English")
     return parser
 
 

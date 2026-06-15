@@ -1,5 +1,7 @@
 # Pet Studio
 
+[한국어 README](README.ko.md)
+
 [![Version](https://img.shields.io/badge/version-0.1.2-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
