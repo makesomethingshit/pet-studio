@@ -1,0 +1,16 @@
+{
+  "currentTask": "0.3.0-boundary-rc",
+  "lastAgent": "hermes",
+  "lastAction": "MD 문서 정리 + hook_status 도구 추가 (97042d5)",
+  "nextAgent": "codex",
+  "nextAction": "pet_studio_core 모듈 테스트 통과 확인 후 registry 마이그레이션",
+  "context": "docs/ADAPTER_BOUNDARY.md 참고. 기존 project_room_registry.py는 re-export wrapper로 변경 예정. docs/qa/030-boundary-rc.md에 구체적 작업 내역 있음.",
+  "history": [
+    {
+      "agent": "hermes",
+      "action": "MD 파일 정리 (39→35개), 구조 재편, AGENTS.md/CODEX_INTEGRATION.md/ADAPTER_BOUNDARY.md 강화",
+      "commit": "97042d5",
+      "timestamp": "2026-06-15T16:00:00Z"
+    }
+  ]
+}

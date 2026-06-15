@@ -204,3 +204,25 @@ Pet Studio should remain:
 - understandable to first-time users
 - safe for local file bridges and hooks
 - clear about what is current functionality versus long-term vision
+
+## Handoff Protocol
+
+Every agent session must read and update `.hermes/handoff.json`.
+
+**On session start:**
+1. Read `.hermes/handoff.json` — understand what the last agent did and what you should do next
+2. If `nextAgent` is not your role, stop and report the mismatch to the user
+
+**On session end (before committing):**
+1. Update `.hermes/handoff.json`:
+   - Set `lastAgent` to your role (`hermes` or `codex`)
+   - Summarize what you did in `lastAction`
+   - Set `nextAgent` to the other agent
+   - Describe what the next agent should do in `nextAction`
+   - Add a `context` field pointing to relevant docs/code paths
+   - Append to `history` array (keep last 10 entries)
+2. Include the handoff update in your commit
+
+**File location:** `.hermes/handoff.json` (committed to git, shared between agents)
+
+**Do not** put runtime state or local paths in handoff.json — only task-level coordination.
