@@ -2,9 +2,9 @@
 
 [&#54620;&#44397;&#50612; README](README.ko.md)
 
-[![Version](https://img.shields.io/badge/version-0.1.2-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg?branch=docs/next-polish)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
+[![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
 **Every Codex project gets its own tiny desktop room.**
 

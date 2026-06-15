@@ -4,7 +4,7 @@ All notable changes to Pet Studio are documented here.
 
 ## Unreleased
 
-0.2.0 development.
+## 0.2.0 - 2026-06-15
 
 - Started the first-room creation UX with a guided public wrapper for kit creation, validation, rendering, and registry linking.
 - Added a local QA pack generator for validation evidence, renders, and `CODER_TO_QA.md` handoff files.
