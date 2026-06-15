@@ -1921,6 +1921,8 @@ class PetStudioPreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             registry = Path(tmp) / "projects.json"
             write_json(registry, {"schemaVersion": 1, "projects": []})
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "cp1252"
 
             result = subprocess.run(
                 [
@@ -1938,6 +1940,8 @@ class PetStudioPreflightTests(unittest.TestCase):
                 ],
                 cwd=ROOT,
                 text=True,
+                encoding="utf-8",
+                env=env,
                 capture_output=True,
                 check=False,
             )
@@ -1951,6 +1955,8 @@ class PetStudioPreflightTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             registry = Path(tmp) / "projects.json"
             write_json(registry, {"schemaVersion": 1, "projects": [{"projectId": "no-kit", "enabled": True}]})
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "cp1252"
 
             result = subprocess.run(
                 [
@@ -1968,6 +1974,8 @@ class PetStudioPreflightTests(unittest.TestCase):
                 ],
                 cwd=ROOT,
                 text=True,
+                encoding="utf-8",
+                env=env,
                 capture_output=True,
                 check=False,
             )

@@ -16,7 +16,7 @@ KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
 if str(KIT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(KIT_SCRIPTS))
 
-from localized_messages import normalize_lang, preflight_heading, preflight_message  # noqa: E402
+from localized_messages import configure_utf8_stdio, normalize_lang, preflight_heading, preflight_message  # noqa: E402
 
 DEFAULT_PROJECT_ID = "gakju-archive-demo"
 DEFAULT_REGISTRY = ROOT / "pet-studio-widget" / "project-room-projects.json"
@@ -452,6 +452,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
+    configure_utf8_stdio()
     report = build_report(args)
     if args.json:
         print(json.dumps(report, indent=2))

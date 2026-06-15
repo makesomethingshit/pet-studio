@@ -1159,6 +1159,8 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             room = work / "room.png"
             make_pet_package(pet)
             make_room(room)
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "cp1252"
 
             result = subprocess.run(
                 [
@@ -1175,7 +1177,9 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                     "ko",
                 ],
                 cwd=ROOT,
+                env=env,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 check=False,
             )
@@ -1545,6 +1549,8 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             room = work / "room.png"
             make_pet_package(pet)
             make_room(room, size=(100, 100))
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "cp1252"
 
             result = subprocess.run(
                 [
@@ -1561,7 +1567,9 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                     "ko",
                 ],
                 cwd=ROOT,
+                env=env,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 check=False,
             )
@@ -1580,6 +1588,7 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             make_room(room, size=(100, 100))
             env = dict(os.environ)
             env["PET_STUDIO_LANG"] = "ko"
+            env["PYTHONIOENCODING"] = "cp1252"
 
             result = subprocess.run(
                 [
@@ -1596,6 +1605,7 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                 cwd=ROOT,
                 env=env,
                 text=True,
+                encoding="utf-8",
                 capture_output=True,
                 check=False,
             )

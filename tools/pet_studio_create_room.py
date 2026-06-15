@@ -18,7 +18,7 @@ if str(KIT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(KIT_SCRIPTS))
 
 from asset_guardrails import AssetInput, format_guardrail_failure, is_safe_id, run_asset_guardrails  # noqa: E402
-from localized_messages import normalize_lang, unsafe_project_id_message  # noqa: E402
+from localized_messages import configure_utf8_stdio, normalize_lang, unsafe_project_id_message  # noqa: E402
 
 
 def slug_to_title(value: str) -> str:
@@ -239,6 +239,7 @@ def main() -> None:
     parser.add_argument("--dry-run", action="store_true", help="Print the planned command without creating files")
     parser.add_argument("--lang", choices=("en", "ko"), default=None, help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English")
     args = parser.parse_args()
+    configure_utf8_stdio()
     lang = normalize_lang(args.lang)
 
     out_dir = selected_out_dir(args)
