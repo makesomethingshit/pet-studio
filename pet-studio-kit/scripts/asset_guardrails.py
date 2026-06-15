@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ ROOM_SIZE = (384, 240)
 ATLAS_SIZE = (1536, 1872)
 PROP_PLACEMENTS = {"background", "behind-pet", "behindPet", "front-of-pet", "frontOfPet", "foreground"}
 GUARDRAIL_MODES = {"basic", "strict", "off"}
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
 @dataclass(frozen=True)
@@ -97,6 +99,10 @@ def duplicate_ids(items: list[AssetInput]) -> set[str]:
             duplicates.add(item.id)
         seen.add(item.id)
     return duplicates
+
+
+def is_safe_id(value: str) -> bool:
+    return bool(SAFE_ID_RE.fullmatch(value))
 
 
 def add_error(issues: list[GuardrailIssue], code: str, message: str, path: Path | None = None, repair: str | None = None) -> None:
@@ -208,6 +214,14 @@ def check_helpers(helpers: list[AssetInput], mode: str, issues: list[GuardrailIs
 
 
 def check_ids(props: list[AssetInput], helpers: list[AssetInput], placements: list[str], issues: list[GuardrailIssue]) -> None:
+    for item in [*props, *helpers]:
+        if not is_safe_id(item.id):
+            add_error(
+                issues,
+                "unsafe-asset-id",
+                f"Asset id `{item.id}` is not safe for generated file paths.",
+                repair="Use letters, numbers, underscore, and hyphen only; start with a letter or number.",
+            )
     for prop_id in sorted(duplicate_ids(props)):
         add_error(issues, "duplicate-prop-id", f"Duplicate prop id `{prop_id}`.", repair="Use unique ids for each prop.")
     for helper_id in sorted(duplicate_ids(helpers)):
@@ -231,6 +245,13 @@ def check_ids(props: list[AssetInput], helpers: list[AssetInput], placements: li
                 "unknown-prop-placement",
                 f"Prop placement references unknown prop id `{prop_id}`.",
                 repair="Add a matching --prop id=path argument or remove the placement.",
+            )
+        if prop_id and not is_safe_id(prop_id):
+            add_error(
+                issues,
+                "unsafe-placement-id",
+                f"Prop placement id `{prop_id}` is not safe for generated file paths.",
+                repair="Use the same slug-like id as the matching --prop argument.",
             )
         if raw_placement not in PROP_PLACEMENTS:
             add_error(

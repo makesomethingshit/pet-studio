@@ -8,7 +8,11 @@ All notable changes to Pet Studio are documented here.
 
 - Started the first-room creation UX with a guided public wrapper for kit creation, validation, rendering, and registry linking.
 - Added a local QA pack generator for validation evidence, renders, and `CODER_TO_QA.md` handoff files.
-- Hardened force-replace and hook passthrough paths to avoid accidental workspace deletion or unapproved command passthrough.
+- Added project-centered preflight checks for generated rooms, including repair hints for registry, kit, hook, dependency, and render issues.
+- Added asset guardrails for room size, transparent props, oversized props, duplicate ids, prop/helper collisions, invalid placements, and helper package validation.
+- Added registered-project session restore so reopened widgets can restore the last state, bubble visibility, window position, and scale while ignoring stale bridge states.
+- Hardened force-replace, hook passthrough, hook command quoting, id validation, manifest path containment, and direct render/bake image bounds.
+- Added `docs/PET_STUDIO_WORKROOM_VISION.md` as a long-term direction document without making workroom features part of the current release.
 
 ## 0.1.2 - 2026-06-14
 

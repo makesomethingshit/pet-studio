@@ -13,6 +13,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from bake_project_room_pet import resolve_asset, resolve_kit_subpath
 from project_room_assets import room_edge_margin_pixel_count
 
 
@@ -55,9 +56,13 @@ def expected_asset_type(role: str) -> str:
 
 
 def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: list[str], warnings: list[str]) -> None:
-    asset_path = kit_dir / layer["path"]
     layer_id = layer["id"]
     role = layer["role"]
+    try:
+        asset_path = resolve_asset(kit_dir, layer)
+    except ValueError as exc:
+        errors.append(str(exc))
+        return
     scale = layer.get("scale", 1.0)
     if not isinstance(scale, (int, float)) or scale <= 0:
         errors.append(f"Layer `{layer_id}` has invalid scale: {scale}")
@@ -133,16 +138,25 @@ def main() -> None:
     kit_path = Path(args.kit)
     kit_dir = kit_path.parent
     kit = load_json(kit_path)
-    style = load_json(kit_dir / kit["styleLock"])
-
     errors: list[str] = []
     warnings: list[str] = []
 
-    if kit["cell"]["width"] != style["geometry"]["cellWidth"] or kit["cell"]["height"] != style["geometry"]["cellHeight"]:
+    try:
+        style_path = resolve_kit_subpath(kit_dir, kit["styleLock"], "styleLock")
+    except (KeyError, ValueError) as exc:
+        style_path = None
+        errors.append(str(exc))
+    if style_path and not style_path.exists():
+        errors.append(f"styleLock not found: {style_path}")
+
+    style = load_json(style_path) if style_path and style_path.exists() else {"styleId": "", "geometry": {}, "perspective": ""}
+    style_geometry = style.get("geometry", {})
+
+    if kit["cell"]["width"] != style_geometry.get("cellWidth") or kit["cell"]["height"] != style_geometry.get("cellHeight"):
         errors.append("Cell size does not match style-lock geometry.")
     if kit.get("sourceCanvas", {}).get("width") != kit["roomModule"]["width"] or kit.get("sourceCanvas", {}).get("height") != kit["roomModule"]["height"]:
         errors.append("Source canvas size must match room module size.")
-    if kit["roomModule"]["width"] != style["geometry"]["roomWidth"] or kit["roomModule"]["height"] != style["geometry"]["roomHeight"]:
+    if kit["roomModule"]["width"] != style_geometry.get("roomWidth") or kit["roomModule"]["height"] != style_geometry.get("roomHeight"):
         errors.append("Room module size does not match style-lock geometry.")
     if kit["roomModule"]["perspective"] != style["perspective"]:
         errors.append("Room module perspective does not match style-lock perspective.")

@@ -88,6 +88,34 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(helper.anchor, original_anchor)
 
+    def test_bubble_style_ignores_main_pet_sidecar_outside_kit_dir(self) -> None:
+        from project_room_scene import BUBBLE_STYLE, resolve_bubble_style
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            kit_dir = work / "kit"
+            outside = work / "outside"
+            kit_dir.mkdir()
+            outside.mkdir()
+            write_json(
+                outside / "spritesheet.asset.json",
+                {"bubbleStyle": {"fill": "#010203", "outline": "#040506", "shadow": "#070809", "text": "#0a0b0c"}},
+            )
+            kit = {
+                "layers": [
+                    {
+                        "id": "main-owner",
+                        "role": "mainPet",
+                        "path": "../outside/spritesheet.webp",
+                    }
+                ]
+            }
+
+            style = resolve_bubble_style(kit, kit_dir)
+
+        self.assertEqual(style["fill"], BUBBLE_STYLE["fill"])
+        self.assertNotEqual(style["fill"], "#010203")
+
     def test_clamp_anchor_to_source_canvas_bounds_saved_drag_positions(self) -> None:
         from project_room_scene import clamp_anchor_to_source_canvas
 
@@ -1913,6 +1941,22 @@ class PetStudioPreflightTests(unittest.TestCase):
 
 
 class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
+    def test_hook_command_shell_args_quote_shell_metacharacters(self) -> None:
+        from install_pet_studio_codex_integration import command_string
+
+        command = command_string(
+            [
+                r"C:\Program Files\Python\python.exe",
+                r"D:\pet & studio\pet-studio-widget\codex_pet_hook.py",
+                "--hook",
+                "stop",
+            ]
+        )
+
+        self.assertIn('"D:\\\\pet & studio\\\\pet-studio-widget\\\\codex_pet_hook.py"', command)
+        self.assertIn('"C:\\\\Program Files\\\\Python\\\\python.exe"', command)
+        self.assertNotIn(r"D:\pet & studio\pet-studio-widget\codex_pet_hook.py --hook", command)
+
     def test_installs_lifecycle_hooks_json_without_dropping_existing_hooks(self) -> None:
         from install_pet_studio_codex_integration import install_hooks_bridge
 

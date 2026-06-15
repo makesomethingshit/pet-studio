@@ -64,6 +64,7 @@ python tools/pet_studio_create_room.py `
 The wrapper refuses to overwrite an existing output directory unless `--force` is passed. Use `--dry-run` to inspect the low-level command without writing files. When a custom registry is supplied, the printed preflight/launch/render commands include the matching `--registry` or `--config` argument.
 
 The wrapper runs asset guardrails before creating a kit. Default `--guardrail-mode basic` fails clear structural problems, such as wrong room size, invisible props, oversized props, duplicate ids, unknown prop placements, or invalid helper packages. Subjective style consistency remains a warning and QA responsibility. Use `--guardrail-mode strict` to turn warnings into failures, or `--guardrail-mode off` to suppress subjective warnings while keeping required structural validation.
+Project ids, prop ids, and helper ids must be slug-like: letters, numbers, underscore, and hyphen only, starting with a letter or number. They become local file paths and registry keys, so reject path separators, dots, spaces, and shell-like fragments.
 
 Run setup check and create the local QA pack after registration:
 
@@ -102,6 +103,7 @@ python pet-studio-kit/scripts/create_project_room_kit.py `
 - Every generated asset has a sidecar `.asset.json`.
 - Rooms include `left-door`, `right-door`, `floor-line`, and `back-wall` feature metadata.
 - Room intake clears edge-connected near-white margin pixels to transparency while preserving the `384x240` canvas; do not crop the room source.
+- Kit manifest asset paths must be relative paths that stay inside the kit directory; reject absolute paths and `..` escapes before opening images or sidecar metadata.
 - Static layers must not contain transparent RGB residue.
 - Prop layers should declare placement relative to the pet: `background`, `behind-pet`, `front-of-pet`, or `foreground`. Default generated props are `behindPet` so the main pet renders in front of furniture.
 - Props must have visible opaque pixels and fit inside the `384x240` source canvas. If a prop is large enough to read as room/background art, confirm whether it should be a prop or merged into the room source.

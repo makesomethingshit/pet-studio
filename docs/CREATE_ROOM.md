@@ -51,8 +51,10 @@ The guided command checks common input mistakes before creating a kit:
 
 - The room image must be a `384x240` PNG source. Alpha cleanup only removes edge-connected margin pixels; it is not a general background remover.
 - Props must be visible transparent PNGs that fit inside the `384x240` source canvas. Use `--prop-placement id=background|behind-pet|front-of-pet|foreground` to describe where each prop should render relative to the main pet.
+- Project ids, prop ids, and helper ids must be slug-like: letters, numbers, underscore, and hyphen only, starting with a letter or number. These ids become local file paths and registry keys.
 - Prop ids and helper ids must be unique. A prop placement must reference a supplied prop id.
 - Helper packages must be hatch-pet packages with `pet.json` and a `1536x1872` spritesheet. Codex should still ask before generating helper/sub-pet art, because visual style mismatch is a QA judgment.
+- Kit manifest asset paths must be relative paths that stay inside the generated kit directory.
 
 After generation, run the setup check, launch the room, then create local QA evidence:
 

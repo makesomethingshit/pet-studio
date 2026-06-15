@@ -17,12 +17,20 @@ KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
 if str(KIT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(KIT_SCRIPTS))
 
-from asset_guardrails import AssetInput, format_guardrail_failure, run_asset_guardrails  # noqa: E402
+from asset_guardrails import AssetInput, format_guardrail_failure, is_safe_id, run_asset_guardrails  # noqa: E402
 
 
 def slug_to_title(value: str) -> str:
     words = [word for word in value.replace("_", "-").split("-") if word]
     return " ".join(word[:1].upper() + word[1:] for word in words) or "Pet Studio Room"
+
+
+def validate_project_id(project_id: str) -> None:
+    if not is_safe_id(project_id):
+        raise SystemExit(
+            f"Project id `{project_id}` is not safe for generated file paths. "
+            "Use letters, numbers, underscore, and hyphen only; start with a letter or number."
+        )
 
 
 def resolve_existing_path(raw: str, label: str) -> Path:
@@ -235,6 +243,7 @@ def main() -> None:
 
     out_dir = selected_out_dir(args)
     registry = Path(args.registry).expanduser()
+    validate_project_id(args.project_id)
     if not args.dry_run:
         ensure_output_dir_available(out_dir, args.force)
     command = build_create_command(args)

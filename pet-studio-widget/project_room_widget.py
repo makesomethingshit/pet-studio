@@ -318,7 +318,7 @@ def render_frames(kit_path: Path, state: str, layout: dict | None = None) -> lis
     kit_dir = kit_path.parent
     kit = kit_with_layout(load_kit(kit_path), layout)
     warnings: list[str] = []
-    layer_assets = load_layer_assets(kit_dir, kit["layers"], warnings)
+    layer_assets = load_layer_assets(kit_dir, kit, warnings)
     state = normalize_state(state, "idle")
     frame_count = STATE_ROWS[state]["frames"]
     return [
@@ -531,7 +531,7 @@ class ProjectRoomWidget:
         self.entities = scene_entities_from_kit(self.kit, self.layout)
         self.entities_by_id = {entity.id: entity for entity in self.entities}
         self.warnings: list[str] = []
-        self.layer_assets = load_layer_assets(self.kit_dir, self.kit["layers"], self.warnings)
+        self.layer_assets = load_layer_assets(self.kit_dir, self.kit, self.warnings)
         self.state_refresh_ms = max(250, state_refresh_ms)
         self.state_stale_after_ms = max(0, state_stale_after_ms)
         self.index = 0

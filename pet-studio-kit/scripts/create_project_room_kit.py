@@ -18,7 +18,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from project_room_assets import cleanup_room_image
-from asset_guardrails import AssetInput, format_guardrail_failure, run_asset_guardrails
+from asset_guardrails import AssetInput, format_guardrail_failure, is_safe_id, run_asset_guardrails
 
 
 CELL_WIDTH = 192
@@ -111,6 +111,14 @@ def parse_id_value(value: str, label: str) -> tuple[str, str]:
     if not raw_value:
         raise SystemExit(f"{label} value cannot be empty: {value}")
     return item_id, raw_value
+
+
+def validate_project_id(project_id: str) -> None:
+    if not is_safe_id(project_id):
+        raise SystemExit(
+            f"Project id `{project_id}` is not safe for generated file paths. "
+            "Use letters, numbers, underscore, and hyphen only; start with a letter or number."
+        )
 
 
 def parse_prop_placements(values: list[str], prop_ids: list[str]) -> dict[str, str]:
@@ -528,6 +536,7 @@ def main() -> None:
     if args.register_project:
         if not args.project_id:
             raise SystemExit("--project-id is required with --register-project")
+        validate_project_id(args.project_id)
         registry_path = Path(args.registry) if args.registry else repo_root / "pet-studio-widget" / "project-room-projects.json"
         workspace_paths = [Path(value) for value in args.workspace_path]
         registered_project = upsert_project_registry(

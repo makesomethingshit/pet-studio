@@ -69,7 +69,7 @@ def main() -> None:
     kit_dir = kit_path.parent
     kit = json.loads(kit_path.read_text(encoding="utf-8"))
     warnings: list[str] = []
-    layer_assets = load_layer_assets(kit_dir, kit["layers"], warnings)
+    layer_assets = load_layer_assets(kit_dir, kit, warnings)
 
     if args.state == "all":
         image = render_contact_sheet(kit_dir, kit, layer_assets, warnings)

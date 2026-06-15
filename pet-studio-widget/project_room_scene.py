@@ -311,7 +311,16 @@ def main_pet_layer(kit: dict[str, Any]) -> dict[str, Any] | None:
 def layer_asset_path(kit_dir: Path, layer: dict[str, Any] | None) -> Path | None:
     if not layer or not isinstance(layer.get("path"), str):
         return None
-    return kit_dir / layer["path"]
+    path = Path(layer["path"])
+    if path.is_absolute():
+        return None
+    base = kit_dir.resolve()
+    resolved = (kit_dir / path).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        return None
+    return resolved
 
 
 def layer_sidecar_path(asset_path: Path | None) -> Path | None:

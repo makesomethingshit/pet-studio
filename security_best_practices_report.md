@@ -2,6 +2,17 @@
 
 Date: 2026-06-14
 
+## Fix Status
+
+This report is retained as a security review record. Several findings have been addressed during the 0.2.0 release-closure work:
+
+- SEC-001: addressed. Kit manifest asset paths are constrained to relative paths inside the kit directory before validation, preview, bake, or widget bubble-style lookup opens them.
+- SEC-002: addressed for the guided room workflow and generator paths covered by guardrails. Project, prop, and helper ids are restricted to slug-like values.
+- SEC-003: addressed for the guided room wrapper. `--force` refuses unsafe replacement targets such as the repository root, code directories, home/root directories, and directories containing `.git` or `.codex`.
+- SEC-004: partially addressed. Direct preview/bake paths now reject role-incompatible oversized manifest layer images before rendering; broader malformed-image and file-size limits remain a future hardening item.
+
+The affected-code line numbers below are from the original review snapshot and may no longer match exactly after fixes.
+
 ## Executive Summary
 
 Reviewed the local Pet Studio Python CLI/widget code using the `security-best-practices` skill. The project is local-first and does not expose a web server or remote API in the reviewed scope, so the main risks are local file-system safety, untrusted kit/package input handling, and image processing resource limits.
