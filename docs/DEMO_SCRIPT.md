@@ -42,14 +42,34 @@ Launch the included room:
 .\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
-Send state changes:
+Cycle demo state changes:
 
 ```powershell
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "Working..."
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event start --message "Using shell..."
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event block --message "Needs input"
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event review --message "Ready for review"
-.\tools\pet_studio_python.cmd pet-studio-widget\pet_studio_event_adapter.py --project-id gakju-archive-demo --event done --message "Done"
+.\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --delay-seconds 2
+```
+
+The demo cycler reuses the normal state bridge and loops through:
+
+```text
+idle
+running / Working...
+waiting / Compacting context...
+blocked / Needs input
+review / Ready for review
+done / Done
+idle
+```
+
+For one pass during manual QA:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 2
+```
+
+Preview the payloads without writing `project-room-state.json`:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --dry-run
 ```
 
 Real Codex `PreToolUse` hooks produce tool-specific wording such as `Using shell...` after the local hook bridge is installed and trusted.

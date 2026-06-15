@@ -93,6 +93,7 @@ docs/images/gakju-widget-bubble-example.png
 - Project-centered preflight.
 - Asset guardrails and style-confirmation guidance.
 - Registered widget session restore.
+- Windows widget launcher single-instance/focus behavior and detached launcher logging.
 - Korean README and minimal Korean CLI repair hints for first-room setup errors.
 - Local security hardening for IDs, replacement paths, hook commands, and kit manifest asset paths.
 

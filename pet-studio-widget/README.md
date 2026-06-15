@@ -26,7 +26,15 @@ List registered projects:
 
 Registered projects live in the v1 compatibility registry file `project-room-projects.json`.
 
-Use `tools\pet_studio_widget.cmd` for normal widget launches. It starts `pet_studio_widget.py` through `pythonw` when available, so the command prompt does not stay attached. Use `tools\pet_studio_python.cmd` for debugging, listing projects, rendering files, and tests.
+Use `tools\pet_studio_widget.cmd` for normal widget launches. It starts `pet_studio_widget.py` through `pythonw` when available, so the command prompt does not stay attached. Normal launches are single-instance: if a `Pet Studio Widget` window already exists, the launcher brings it forward instead of starting another copy.
+
+For debugging, pass `--foreground` so output and errors stay in the current terminal:
+
+```powershell
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25 --foreground
+```
+
+Detached launch output is written to ignored local files under `pet-studio-widget\project-room-widget.log` and `pet-studio-widget\project-room-widget.err.log`. Use `tools\pet_studio_python.cmd` for listing projects, rendering files, and tests.
 
 Run the public preflight when checking a fresh clone or release candidate:
 

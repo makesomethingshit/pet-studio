@@ -47,7 +47,15 @@ Then launch the included Gakju archive room:
 .\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
-The normal widget launcher uses `pythonw`, so the command prompt does not stay attached. If the widget is already running, close it from the right-click menu or press `Escape`.
+The normal widget launcher uses `pythonw`, so the command prompt does not stay attached. If the widget is already running, the launcher brings the existing `Pet Studio Widget` window forward instead of starting another copy. Close the widget from the right-click menu or press `Escape`.
+
+For visible debug output:
+
+```powershell
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25 --foreground
+```
+
+Detached launcher logs are local-only files under `pet-studio-widget\project-room-widget.log` and `pet-studio-widget\project-room-widget.err.log`.
 
 Useful demo checks:
 

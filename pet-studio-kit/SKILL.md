@@ -23,6 +23,7 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Before generating helper/sub-pet base art, show the user 2-3 compact concept directions that explicitly reference the selected style source, then wait for the user's choice. Do not silently choose a helper creature, mascot, or coworker form, because helper style mismatch is hard to repair after atlas generation.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
+- For widget debugging, use `tools\pet_studio_widget.cmd ... --foreground` or direct `pet-studio-widget/pet_studio_widget.py ... --foreground`; normal detached launches should be single-instance and focus the existing `Pet Studio Widget` window instead of creating stacked `pythonw.exe` copies.
 - Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, project window position persistence, and registered-project session restore. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
 
 ## First Choice
@@ -45,7 +46,7 @@ The selected source controls perspective, palette, outline weight, room size, pe
 6. Run `tools/pet_studio_preflight.py --project-id <id>` after registration to verify Python/Pillow, registry, kit validation, render-once, hook config, and ignored local state.
 7. Create local QA evidence with `tools/pet_studio_create_qa_pack.py --project-id <id>` when a registered project should be reviewed.
 8. Register the kit into a project registry when it should be selectable by project id.
-9. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime, or copy the generated kit into another host. `project_room_widget.py` remains as a legacy alias.
+9. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime. When operating from the installed `$pet-studio` skill outside the repo folder, use `scripts/launch_pet_studio_widget.py`; it resolves the cloned repo location recorded by `tools/install_pet_studio_skill.py` and must not create a fallback/minimal widget.
 
 ## Guided First-Room Command
 
@@ -75,6 +76,12 @@ python tools/pet_studio_create_qa_pack.py --project-id archive-nook
 ```
 
 Preflight validates the selected registry project and kit before launch or QA handoff. The QA pack writes validation JSON, idle render, all-state contact sheet, widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json`. Treat it as local evidence; do not edit `QA_REPORT.md` from this handoff.
+
+When launching from the installed skill directory instead of the repo:
+
+```powershell
+python C:\Users\USER\.codex\skills\pet-studio\scripts\launch_pet_studio_widget.py --project-id archive-nook --scale 1.25
+```
 
 ## Manual/Debug Command
 

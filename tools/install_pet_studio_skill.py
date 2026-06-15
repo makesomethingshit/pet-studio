@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 from pathlib import Path
 
@@ -54,6 +55,17 @@ def install(destination: Path, force: bool) -> None:
     destination.mkdir(parents=True, exist_ok=True)
     for name in INCLUDED:
         copy_item(SOURCE / name, destination / name)
+    (destination / "repo-location.json").write_text(
+        json.dumps(
+            {
+                "repoRoot": str(ROOT),
+                "widgetEntrypoint": str(ROOT / "pet-studio-widget" / "pet_studio_widget.py"),
+                "widgetLauncher": str(ROOT / "tools" / "pet_studio_widget.cmd"),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print(f"Installed Pet Studio skill to {destination}")
 
 

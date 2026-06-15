@@ -88,9 +88,12 @@ from project_room_scene import (  # noqa: E402
 
 
 CHROMA = "#ff00ff"
+WINDOW_TITLE = "Pet Studio Widget"
 DEFAULT_BUBBLE_FONT = "Segoe UI"
 TOPMOST_REFRESH_MS = 2000
 BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
+DEFAULT_WIDGET_LOG = ROOT / "pet-studio-widget" / "project-room-widget.log"
+DEFAULT_WIDGET_LOCK = ROOT / "pet-studio-widget" / "project-room-widget.lock"
 HIT_TEST_ALPHA_THRESHOLD = 16
 DEFAULT_STATE_STALE_AFTER_MS = 300000
 STALE_BRIDGE_STATES = {"running", "waiting", "review", "failed", "blocked", "handoff"}
@@ -395,26 +398,75 @@ def should_relaunch_background(args: argparse.Namespace, platform: str = sys.pla
     return (env or os.environ).get(BACKGROUND_CHILD_ENV) != "1"
 
 
-def relaunch_background(argv: list[str], executable: str | Path = sys.executable) -> bool:
+def focus_existing_widget_window(title: str = WINDOW_TITLE, platform: str = sys.platform) -> bool:
+    if platform != "win32":
+        return False
+    try:
+        import ctypes
+
+        user32 = ctypes.windll.user32
+        hwnd = user32.FindWindowW(None, title)
+        if not hwnd:
+            return False
+        user32.ShowWindow(hwnd, 9)
+        user32.SetForegroundWindow(hwnd)
+    except (AttributeError, OSError):
+        return False
+    return True
+
+
+def acquire_widget_lock(lock_file: Path = DEFAULT_WIDGET_LOCK, platform: str = sys.platform):
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    handle = lock_file.open("a+b")
+    if platform == "win32":
+        try:
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            handle.seek(0)
+            handle.truncate()
+            handle.write(str(os.getpid()).encode("ascii", errors="ignore") or b"0")
+            handle.flush()
+            return handle
+        except OSError:
+            handle.close()
+            return None
+    try:
+        import fcntl
+
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        return handle
+    except (ImportError, OSError):
+        handle.close()
+        return None
+
+
+def relaunch_background(argv: list[str], executable: str | Path = sys.executable, log_file: Path | None = None) -> bool:
     pythonw = pythonw_for(executable)
     if pythonw is None:
         return False
     env = dict(os.environ)
     env[BACKGROUND_CHILD_ENV] = "1"
+    log_path = Path(env.get("PET_STUDIO_WIDGET_LOG", str(log_file or DEFAULT_WIDGET_LOG))).expanduser()
+    log_path.parent.mkdir(parents=True, exist_ok=True)
     creation_flags = 0
     if sys.platform == "win32":
         creation_flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     try:
-        subprocess.Popen(
-            [str(pythonw), str(Path(__file__).resolve()), *argv],
-            cwd=str(ROOT),
-            env=env,
-            close_fds=True,
-            creationflags=creation_flags,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        with log_path.open("a", encoding="utf-8") as log_handle:
+            log_handle.write(f"\n[{datetime.now(timezone.utc).isoformat()}] launching Pet Studio widget\n")
+            log_handle.flush()
+            subprocess.Popen(
+                [str(pythonw), str(Path(__file__).resolve()), *argv],
+                cwd=str(ROOT),
+                env=env,
+                close_fds=True,
+                creationflags=creation_flags,
+                stdin=subprocess.DEVNULL,
+                stdout=log_handle,
+                stderr=log_handle,
+            )
     except OSError:
         return False
     return True
@@ -572,7 +624,7 @@ class ProjectRoomWidget:
         self.root.configure(bg=CHROMA)
         self.root.wm_attributes("-transparentcolor", CHROMA)
         apply_topmost(self.root, self.topmost)
-        self.root.title("Pet Studio Widget")
+        self.root.title(WINDOW_TITLE)
 
         if x is not None and y is not None:
             self.root.geometry(f"+{x}+{y}")
@@ -1137,8 +1189,19 @@ def main() -> None:
     else:
         parser.error("Provide --kit or --project-id.")
 
+    gui_launch = is_gui_launch(args)
+    if gui_launch and not args.foreground and focus_existing_widget_window():
+        return
+
     if should_relaunch_background(args) and relaunch_background(sys.argv[1:]):
         return
+
+    widget_lock = None
+    if gui_launch and not args.foreground:
+        widget_lock = acquire_widget_lock()
+        if widget_lock is None:
+            focus_existing_widget_window()
+            return
 
     render_once = args.render_project_once or args.render_once
     restore_session = restore_session_enabled(project_id, render_once, args.restore_session)
@@ -1193,7 +1256,11 @@ def main() -> None:
         bubble_visible=bool(bubble_visible),
         state_source=state_source,
     )
-    widget.run()
+    try:
+        widget.run()
+    finally:
+        if widget_lock is not None:
+            widget_lock.close()
 
 
 if __name__ == "__main__":
