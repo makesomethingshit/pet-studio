@@ -18,6 +18,7 @@ CONFIG_PATH = Path.home() / ".codex" / "config.toml"
 HOOKS_PATH = ROOT / ".codex" / "hooks.json"
 SKILL_DESTINATION = Path.home() / ".codex" / "skills" / "pet-studio"
 HOOK_EVENTS = ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "Stop"]
+SHELL_META_CHARS = set(" \t\r\n&|<>^;()")
 
 
 def toml_string(value: str) -> str:
@@ -61,7 +62,7 @@ def is_pet_studio_notify(values: list[str]) -> bool:
 
 
 def shell_arg(value: str) -> str:
-    if not value or any(char.isspace() for char in value) or '"' in value:
+    if not value or any(char in SHELL_META_CHARS for char in value) or '"' in value:
         return toml_string(value)
     return value
 

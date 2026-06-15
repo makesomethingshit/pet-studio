@@ -13,11 +13,14 @@ from pathlib import Path
 
 from PIL import Image
 
+from image_guardrails import ImageResourceError, safe_image_size
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from project_room_assets import cleanup_room_image
+from asset_guardrails import AssetInput, format_guardrail_failure, is_safe_id, run_asset_guardrails
 
 
 CELL_WIDTH = 192
@@ -76,12 +79,14 @@ def write_json(path: Path, data: dict) -> None:
 
 
 def image_size(path: Path) -> tuple[int, int]:
-    with Image.open(path) as image:
-        return image.size
+    return safe_image_size(path)
 
 
 def validate_image_size(path: Path, expected: tuple[int, int], label: str) -> None:
-    actual = image_size(path)
+    try:
+        actual = image_size(path)
+    except ImageResourceError as exc:
+        raise SystemExit(str(exc)) from exc
     if actual != expected:
         raise SystemExit(f"{label} is {actual[0]}x{actual[1]}; expected {expected[0]}x{expected[1]}")
 
@@ -110,6 +115,14 @@ def parse_id_value(value: str, label: str) -> tuple[str, str]:
     if not raw_value:
         raise SystemExit(f"{label} value cannot be empty: {value}")
     return item_id, raw_value
+
+
+def validate_project_id(project_id: str) -> None:
+    if not is_safe_id(project_id):
+        raise SystemExit(
+            f"Project id `{project_id}` is not safe for generated file paths. "
+            "Use letters, numbers, underscore, and hyphen only; start with a letter or number."
+        )
 
 
 def parse_prop_placements(values: list[str], prop_ids: list[str]) -> dict[str, str]:
@@ -435,6 +448,7 @@ def main() -> None:
     parser.add_argument("--pet-package", required=True)
     parser.add_argument("--room-image", required=True)
     parser.add_argument("--room-alpha-mode", choices=("safe", "balanced", "aggressive"), default="balanced")
+    parser.add_argument("--guardrail-mode", choices=("basic", "strict", "off"), default="basic")
     parser.add_argument("--prop", action="append", default=[], help="Prop asset in id=path format; may be repeated")
     parser.add_argument(
         "--prop-placement",
@@ -475,6 +489,17 @@ def main() -> None:
 
     prop_inputs = [parse_id_path(value, "Prop") for value in args.prop]
     helper_inputs = [parse_id_path(value, "Helper package") for value in args.helper_package]
+    guardrails = run_asset_guardrails(
+        pet_package=pet_package,
+        room_image=room_image,
+        props=[AssetInput(prop_id, path) for prop_id, path in prop_inputs],
+        helpers=[AssetInput(helper_id, path) for helper_id, path in helper_inputs],
+        prop_placements=args.prop_placement,
+        mode=args.guardrail_mode,
+        room_alpha_mode=args.room_alpha_mode,
+    )
+    if not guardrails["ok"]:
+        raise SystemExit(format_guardrail_failure(guardrails))
 
     kit_dir.mkdir(parents=True, exist_ok=True)
     style = build_style_lock(pet_json, pet_package)
@@ -515,6 +540,7 @@ def main() -> None:
     if args.register_project:
         if not args.project_id:
             raise SystemExit("--project-id is required with --register-project")
+        validate_project_id(args.project_id)
         registry_path = Path(args.registry) if args.registry else repo_root / "pet-studio-widget" / "project-room-projects.json"
         workspace_paths = [Path(value) for value in args.workspace_path]
         registered_project = upsert_project_registry(
@@ -599,6 +625,7 @@ def main() -> None:
         "registeredProject": registered_project,
         "projectLink": project_link,
         "roomAlphaMode": args.room_alpha_mode,
+        "guardrails": guardrails,
         "validation": validation,
         "steps": steps,
     }

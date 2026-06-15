@@ -6,6 +6,7 @@ import copy
 import json
 import math
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,7 @@ from PIL import Image
 
 DEFAULT_LAYOUT_FILE = Path(__file__).with_name("project-room-layouts.json")
 DEFAULT_WINDOW_FILE = Path(__file__).with_name("project-room-window.json")
+DEFAULT_SESSION_FILE = Path(__file__).with_name("project-room-session.json")
 DEFAULT_BUBBLE_MESSAGES = {
     "running": "Working",
     "waiting": "Waiting",
@@ -25,6 +27,8 @@ DEFAULT_BUBBLE_MESSAGES = {
     "done": "Done",
 }
 MAX_BUBBLE_TEXT_LENGTH = 80
+MAX_BUBBLE_STYLE_IMAGE_BYTES = 25 * 1024 * 1024
+MAX_BUBBLE_STYLE_IMAGE_PIXELS = 4_000_000
 BUBBLE_STYLE = {
     "fill": "#fffaf1",
     "outline": "#7a6554",
@@ -199,6 +203,74 @@ def save_project_window(path: Path, project_id: str, window: dict[str, int | flo
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
+def project_session_document(path: Path) -> dict:
+    if not path.exists():
+        return {"schemaVersion": 1, "projects": {}}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return {"schemaVersion": 1, "projects": {}}
+    if not isinstance(data, dict):
+        return {"schemaVersion": 1, "projects": {}}
+    projects = data.get("projects")
+    if not isinstance(projects, dict):
+        projects = {}
+    data["schemaVersion"] = int(data.get("schemaVersion", 1)) if isinstance(data.get("schemaVersion", 1), int) else 1
+    data["projects"] = projects
+    return data
+
+
+def coerce_session_window(value: Any) -> dict[str, int | float] | None:
+    if not isinstance(value, dict):
+        return None
+    window: dict[str, int | float] = {}
+    if isinstance(value.get("x"), int):
+        window["x"] = value["x"]
+    if isinstance(value.get("y"), int):
+        window["y"] = value["y"]
+    if isinstance(value.get("scale"), (int, float)) and value["scale"] > 0:
+        window["scale"] = float(value["scale"])
+    return window or None
+
+
+def normalize_project_session(value: Any) -> dict[str, Any]:
+    if not isinstance(value, dict):
+        return {}
+    session: dict[str, Any] = {}
+    if isinstance(value.get("state"), str) and value["state"].strip():
+        session["state"] = value["state"].strip()
+    if isinstance(value.get("message"), str):
+        session["message"] = value["message"]
+    if isinstance(value.get("bubbleVisible"), bool):
+        session["bubbleVisible"] = value["bubbleVisible"]
+    window = coerce_session_window(value.get("window"))
+    if window is not None:
+        session["window"] = window
+    if isinstance(value.get("stateSource"), str) and value["stateSource"].strip():
+        session["stateSource"] = value["stateSource"].strip()
+    if isinstance(value.get("updatedAt"), str) and value["updatedAt"].strip():
+        session["updatedAt"] = value["updatedAt"].strip()
+    return session
+
+
+def load_project_session(path: Path, project_id: str | None) -> dict[str, Any]:
+    if not project_id:
+        return {}
+    data = project_session_document(path)
+    return normalize_project_session(data.get("projects", {}).get(project_id))
+
+
+def save_project_session(path: Path, project_id: str, session: dict[str, Any]) -> None:
+    data = project_session_document(path)
+    projects = data.setdefault("projects", {})
+    normalized = normalize_project_session(session)
+    if "updatedAt" not in normalized:
+        normalized["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    projects[project_id] = normalized
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
 def normalize_bubble_text(text: str) -> str:
     normalized = " ".join(text.split())
     if len(normalized) <= MAX_BUBBLE_TEXT_LENGTH:
@@ -241,7 +313,16 @@ def main_pet_layer(kit: dict[str, Any]) -> dict[str, Any] | None:
 def layer_asset_path(kit_dir: Path, layer: dict[str, Any] | None) -> Path | None:
     if not layer or not isinstance(layer.get("path"), str):
         return None
-    return kit_dir / layer["path"]
+    path = Path(layer["path"])
+    if path.is_absolute():
+        return None
+    base = kit_dir.resolve()
+    resolved = (kit_dir / path).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError:
+        return None
+    return resolved
 
 
 def layer_sidecar_path(asset_path: Path | None) -> Path | None:
@@ -260,7 +341,11 @@ def mix_rgb(a: tuple[int, int, int], b: tuple[int, int, int], amount: float) -> 
 
 def average_opaque_rgb(path: Path) -> tuple[int, int, int] | None:
     try:
+        if path.stat().st_size > MAX_BUBBLE_STYLE_IMAGE_BYTES:
+            return None
         with Image.open(path) as source:
+            if source.width * source.height > MAX_BUBBLE_STYLE_IMAGE_PIXELS:
+                return None
             image = source.convert("RGBA")
             image.thumbnail((96, 96), Image.Resampling.LANCZOS)
             source_pixels = image.load()
@@ -270,7 +355,7 @@ def average_opaque_rgb(path: Path) -> tuple[int, int, int] | None:
                 for x in range(image.width)
                 if source_pixels[x, y][3] >= 96
             ]
-    except (OSError, ValueError):
+    except (OSError, ValueError, SyntaxError, Image.DecompressionBombError):
         return None
     if not pixels:
         return None

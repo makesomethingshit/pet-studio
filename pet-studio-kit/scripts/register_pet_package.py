@@ -7,7 +7,7 @@ import json
 import shutil
 from pathlib import Path
 
-from PIL import Image
+from image_guardrails import ImageResourceError, safe_image_size
 
 
 def load_json(path: Path) -> dict:
@@ -19,11 +19,14 @@ def write_json(path: Path, data: dict) -> None:
 
 
 def validate_spritesheet(path: Path, expected_width: int, expected_height: int) -> None:
-    with Image.open(path) as image:
-        if image.size != (expected_width, expected_height):
-            raise SystemExit(
-                f"Spritesheet is {image.size[0]}x{image.size[1]}; expected {expected_width}x{expected_height}"
-            )
+    try:
+        width, height = safe_image_size(path)
+    except ImageResourceError as exc:
+        raise SystemExit(str(exc)) from exc
+    if (width, height) != (expected_width, expected_height):
+        raise SystemExit(
+            f"Spritesheet is {width}x{height}; expected {expected_width}x{expected_height}"
+        )
 
 
 def main() -> None:

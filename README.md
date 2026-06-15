@@ -1,15 +1,22 @@
 # Pet Studio
 
+[&#54620;&#44397;&#50612; README](README.ko.md)
+
 [![Version](https://img.shields.io/badge/version-0.1.2-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg?branch=docs/next-polish)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
 **Every Codex project gets its own tiny desktop room.**
 
-![Pet Studio project room with main pet, desk props, and helper prop-creature](docs/images/pet-studio-helper-prop-creature-room.png)
+Pet Studio is a desktop status widget for Codex projects.
 
-Pet Studio is a local-first agent dashboard disguised as a tiny pet room. It turns Codex workspaces into layered desktop rooms with pets, props, helper pets, and live speech bubbles.
+![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
+
+Pet Studio turns Codex workspaces into layered desktop rooms with pets, props, helper pets, and live speech bubbles. It is a local-first agent dashboard disguised as a tiny pet room.
 
 Instead of watching logs, watch your project room react as Codex starts working, uses tools, gets blocked, enters review, or finishes.
+
+The README GIF follows the 10-15 second demo flow in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 ## Quick Start
 
@@ -41,7 +48,7 @@ After installing hooks, restart Codex or open `/hooks` to review and trust the n
 * Local project registry, saved layout, saved scale, and state file bridge
 * Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
 * Optional Codex hooks for prompt/tool/compact/stop bubble updates
-* Script-driven room creation, validation, preview sheets, and local QA packs
+* Script-driven room creation, asset guardrails, validation, preview sheets, and local QA packs
 
 ## Still Experimental
 
@@ -51,7 +58,7 @@ After installing hooks, restart Codex or open `/hooks` to review and trust the n
 * Windows is the primary tested host.
 * Internal storage still uses some `project-room-*` v1 compatibility names.
 
-Not yet: multi-room gallery, one-click installer, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
+Not included today: multi-room gallery, one-click installer, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
 
 ## Model
 
@@ -74,19 +81,20 @@ Each room can have its own mood, props, main pet, helper pets, speech bubble sty
 Then generate local QA evidence:
 
 ```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room
+.\tools\pet_studio_widget.cmd --project-id my-room --scale 1.25
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
 ```
 
 Full workflow: [docs/CREATE_ROOM.md](docs/CREATE_ROOM.md)
 
+The create command checks common asset mistakes before writing a kit: room sources must be `384x240`, props must be visible and fit inside the room canvas, helper packages must contain a valid hatch-pet atlas, and prop placement ids must match supplied props. Subjective style questions remain visual QA instead of automatic rejection.
+
 ## Roadmap
 
-The long-term vision is a small local dashboard where every Codex workspace has a recognizable room, state, mood, and companion behavior.
+The long-term vision is a small local dashboard where every Codex workspace has a recognizable room, state, mood, and companion behavior. These are future directions, not current features:
 
-Next steps:
-
-* smoother first-room creation
-* clearer setup checks for hooks, Pillow, registries, and missing assets
+* smoother first-room creation and setup checks
 * more room themes, prop packs, and state animations
 * richer helper pet behavior and Codex event mapping
 * multi-project room switcher
@@ -101,10 +109,13 @@ Detailed roadmap: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
 * [Create a room](docs/CREATE_ROOM.md)
 * [Codex integration](docs/CODEX_INTEGRATION.md)
 * [Development checks](docs/DEVELOPMENT.md)
+* [Long-term workroom vision](docs/PET_STUDIO_WORKROOM_VISION.md)
 * [Demo script](docs/DEMO_SCRIPT.md)
 * [GitHub About metadata](docs/ABOUT.md)
 * [Social preview](docs/SOCIAL_PREVIEW.md)
 * [Contributing ideas](docs/CONTRIBUTING_IDEAS.md)
+* [Contributing](CONTRIBUTING.md)
+* [Security](SECURITY.md)
 
 ## License
 

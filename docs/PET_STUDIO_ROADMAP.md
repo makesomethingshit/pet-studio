@@ -2,9 +2,9 @@
 
 ## Vision
 
-Pet Studio turns each project or chat room into a small pet room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a full dashboard or game.
+Pet Studio turns each Codex project into a small local desktop room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a hosted dashboard or full game.
 
-The long-term experience should feel like a living Codex pet scene: a compact side-view room near the edge of the desktop, one main owner pet as the emotional focus, optional helper pets for review or handoff moments, draggable props, and project-specific layout details that make each workspace recognizable.
+The long-term experience should feel like a compact side-view room near the edge of the desktop: one main owner pet as the emotional focus, optional helper pets for review or handoff moments, draggable props, and project-specific layout details that make each workspace recognizable.
 
 The final vision is broader than the current implementation:
 
@@ -16,7 +16,7 @@ The final vision is broader than the current implementation:
 
 ## Current State
 
-This is what the repository can do today.
+This is what the repository can do today. Items outside this list should be treated as experimental or roadmap until implemented and verified.
 
 - `pet-studio-kit` can create, validate, preview, and optionally bake layered `384x240` room kits.
 - `create_project_room_kit.py` accepts an arbitrary hatch-pet package plus generated or authored room/prop assets.
@@ -68,7 +68,7 @@ Done when:
 
 #### M3. First Room Setup Check
 
-Status: next.
+Status: implemented in development.
 
 Done when:
 
@@ -78,7 +78,7 @@ Done when:
 
 #### M4. Asset Guardrails
 
-Status: next.
+Status: implemented in development.
 
 Done when:
 

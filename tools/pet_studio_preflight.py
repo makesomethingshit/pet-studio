@@ -12,12 +12,19 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
+if str(KIT_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(KIT_SCRIPTS))
+
+from localized_messages import configure_utf8_stdio, normalize_lang, preflight_heading, preflight_message  # noqa: E402
+
 DEFAULT_PROJECT_ID = "gakju-archive-demo"
 DEFAULT_REGISTRY = ROOT / "pet-studio-widget" / "project-room-projects.json"
 DEFAULT_HOOKS_FILE = ROOT / ".codex" / "hooks.json"
 DEFAULT_HOOK_LOG = ROOT / "pet-studio-widget" / "project-room-hook-events.jsonl"
 DEFAULT_SKILL_DIR = Path.home() / ".codex" / "skills" / "pet-studio"
 DEFAULT_RENDER_OUTPUT = ROOT / "runs" / "pet-studio-preflight-render.png"
+VALIDATOR_SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "validate_project_room_kit.py"
 EXPECTED_HOOKS = {
     "SessionStart": "session_start",
     "UserPromptSubmit": "user_prompt_submit",
@@ -34,6 +41,8 @@ LOCAL_ONLY_PATHS = [
     "pet-studio-widget/project-room-active.json",
     "pet-studio-widget/project-room-hook-events.jsonl",
     "pet-studio-widget/project-room-layouts.json",
+    "pet-studio-widget/project-room-widget.lock",
+    "pet-studio-widget/project-room-session.json",
     "pet-studio-widget/project-room-state.json",
     "pet-studio-widget/project-room-window.json",
 ]
@@ -70,11 +79,78 @@ def command_preview(command: list[str]) -> str:
     return " ".join(json.dumps(part) if any(char.isspace() for char in part) else part for part in command)
 
 
-def demo_launch_command(project_id: str, registry: Path) -> str:
+def uses_default_registry(registry: Path) -> bool:
+    return registry.expanduser().resolve() == DEFAULT_REGISTRY.resolve()
+
+
+def project_launch_command(project_id: str, registry: Path) -> str:
     command = [".\\tools\\pet_studio_widget.cmd", "--project-id", project_id, "--scale", "1.25"]
-    if registry.expanduser().resolve() != DEFAULT_REGISTRY.resolve():
+    if not uses_default_registry(registry):
         command[1:1] = ["--config", str(registry.expanduser())]
     return command_preview(command)
+
+
+def project_render_command(project_id: str, registry: Path, output: Path) -> str:
+    command = [
+        ".\\tools\\pet_studio_python.cmd",
+        "pet-studio-widget\\pet_studio_widget.py",
+        "--project-id",
+        project_id,
+        "--render-project-once",
+        str(output),
+    ]
+    if not uses_default_registry(registry):
+        command[2:2] = ["--config", str(registry.expanduser())]
+    return command_preview(command)
+
+
+def project_qa_pack_command(project_id: str, registry: Path) -> str:
+    command = [".\\tools\\pet_studio_python.cmd", "tools\\pet_studio_create_qa_pack.py", "--project-id", project_id]
+    if not uses_default_registry(registry):
+        command.extend(["--registry", str(registry.expanduser())])
+    return command_preview(command)
+
+
+def install_hooks_command(project_id: str) -> str:
+    return command_preview(
+        [
+            ".\\tools\\pet_studio_python.cmd",
+            "tools\\install_pet_studio_codex_integration.py",
+            "--project-id",
+            project_id,
+        ]
+    )
+
+
+def hook_trust_hint(project_id: str) -> str:
+    return f"Run {install_hooks_command(project_id)}, then restart Codex or open /hooks to trust the commands if prompted."
+
+
+def registry_schema_hint() -> str:
+    return 'Expected {"schemaVersion": 1, "projects": [...]}; recreate or repair the registry file.'
+
+
+def register_project_hint(project_id: str, registry: Path) -> str:
+    return (
+        f"Register it with tools\\pet_studio_create_room.py --project-id {project_id} --registry {registry}, "
+        "or inspect available ids with pet-studio-widget\\pet_studio_widget.py --list-projects."
+    )
+
+
+def kit_repair_hint(project_id: str, registry: Path) -> str:
+    return (
+        f"Fix kitPath for {project_id!r} in {display_path(registry)}, restore the missing kit, "
+        f"or regenerate it with tools\\pet_studio_create_room.py --project-id {project_id} --registry {registry}."
+    )
+
+
+def next_commands(project_id: str, registry: Path, render_output: Path) -> dict[str, str]:
+    return {
+        "launch": project_launch_command(project_id, registry),
+        "render": project_render_command(project_id, registry, render_output),
+        "qaPack": project_qa_pack_command(project_id, registry),
+        "installHooks": install_hooks_command(project_id),
+    }
 
 
 def load_json(path: Path) -> Any:
@@ -119,49 +195,88 @@ def check_skill_install(skill_dir: Path) -> CheckResult:
     return pass_check("skill", f"installed at {skill_file}")
 
 
-def check_demo_registry(registry: Path, project_id: str) -> tuple[CheckResult, dict[str, Any] | None]:
+def check_project_registry(registry: Path, project_id: str) -> tuple[CheckResult, dict[str, Any] | None]:
     if not registry.exists():
         return fail_check("registry", f"Missing registry: {display_path(registry)}"), None
     try:
-        project = find_project(registry, project_id)
+        data = load_json(registry)
     except (json.JSONDecodeError, OSError) as error:
         return fail_check("registry", f"Cannot read {display_path(registry)}: {error}"), None
+    if not isinstance(data, dict):
+        return fail_check("registry", f"{display_path(registry)} must contain a JSON object. {registry_schema_hint()}"), None
+    projects = data.get("projects")
+    if not isinstance(projects, list):
+        return fail_check("registry", f"{display_path(registry)} must contain a projects list. {registry_schema_hint()}"), None
+    project = None
+    for item in projects:
+        if isinstance(item, dict) and item.get("projectId") == project_id:
+            project = item
+            break
     if project is None:
-        return fail_check("registry", f"Project {project_id!r} is not registered in {display_path(registry)}"), None
+        return fail_check(
+            "registry",
+            f"Project {project_id!r} is not registered in {display_path(registry)}. {register_project_hint(project_id, registry)}",
+        ), None
     if project.get("enabled") is not True:
-        return fail_check("registry", f"Project {project_id!r} is registered but disabled"), project
+        return fail_check("registry", f"Project {project_id!r} is registered but disabled. Set enabled to true in {display_path(registry)} or choose another project id."), project
     return pass_check("registry", f"{project_id} is enabled"), project
 
 
-def check_sample_kit(registry: Path, project: dict[str, Any] | None) -> CheckResult:
+def check_demo_registry(registry: Path, project_id: str) -> tuple[CheckResult, dict[str, Any] | None]:
+    return check_project_registry(registry, project_id)
+
+
+def check_project_kit(registry: Path, project: dict[str, Any] | None) -> tuple[CheckResult, Path | None]:
     if not project:
-        return fail_check("sample-kit", "Cannot check sample kit because the demo project was not resolved")
+        return fail_check("project-kit", "Cannot check project kit because the project was not resolved"), None
     raw_kit_path = project.get("kitPath")
+    project_id = str(project.get("projectId", "?"))
     if not isinstance(raw_kit_path, str) or not raw_kit_path.strip():
-        return fail_check("sample-kit", "Demo project has no kitPath")
-    kit_dir = resolve_registry_path(registry, raw_kit_path)
-    manifest = kit_dir / "project-room.json"
+        return fail_check(
+            "project-kit",
+            f"Project {project_id!r} has no kitPath. Add kitPath in project-room-projects.json or {register_project_hint(project_id, registry)}",
+        ), None
+    kit_path = resolve_registry_path(registry, raw_kit_path)
+    manifest = kit_path if kit_path.name == "project-room.json" else kit_path / "project-room.json"
     if not manifest.exists():
-        return fail_check("sample-kit", f"Missing sample manifest: {display_path(manifest)}")
+        return fail_check("project-kit", f"Missing project manifest: {display_path(manifest)}. {kit_repair_hint(project_id, registry)}"), manifest
     try:
         kit = load_json(manifest)
     except (json.JSONDecodeError, OSError) as error:
-        return fail_check("sample-kit", f"Cannot read {display_path(manifest)}: {error}")
+        return fail_check("project-kit", f"Cannot read {display_path(manifest)}: {error}"), manifest
     layers = kit.get("layers")
     if not isinstance(layers, list) or not layers:
-        return fail_check("sample-kit", f"Sample manifest has no layers: {display_path(manifest)}")
-    return pass_check("sample-kit", f"found {display_path(manifest)}")
+        return fail_check("project-kit", f"Project manifest has no layers: {display_path(manifest)}"), manifest
+    return pass_check("project-kit", f"found {display_path(manifest)}"), manifest
+
+
+def check_sample_kit(registry: Path, project: dict[str, Any] | None) -> CheckResult:
+    result, _ = check_project_kit(registry, project)
+    return result
+
+
+def validate_project_kit(root: Path, manifest: Path | None) -> CheckResult:
+    if manifest is None:
+        return fail_check("kit-validation", "Cannot validate kit because the project manifest was not resolved")
+    command = [sys.executable, str(VALIDATOR_SCRIPT), "--kit", str(manifest)]
+    completed = subprocess.run(command, cwd=root, check=False, text=True, capture_output=True)
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "").strip()
+        if len(detail) > 800:
+            detail = detail[:797] + "..."
+        return fail_check("kit-validation", f"Kit validation failed for {display_path(manifest)}: {detail}")
+    return pass_check("kit-validation", f"validated {display_path(manifest)}")
 
 
 def hook_command_has_event(command: str, hook_name: str) -> bool:
     return "codex_pet_hook.py" in command and f"--hook {hook_name}" in command
 
 
-def check_hooks_config(hooks_file: Path) -> CheckResult:
+def check_hooks_config(hooks_file: Path, project_id: str = DEFAULT_PROJECT_ID) -> CheckResult:
     if not hooks_file.exists():
         return warn_check(
             "hooks",
-            f"Missing hooks file: {display_path(hooks_file)}. Run tools\\install_pet_studio_codex_integration.py.",
+            f"Missing hooks file: {display_path(hooks_file)}. {hook_trust_hint(project_id)}",
         )
     try:
         data = load_json(hooks_file)
@@ -191,7 +306,12 @@ def check_hooks_config(hooks_file: Path) -> CheckResult:
             missing.append(event)
 
     if missing:
-        return warn_check("hooks", "Missing Pet Studio hook entries: " + ", ".join(missing))
+        return warn_check(
+            "hooks",
+            "Missing Pet Studio hook entries: "
+            + ", ".join(missing)
+            + f". {hook_trust_hint(project_id)}",
+        )
     return pass_check("hooks", "project-local Codex lifecycle hooks are installed; trust them in /hooks if prompted")
 
 
@@ -213,7 +333,7 @@ def check_local_only_ignores(root: Path) -> CheckResult:
     return pass_check("local-only", "QA output, preflight render, hook logs, and runtime state are ignored")
 
 
-def render_demo(root: Path, registry: Path, project_id: str, output: Path) -> CheckResult:
+def render_project(root: Path, registry: Path, project_id: str, output: Path) -> CheckResult:
     output.parent.mkdir(parents=True, exist_ok=True)
     command = [
         sys.executable,
@@ -228,10 +348,14 @@ def render_demo(root: Path, registry: Path, project_id: str, output: Path) -> Ch
     completed = subprocess.run(command, cwd=root, check=False, text=True, capture_output=True)
     if completed.returncode != 0:
         detail = (completed.stderr or completed.stdout or "").strip()
-        return fail_check("render", f"Demo render failed: {detail}")
+        return fail_check("render", f"Project render failed: {detail}")
     if not output.exists() or output.stat().st_size == 0:
-        return fail_check("render", f"Demo render did not create {display_path(output)}")
+        return fail_check("render", f"Project render did not create {display_path(output)}")
     return pass_check("render", f"wrote {display_path(output)}")
+
+
+def render_demo(root: Path, registry: Path, project_id: str, output: Path) -> CheckResult:
+    return render_project(root, registry, project_id, output)
 
 
 def read_hook_log_summary(log_file: Path, max_lines: int) -> list[str]:
@@ -251,7 +375,7 @@ def read_hook_log_summary(log_file: Path, max_lines: int) -> list[str]:
     return summary or [f"No readable hook entries in {display_path(log_file)}"]
 
 
-def run_checks(args: argparse.Namespace) -> list[CheckResult]:
+def build_report(args: argparse.Namespace) -> dict[str, Any]:
     registry = Path(args.registry).expanduser()
     skill_dir = Path(args.skill_dir).expanduser()
     hooks_file = Path(args.hooks_file).expanduser()
@@ -260,30 +384,49 @@ def run_checks(args: argparse.Namespace) -> list[CheckResult]:
     results: list[CheckResult] = [check_python_environment()]
     if not args.skip_skill:
         results.append(check_skill_install(skill_dir))
-    registry_result, project = check_demo_registry(registry, args.project_id)
+    registry_result, project = check_project_registry(registry, args.project_id)
     results.append(registry_result)
-    results.append(check_sample_kit(registry, project))
+    kit_result, manifest = check_project_kit(registry, project)
+    results.append(kit_result)
+    if kit_result.ok:
+        results.append(validate_project_kit(ROOT, manifest))
     if not args.skip_hooks:
-        results.append(check_hooks_config(hooks_file))
+        results.append(check_hooks_config(hooks_file, args.project_id))
     results.append(check_local_only_ignores(ROOT))
     if not args.skip_render:
-        results.append(render_demo(ROOT, registry, args.project_id, render_output))
-    return results
+        results.append(render_project(ROOT, registry, args.project_id, render_output))
+    return {
+        "ok": all(result.ok for result in results),
+        "projectId": args.project_id,
+        "registry": str(registry),
+        "kitManifest": str(manifest) if manifest is not None else None,
+        "nextCommands": next_commands(args.project_id, registry, render_output),
+        "renderOutput": str(render_output),
+        "hookTrustHint": hook_trust_hint(args.project_id),
+        "checks": [result.__dict__ for result in results],
+    }
 
 
-def print_text_report(results: list[CheckResult], args: argparse.Namespace) -> None:
+def run_checks(args: argparse.Namespace) -> list[CheckResult]:
+    return [CheckResult(**result) for result in build_report(args)["checks"]]
+
+
+def print_text_report(report: dict[str, Any], args: argparse.Namespace) -> None:
+    lang = normalize_lang(args.lang)
+    results = [CheckResult(**result) for result in report["checks"]]
     for result in results:
         marker = "WARN" if result.warning else ("OK" if result.ok else "FAIL")
-        print(f"[{marker}] {result.name}: {result.message}")
+        print(f"[{marker}] {result.name}: {preflight_message(result.name, result.message, lang)}")
     if all(result.ok for result in results):
         print()
-        print("Demo launch command:")
-        print(demo_launch_command(args.project_id, Path(args.registry)))
-        print(f"Render output: {display_path(Path(args.render_output).expanduser())}")
-        print("Hook trust hint: restart Codex or open /hooks if Codex asks you to trust the commands.")
+        print(preflight_heading("launch", lang))
+        print(report["nextCommands"]["launch"])
+        print(f"{preflight_heading('render', lang)} {display_path(Path(report['renderOutput']).expanduser())}")
+        print(preflight_heading("hook", lang))
+        print(report["hookTrustHint"])
     if args.show_hook_log:
         print()
-        print("Recent hook log:")
+        print(preflight_heading("log", lang))
         for line in read_hook_log_summary(Path(args.hook_log).expanduser(), args.hook_log_lines):
             print(f"- {line}")
 
@@ -302,19 +445,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-hooks", action="store_true")
     parser.add_argument("--show-hook-log", action="store_true")
     parser.add_argument("--json", action="store_true", help="Print machine-readable check results")
+    parser.add_argument("--lang", choices=("en", "ko"), default=None, help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English")
     return parser
 
 
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
-    results = run_checks(args)
-    ok = all(result.ok for result in results)
+    configure_utf8_stdio()
+    report = build_report(args)
     if args.json:
-        print(json.dumps({"ok": ok, "checks": [result.__dict__ for result in results]}, indent=2))
+        print(json.dumps(report, indent=2))
     else:
-        print_text_report(results, args)
-    raise SystemExit(0 if ok else 1)
+        print_text_report(report, args)
+    raise SystemExit(0 if report["ok"] else 1)
 
 
 if __name__ == "__main__":

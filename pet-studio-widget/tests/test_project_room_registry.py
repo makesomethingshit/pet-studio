@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import inspect
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image
@@ -33,6 +35,13 @@ if str(TOOLS_DIR) not in sys.path:
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def relative_to_or_relpath(path: Path, start: Path) -> Path:
+    try:
+        return path.resolve().relative_to(start.resolve())
+    except ValueError:
+        return Path(os.path.relpath(path.resolve(), start.resolve()))
 
 
 def rgba_pixels(image: Image.Image):
@@ -87,6 +96,34 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(helper.anchor, original_anchor)
 
+    def test_bubble_style_ignores_main_pet_sidecar_outside_kit_dir(self) -> None:
+        from project_room_scene import BUBBLE_STYLE, resolve_bubble_style
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            kit_dir = work / "kit"
+            outside = work / "outside"
+            kit_dir.mkdir()
+            outside.mkdir()
+            write_json(
+                outside / "spritesheet.asset.json",
+                {"bubbleStyle": {"fill": "#010203", "outline": "#040506", "shadow": "#070809", "text": "#0a0b0c"}},
+            )
+            kit = {
+                "layers": [
+                    {
+                        "id": "main-owner",
+                        "role": "mainPet",
+                        "path": "../outside/spritesheet.webp",
+                    }
+                ]
+            }
+
+            style = resolve_bubble_style(kit, kit_dir)
+
+        self.assertEqual(style["fill"], BUBBLE_STYLE["fill"])
+        self.assertNotEqual(style["fill"], "#010203")
+
     def test_clamp_anchor_to_source_canvas_bounds_saved_drag_positions(self) -> None:
         from project_room_scene import clamp_anchor_to_source_canvas
 
@@ -94,6 +131,41 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(clamp_anchor_to_source_canvas(kit, {"x": -1050, "y": 611}), {"x": 0, "y": 240})
         self.assertEqual(clamp_anchor_to_source_canvas(kit, {"x": 302, "y": 204}), {"x": 302, "y": 204})
+
+    def test_widget_clamps_entity_anchor_using_rendered_sprite_bounds(self) -> None:
+        import project_room_widget
+
+        kit = self.load_demo_kit()
+        image = Image.new("RGBA", (64, 87), (80, 130, 170, 255))
+
+        anchor = project_room_widget.clamp_anchor_to_visible_image_bounds(
+            kit,
+            {"x": 380, "y": 0},
+            image,
+            widget_scale=1.25,
+        )
+
+        bounds = project_room_widget.image_bounds_for_anchor(anchor, image, widget_scale=1.25)
+        self.assertGreaterEqual(bounds[0], 0)
+        self.assertGreaterEqual(bounds[1], 0)
+        self.assertLessEqual(bounds[2], 480)
+        self.assertLessEqual(bounds[3], 300)
+        self.assertNotEqual(anchor, {"x": 380, "y": 0})
+
+    def test_widget_keeps_visible_entity_anchor_when_sprite_bounds_fit(self) -> None:
+        import project_room_widget
+
+        kit = self.load_demo_kit()
+        image = Image.new("RGBA", (64, 87), (80, 130, 170, 255))
+
+        anchor = project_room_widget.clamp_anchor_to_visible_image_bounds(
+            kit,
+            {"x": 302, "y": 204},
+            image,
+            widget_scale=1.25,
+        )
+
+        self.assertEqual(anchor, {"x": 302, "y": 204})
 
     def test_project_layout_file_round_trips_entity_anchor(self) -> None:
         from project_room_scene import load_project_layout, save_project_anchor
@@ -250,6 +322,222 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
             self.assertEqual(window, {"x": 120, "y": 340, "scale": 1.25})
 
+    def test_project_session_file_round_trips_widget_state(self) -> None:
+        from project_room_scene import load_project_session, save_project_session
+
+        with tempfile.TemporaryDirectory() as tmp:
+            session_file = Path(tmp) / "project-room-session.json"
+
+            save_project_session(
+                session_file,
+                "gakju-demo",
+                {
+                    "state": "review",
+                    "message": "Working: restore check",
+                    "bubbleVisible": False,
+                    "window": {"x": 120, "y": 340, "scale": 1.25},
+                    "stateSource": "manual",
+                    "updatedAt": "2026-06-14T00:00:00Z",
+                },
+            )
+            session = load_project_session(session_file, "gakju-demo")
+
+        self.assertEqual(session["state"], "review")
+        self.assertEqual(session["message"], "Working: restore check")
+        self.assertFalse(session["bubbleVisible"])
+        self.assertEqual(session["window"], {"x": 120, "y": 340, "scale": 1.25})
+        self.assertEqual(session["stateSource"], "manual")
+
+    def test_project_session_file_ignores_unknown_and_malformed_sessions(self) -> None:
+        from project_room_scene import load_project_session
+
+        with tempfile.TemporaryDirectory() as tmp:
+            session_file = Path(tmp) / "project-room-session.json"
+            session_file.write_text("{", encoding="utf-8")
+
+            self.assertEqual(load_project_session(session_file, "gakju-demo"), {})
+
+            write_json(session_file, {"schemaVersion": 1, "projects": {"other-demo": {"state": "review"}}})
+
+            self.assertEqual(load_project_session(session_file, "gakju-demo"), {})
+
+    def test_widget_startup_restores_session_state_window_and_bubble(self) -> None:
+        import project_room_widget
+
+        session = {
+            "state": "review",
+            "message": "Restored message",
+            "bubbleVisible": False,
+            "window": {"x": 88, "y": 99, "scale": 1.4},
+            "stateSource": "manual",
+        }
+
+        state, message, source = project_room_widget.resolve_startup_state(
+            "idle",
+            None,
+            None,
+            "gakju-demo",
+            session,
+            restore_session=True,
+        )
+        scale, x, y = project_room_widget.resolve_startup_window(None, session, True, None, None, None)
+
+        self.assertEqual((state, message, source), ("review", "Restored message", "manual"))
+        self.assertEqual((scale, x, y), (1.4, 88, 99))
+
+    def test_widget_startup_cli_values_override_session(self) -> None:
+        import project_room_widget
+
+        session = {
+            "state": "review",
+            "message": "Restored message",
+            "window": {"x": 88, "y": 99, "scale": 1.4},
+        }
+
+        state, message, source = project_room_widget.resolve_startup_state(
+            "idle",
+            "failed",
+            None,
+            "gakju-demo",
+            session,
+            restore_session=True,
+        )
+        scale, x, y = project_room_widget.resolve_startup_window(
+            {"x": 10, "y": 20, "scale": 1.1},
+            session,
+            True,
+            1.25,
+            120,
+            620,
+        )
+
+        self.assertEqual((state, message, source), ("failed", None, "cli"))
+        self.assertEqual((scale, x, y), (1.25, 120, 620))
+
+    def test_widget_startup_fresh_bridge_overrides_session(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            write_json(
+                state_file,
+                {
+                    "projectId": "gakju-demo",
+                    "state": "running",
+                    "message": "Working: fresh bridge",
+                    "updatedAt": "2026-06-14T00:00:00Z",
+                },
+            )
+
+            state, message, source = project_room_widget.resolve_startup_state(
+                "idle",
+                None,
+                state_file,
+                "gakju-demo",
+                {"state": "review", "message": "Restored message"},
+                restore_session=True,
+                stale_after_ms=300000,
+                now=datetime(2026, 6, 14, 0, 1, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual((state, message, source), ("running", "Working: fresh bridge", "bridge"))
+
+    def test_widget_startup_ignores_stale_running_bridge_and_uses_session(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            write_json(
+                state_file,
+                {
+                    "projectId": "gakju-demo",
+                    "state": "running",
+                    "message": "Working: old bridge",
+                    "updatedAt": "2026-06-14T00:00:00Z",
+                },
+            )
+
+            state, message, source = project_room_widget.resolve_startup_state(
+                "idle",
+                None,
+                state_file,
+                "gakju-demo",
+                {"state": "review", "message": "Restored message", "stateSource": "manual"},
+                restore_session=True,
+                stale_after_ms=300000,
+                now=datetime(2026, 6, 14, 0, 6, tzinfo=timezone.utc),
+            )
+
+        self.assertEqual((state, message, source), ("review", "Restored message", "manual"))
+
+    def test_widget_startup_no_restore_session_ignores_session_file_values(self) -> None:
+        import project_room_widget
+
+        session = {
+            "state": "review",
+            "message": "Restored message",
+            "window": {"x": 88, "y": 99, "scale": 1.4},
+        }
+
+        state, message, source = project_room_widget.resolve_startup_state(
+            "idle",
+            None,
+            None,
+            "gakju-demo",
+            session,
+            restore_session=False,
+        )
+        scale, x, y = project_room_widget.resolve_startup_window(
+            {"x": 10, "y": 20, "scale": 1.1},
+            session,
+            False,
+            None,
+            None,
+            None,
+        )
+
+        self.assertEqual((state, message, source), ("idle", None, "default"))
+        self.assertEqual((scale, x, y), (1.1, 10, 20))
+
+    def test_widget_render_once_disables_session_restore(self) -> None:
+        import project_room_widget
+
+        self.assertFalse(project_room_widget.restore_session_enabled("gakju-demo", "runs/out.png", None))
+        self.assertFalse(project_room_widget.restore_session_enabled(None, None, True))
+        self.assertFalse(project_room_widget.restore_session_enabled("gakju-demo", None, False))
+        self.assertTrue(project_room_widget.restore_session_enabled("gakju-demo", None, None))
+
+    def test_widget_save_session_writes_current_visible_state(self) -> None:
+        import project_room_widget
+        from project_room_scene import load_project_session
+
+        class FakeRoot:
+            def winfo_x(self) -> int:
+                return 321
+
+            def winfo_y(self) -> int:
+                return 654
+
+        with tempfile.TemporaryDirectory() as tmp:
+            widget = object.__new__(project_room_widget.ProjectRoomWidget)
+            widget.project_id = "gakju-demo"
+            widget.session_file = Path(tmp) / "project-room-session.json"
+            widget.root = FakeRoot()
+            widget.state = "failed"
+            widget.message = "Need input"
+            widget.bubble_visible = False
+            widget.scale = 1.25
+            widget.state_source = "manual"
+
+            widget.save_session("manual")
+            session = load_project_session(widget.session_file, "gakju-demo")
+
+        self.assertEqual(session["state"], "failed")
+        self.assertEqual(session["message"], "Need input")
+        self.assertFalse(session["bubbleVisible"])
+        self.assertEqual(session["window"], {"x": 321, "y": 654, "scale": 1.25})
+        self.assertEqual(session["stateSource"], "manual")
+
     def test_bubble_text_prefers_state_message_and_uses_state_defaults(self) -> None:
         from project_room_scene import bubble_text_for_state
 
@@ -352,7 +640,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
             self.assertTrue(style["shadow"].startswith("#"))
             self.assertEqual(style["text"], BUBBLE_STYLE["text"])
 
-    def test_bubble_bounds_shift_to_side_when_overlapping_owner(self) -> None:
+    def test_bubble_bounds_prefers_above_owner_when_overlapping_face(self) -> None:
         import project_room_widget
 
         dx, dy = project_room_widget.bubble_avoid_owner_shift(
@@ -364,17 +652,17 @@ class ProjectRoomSceneTests(unittest.TestCase):
             gap=8,
         )
 
-        self.assertGreater(dx, 0)
-        self.assertEqual(dy, 0)
+        self.assertEqual(dx, 0)
+        self.assertLess(dy, 0)
         shifted = (110 + dx, 70 + dy, 260 + dx, 132 + dy)
-        self.assertGreaterEqual(shifted[0], 248)
+        self.assertLessEqual(shifted[3], 87)
 
     def test_bubble_bounds_shift_left_when_right_side_has_no_room(self) -> None:
         import project_room_widget
 
         dx, dy = project_room_widget.bubble_avoid_owner_shift(
-            bubble_bounds=(240, 70, 390, 132),
-            owner_bounds=(250, 95, 350, 230),
+            bubble_bounds=(240, 12, 390, 74),
+            owner_bounds=(250, 20, 350, 230),
             canvas_width=420,
             canvas_height=300,
             margin=12,
@@ -383,7 +671,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertLess(dx, 0)
         self.assertEqual(dy, 0)
-        shifted = (240 + dx, 70 + dy, 390 + dx, 132 + dy)
+        shifted = (240 + dx, 12 + dy, 390 + dx, 74 + dy)
         self.assertLessEqual(shifted[2], 242)
 
     def test_context_menu_labels_keep_close_as_explicit_action(self) -> None:
@@ -433,12 +721,20 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertIn("powershell.exe", text)
         self.assertIn("-windowstyle hidden", text)
+        self.assertIn("--foreground", text)
         self.assertIn("pet_studio_pythonw", text)
         self.assertIn("pythonw.exe", text)
         self.assertIn("start \"pet studio widget\"", text)
         self.assertIn("pet_studio_widget.py", text)
         self.assertIn("start-process", ps1_text)
         self.assertIn("-windowstyle hidden", ps1_text)
+        self.assertIn("focus-petstudiowidget", ps1_text)
+        self.assertIn("findwindow", ps1_text)
+        self.assertIn("setforegroundwindow", ps1_text)
+        self.assertIn("project-room-widget.log", ps1_text)
+        self.assertIn("project-room-widget.err.log", ps1_text)
+        self.assertIn("python.exe", ps1_text)
+        self.assertIn("& $python $script @args", ps1_text)
 
     def test_widget_script_relaunches_gui_runs_on_windows_python_exe(self) -> None:
         import argparse
@@ -474,6 +770,33 @@ class ProjectRoomSceneTests(unittest.TestCase):
                 env={project_room_widget.BACKGROUND_CHILD_ENV: "1"},
             )
         )
+
+    def test_widget_script_uses_local_lock_for_normal_gui_launches(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            lock_file = Path(tmp) / "project-room-widget.lock"
+
+            first = project_room_widget.acquire_widget_lock(lock_file, platform="win32")
+            self.assertIsNotNone(first)
+            try:
+                second = project_room_widget.acquire_widget_lock(lock_file, platform="win32")
+                self.assertIsNone(second)
+            finally:
+                first.close()
+
+    def test_widget_script_focus_existing_window_is_windows_only_by_default(self) -> None:
+        import project_room_widget
+
+        self.assertFalse(project_room_widget.focus_existing_widget_window(platform="linux"))
+
+    def test_widget_script_relaunch_writes_stdout_and_stderr_to_log(self) -> None:
+        text = (WIDGET_DIR / "project_room_widget.py").read_text(encoding="utf-8")
+
+        self.assertIn("DEFAULT_WIDGET_LOG", text)
+        self.assertIn("stdout=log_handle", text)
+        self.assertIn("stderr=log_handle", text)
+        self.assertNotIn("stderr=subprocess.DEVNULL", text)
 
     def test_entity_hit_testing_ignores_transparent_image_pixels(self) -> None:
         import project_room_widget
@@ -1452,12 +1775,18 @@ class PetStudioPreflightTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
             data = json.loads(result.stdout)
             self.assertTrue(data["ok"])
+            self.assertEqual(data["projectId"], "gakju-archive-demo")
+            self.assertEqual(Path(data["kitManifest"]).name, "project-room.json")
+            self.assertIn("nextCommands", data)
+            self.assertIn("launch", data["nextCommands"])
+            self.assertIn("hookTrustHint", data)
             self.assertTrue(output.exists())
             self.assertGreater(output.stat().st_size, 0)
 
-    def test_preflight_launch_hint_includes_custom_registry(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
+    def test_preflight_validates_custom_registry_relative_project(self) -> None:
+        with tempfile.TemporaryDirectory(dir=ROOT / "runs") as tmp:
             registry = Path(tmp) / "projects.json"
+            kit_dir = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit"
             write_json(
                 registry,
                 {
@@ -1466,7 +1795,7 @@ class PetStudioPreflightTests(unittest.TestCase):
                         {
                             "projectId": "custom-demo",
                             "displayName": "Custom Demo",
-                            "kitPath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit").resolve()),
+                            "kitPath": str(relative_to_or_relpath(kit_dir, registry.parent)),
                             "petPackagePath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner").resolve()),
                             "workspacePaths": [],
                             "defaultState": "idle",
@@ -1483,7 +1812,9 @@ class PetStudioPreflightTests(unittest.TestCase):
                     str(PREFLIGHT_SCRIPT),
                     "--skip-skill",
                     "--skip-hooks",
-                    "--skip-render",
+                    "--render-output",
+                    str(Path(tmp) / "custom-render.png"),
+                    "--json",
                     "--registry",
                     str(registry),
                     "--project-id",
@@ -1496,8 +1827,13 @@ class PetStudioPreflightTests(unittest.TestCase):
             )
 
             self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
-            self.assertIn("--config", result.stdout)
-            self.assertIn(str(registry), result.stdout)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["ok"])
+            self.assertEqual(data["projectId"], "custom-demo")
+            self.assertEqual(Path(data["kitManifest"]).resolve(), (kit_dir / "project-room.json").resolve())
+            self.assertIn("--config", data["nextCommands"]["launch"])
+            self.assertIn(str(registry), data["nextCommands"]["launch"])
+            self.assertTrue(any(check["name"] == "kit-validation" and check["ok"] for check in data["checks"]))
 
     def test_preflight_reports_missing_skill_install_target(self) -> None:
         import pet_studio_preflight
@@ -1508,19 +1844,191 @@ class PetStudioPreflightTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("install_pet_studio_skill.py", result.message)
 
-    def test_preflight_validates_demo_registry_and_local_only_ignores(self) -> None:
+    def test_preflight_validates_project_registry_and_local_only_ignores(self) -> None:
         import pet_studio_preflight
 
-        registry_result, project = pet_studio_preflight.check_demo_registry(
+        registry_result, project = pet_studio_preflight.check_project_registry(
             pet_studio_preflight.DEFAULT_REGISTRY,
             "gakju-archive-demo",
         )
-        kit_result = pet_studio_preflight.check_sample_kit(pet_studio_preflight.DEFAULT_REGISTRY, project)
+        kit_result, manifest = pet_studio_preflight.check_project_kit(pet_studio_preflight.DEFAULT_REGISTRY, project)
+        validation_result = pet_studio_preflight.validate_project_kit(ROOT, manifest)
         ignore_result = pet_studio_preflight.check_local_only_ignores(ROOT)
 
         self.assertTrue(registry_result.ok, registry_result.message)
         self.assertTrue(kit_result.ok, kit_result.message)
+        self.assertTrue(validation_result.ok, validation_result.message)
         self.assertTrue(ignore_result.ok, ignore_result.message)
+
+    def test_preflight_reports_registry_and_manifest_failures(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "missing.json"
+            missing_result, missing_project = pet_studio_preflight.check_project_registry(missing, "missing-demo")
+            invalid = Path(tmp) / "invalid.json"
+            invalid.write_text("{", encoding="utf-8")
+            invalid_result, invalid_project = pet_studio_preflight.check_project_registry(invalid, "invalid-demo")
+            no_projects = Path(tmp) / "no-projects.json"
+            write_json(no_projects, {"schemaVersion": 1, "projects": {}})
+            shape_result, shape_project = pet_studio_preflight.check_project_registry(no_projects, "shape-demo")
+            disabled = Path(tmp) / "disabled.json"
+            write_json(disabled, {"schemaVersion": 1, "projects": [{"projectId": "off", "enabled": False}]})
+            disabled_result, disabled_project = pet_studio_preflight.check_project_registry(disabled, "off")
+            missing_kit_path_result, _ = pet_studio_preflight.check_project_kit(disabled, {"projectId": "no-kit", "enabled": True})
+            missing_manifest_result, _ = pet_studio_preflight.check_project_kit(
+                disabled,
+                {"projectId": "missing-manifest", "enabled": True, "kitPath": "missing-kit"},
+            )
+
+        self.assertFalse(missing_result.ok)
+        self.assertIsNone(missing_project)
+        self.assertIn("Missing registry", missing_result.message)
+        self.assertFalse(invalid_result.ok)
+        self.assertIsNone(invalid_project)
+        self.assertIn("Cannot read", invalid_result.message)
+        self.assertFalse(shape_result.ok)
+        self.assertIsNone(shape_project)
+        self.assertIn("projects list", shape_result.message)
+        self.assertIn('{"schemaVersion": 1, "projects": [...]', shape_result.message)
+        self.assertFalse(disabled_result.ok)
+        self.assertIsNotNone(disabled_project)
+        self.assertIn("disabled", disabled_result.message)
+        self.assertIn("enabled", disabled_result.message)
+        self.assertFalse(missing_kit_path_result.ok)
+        self.assertIn("kitPath", missing_kit_path_result.message)
+        self.assertIn("project-room-projects.json", missing_kit_path_result.message)
+        self.assertFalse(missing_manifest_result.ok)
+        self.assertIn("Missing project manifest", missing_manifest_result.message)
+        self.assertIn("Fix kitPath", missing_manifest_result.message)
+        self.assertIn("tools\\pet_studio_create_room.py", missing_manifest_result.message)
+
+    def test_preflight_unknown_project_message_has_register_and_list_hints(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+
+            result, project = pet_studio_preflight.check_project_registry(registry, "unknown-project")
+
+        self.assertFalse(result.ok)
+        self.assertIsNone(project)
+        self.assertIn("tools\\pet_studio_create_room.py", result.message)
+        self.assertIn("--list-projects", result.message)
+
+    def test_preflight_cli_korean_lang_reports_unknown_project_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "cp1252"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--project-id",
+                    "unknown-project",
+                    "--registry",
+                    str(registry),
+                    "--skip-render",
+                    "--skip-hooks",
+                    "--skip-skill",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("프로젝트가 registry에 등록되어 있지 않습니다", result.stdout + result.stderr)
+        self.assertIn("해결:", result.stdout + result.stderr)
+        self.assertIn("--list-projects", result.stdout + result.stderr)
+
+    def test_preflight_cli_korean_lang_reports_missing_kitpath_hint(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": [{"projectId": "no-kit", "enabled": True}]})
+            env = dict(os.environ)
+            env["PYTHONIOENCODING"] = "cp1252"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--project-id",
+                    "no-kit",
+                    "--registry",
+                    str(registry),
+                    "--skip-render",
+                    "--skip-hooks",
+                    "--skip-skill",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                encoding="utf-8",
+                env=env,
+                capture_output=True,
+                check=False,
+            )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("프로젝트에 kitPath가 없습니다", result.stdout + result.stderr)
+        self.assertIn("해결:", result.stdout + result.stderr)
+
+    def test_preflight_json_output_remains_english_keyed_with_korean_lang(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            registry = Path(tmp) / "projects.json"
+            write_json(registry, {"schemaVersion": 1, "projects": []})
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(PREFLIGHT_SCRIPT),
+                    "--project-id",
+                    "unknown-project",
+                    "--registry",
+                    str(registry),
+                    "--skip-render",
+                    "--skip-hooks",
+                    "--skip-skill",
+                    "--json",
+                    "--lang",
+                    "ko",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            data = json.loads(result.stdout)
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("projectId", data)
+        self.assertIn("checks", data)
+        registry_check = next(check for check in data["checks"] if check["name"] == "registry")
+        self.assertIn("is not registered", registry_check["message"])
+        self.assertNotIn("등록", registry_check["message"])
+
+    def test_preflight_reports_validator_failure(self) -> None:
+        import pet_studio_preflight
+
+        with tempfile.TemporaryDirectory() as tmp:
+            manifest = Path(tmp) / "kit" / "project-room.json"
+            write_json(manifest, {"schemaVersion": 1, "layers": []})
+
+            result = pet_studio_preflight.validate_project_kit(ROOT, manifest)
+
+        self.assertFalse(result.ok)
+        self.assertIn("Kit validation failed", result.message)
 
     def test_preflight_warns_for_incomplete_hook_config(self) -> None:
         import pet_studio_preflight
@@ -1545,12 +2053,14 @@ class PetStudioPreflightTests(unittest.TestCase):
                 },
             )
 
-            result = pet_studio_preflight.check_hooks_config(hooks_file)
+            result = pet_studio_preflight.check_hooks_config(hooks_file, "gakju-demo")
 
         self.assertTrue(result.ok)
         self.assertTrue(result.warning)
         self.assertIn("UserPromptSubmit", result.message)
         self.assertIn("Stop", result.message)
+        self.assertIn("--project-id gakju-demo", result.message)
+        self.assertIn("/hooks", result.message)
 
     def test_preflight_summarizes_hook_log_for_debugging(self) -> None:
         import pet_studio_preflight
@@ -1574,7 +2084,139 @@ class PetStudioPreflightTests(unittest.TestCase):
         self.assertEqual(summary, ["post_tool_use -> running: Working", "stop -> done: Done"])
 
 
+class PetStudioDemoStateCyclerTests(unittest.TestCase):
+    def test_demo_state_sequence_includes_expected_messages_and_final_idle(self) -> None:
+        import pet_studio_demo_states
+
+        steps = pet_studio_demo_states.build_demo_sequence()
+
+        self.assertEqual([step.state for step in steps], ["idle", "running", "waiting", "blocked", "review", "done", "idle"])
+        self.assertEqual([step.message for step in steps], ["", "Working...", "Compacting context...", "Needs input", "Ready for review", "Done", ""])
+
+    def test_demo_state_payload_shape_uses_existing_bridge_contract(self) -> None:
+        import pet_studio_demo_states
+
+        payload = pet_studio_demo_states.payload_for_step(
+            "gakju-archive-demo",
+            pet_studio_demo_states.DemoStep("done", "Done"),
+            updated_at="2026-06-15T00:00:00Z",
+            delay_seconds=2.0,
+        )
+
+        self.assertEqual(
+            payload,
+            {
+                "projectId": "gakju-archive-demo",
+                "state": "done",
+                "message": "Done",
+                "updatedAt": "2026-06-15T00:00:00Z",
+            },
+        )
+
+    def test_demo_state_dry_run_prints_json_and_does_not_write_state_file(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOLS_DIR / "pet_studio_demo_states.py"),
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                    "--dry-run",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["ok"])
+            self.assertTrue(data["dryRun"])
+            self.assertEqual(data["projectId"], "gakju-archive-demo")
+            self.assertEqual(data["sequence"][1]["state"], "running")
+            self.assertEqual(data["sequence"][1]["message"], "Working...")
+            self.assertFalse(state_file.exists())
+
+    def test_demo_state_once_writes_sequence_and_ends_idle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(TOOLS_DIR / "pet_studio_demo_states.py"),
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                    "--once",
+                    "--delay-seconds",
+                    "0",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            data = json.loads(result.stdout)
+            self.assertTrue(data["ok"])
+            self.assertFalse(data["dryRun"])
+            self.assertEqual(data["cyclesCompleted"], 1)
+            self.assertEqual(data["writes"], 7)
+            payload = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(payload["projectId"], "gakju-archive-demo")
+            self.assertEqual(payload["state"], "idle")
+            self.assertEqual(payload["message"], "")
+
+    def test_demo_state_delay_alias_matches_delay_seconds(self) -> None:
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(TOOLS_DIR / "pet_studio_demo_states.py"),
+                "--project-id",
+                "gakju-archive-demo",
+                "--delay",
+                "1.5",
+                "--dry-run",
+            ],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+        data = json.loads(result.stdout)
+        self.assertEqual(data["delaySeconds"], 1.5)
+        done_payload = next(payload for payload in data["payloads"] if payload["state"] == "done")
+        self.assertNotIn("resetAfterMs", done_payload)
+        self.assertNotIn("resetToState", done_payload)
+
+
 class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
+    def test_hook_command_shell_args_quote_shell_metacharacters(self) -> None:
+        from install_pet_studio_codex_integration import command_string
+
+        command = command_string(
+            [
+                r"C:\Program Files\Python\python.exe",
+                r"D:\pet & studio\pet-studio-widget\codex_pet_hook.py",
+                "--hook",
+                "stop",
+            ]
+        )
+
+        self.assertIn('"D:\\\\pet & studio\\\\pet-studio-widget\\\\codex_pet_hook.py"', command)
+        self.assertIn('"C:\\\\Program Files\\\\Python\\\\python.exe"', command)
+        self.assertNotIn(r"D:\pet & studio\pet-studio-widget\codex_pet_hook.py --hook", command)
+
     def test_installs_lifecycle_hooks_json_without_dropping_existing_hooks(self) -> None:
         from install_pet_studio_codex_integration import install_hooks_bridge
 
@@ -1719,6 +2361,43 @@ class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
 
         self.assertIn("Refusing to replace unsafe skill destination", str(raised.exception))
         self.assertTrue((ROOT / ".git").exists())
+
+    def test_skill_installer_records_repo_location_for_widget_launcher(self) -> None:
+        from install_pet_studio_skill import install
+
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "pet-studio"
+
+            install(destination, force=False)
+
+            location = json.loads((destination / "repo-location.json").read_text(encoding="utf-8"))
+            self.assertEqual(Path(location["repoRoot"]), ROOT)
+            self.assertEqual(Path(location["widgetEntrypoint"]), WIDGET_SCRIPT)
+            self.assertTrue((destination / "scripts" / "launch_pet_studio_widget.py").exists())
+
+    def test_installed_skill_widget_launcher_uses_recorded_repo_runtime(self) -> None:
+        from install_pet_studio_skill import install
+
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "pet-studio"
+            install(destination, force=False)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(destination / "scripts" / "launch_pet_studio_widget.py"),
+                    "--foreground",
+                    "--list-projects",
+                ],
+                cwd=Path(tmp),
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+            self.assertIn("gakju-archive-demo", result.stdout)
+            self.assertNotIn("minimal widget", result.stderr.lower() + result.stdout.lower())
 
     def test_installer_does_not_wrap_global_notify_by_default(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

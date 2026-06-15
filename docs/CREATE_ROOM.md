@@ -43,14 +43,28 @@ Useful options:
 - `--dry-run` prints the planned low-level command without writing files.
 - `--force` replaces an existing output directory. Use this only when the old `runs\<project-id>` output can be discarded.
 - `--verbose` prints the underlying generator output; the default output is a concise JSON summary with created artifacts and next commands.
+- `--guardrail-mode basic|strict|off` controls pre-generation asset checks. `basic` is the default: clear structural problems fail, subjective style issues become warnings.
 
-Create local QA evidence after generation:
+## Asset Guardrails
+
+The guided command checks common input mistakes before creating a kit:
+
+- The room image must be a `384x240` PNG source. Alpha cleanup only removes edge-connected margin pixels; it is not a general background remover.
+- Props must be visible transparent PNGs that fit inside the `384x240` source canvas. Use `--prop-placement id=background|behind-pet|front-of-pet|foreground` to describe where each prop should render relative to the main pet.
+- Project ids, prop ids, and helper ids must be slug-like: letters, numbers, underscore, and hyphen only, starting with a letter or number. These ids become local file paths and registry keys.
+- Prop ids and helper ids must be unique. A prop placement must reference a supplied prop id.
+- Helper packages must be hatch-pet packages with `pet.json` and a `1536x1872` spritesheet. Codex should still ask before generating helper/sub-pet art, because visual style mismatch is a QA judgment.
+- Kit manifest asset paths must be relative paths that stay inside the generated kit directory.
+
+After generation, run the setup check, launch the room, then create local QA evidence:
 
 ```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room
+.\tools\pet_studio_widget.cmd --project-id my-room --scale 1.25
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
 ```
 
-The QA pack writes validation JSON, an idle render, an all-state contact sheet, a widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json` under `runs\my-room\qa-pack\`. These files are local evidence and are ignored by git.
+Preflight checks Python/Pillow, the registry entry, the selected kit manifest, kit validation, hook configuration, ignored local state, and a render-once output. The QA pack writes validation JSON, an idle render, an all-state contact sheet, a widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json` under `runs\my-room\qa-pack\`. These files are local evidence and are ignored by git.
 
 ## What Gets Created
 

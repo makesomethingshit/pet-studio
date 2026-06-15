@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
+from image_guardrails import safe_image_size, safe_rgba_image
+
 
 STATE_ROWS = {
     "idle": {"row": 0, "frames": 6},
@@ -22,8 +24,52 @@ STATE_ROWS = {
 }
 
 
+def resolve_kit_subpath(kit_dir: Path, raw_path: str, label: str = "Kit asset path") -> Path:
+    if not isinstance(raw_path, str) or not raw_path.strip():
+        raise ValueError(f"{label} must be a non-empty relative path.")
+    path = Path(raw_path)
+    if path.is_absolute():
+        raise ValueError(f"{label} `{raw_path}` must be relative to the kit directory.")
+    base = kit_dir.resolve()
+    resolved = (kit_dir / path).resolve()
+    try:
+        resolved.relative_to(base)
+    except ValueError as exc:
+        raise ValueError(f"{label} `{raw_path}` escapes the kit directory.") from exc
+    return resolved
+
+
+def layer_max_size(kit: dict, layer: dict) -> tuple[int, int] | None:
+    role = layer.get("role")
+    if role == "room":
+        return int(kit["roomModule"]["width"]), int(kit["roomModule"]["height"])
+    if role in {"mainPet", "helperPet"}:
+        return int(kit["atlas"]["width"]), int(kit["atlas"]["height"])
+    if role == "prop":
+        source = kit.get("sourceCanvas", kit["roomModule"])
+        return int(source["width"]), int(source["height"])
+    return None
+
+
+def image_size(path: Path) -> tuple[int, int]:
+    return safe_image_size(path)
+
+
+def validate_layer_image_bounds(kit: dict, layer: dict, path: Path) -> None:
+    max_size = layer_max_size(kit, layer)
+    if max_size is None:
+        return
+    width, height = image_size(path)
+    max_width, max_height = max_size
+    if width > max_width or height > max_height:
+        raise ValueError(
+            f"Layer `{layer.get('id', '<unknown>')}` image is {width}x{height}; "
+            f"maximum for role `{layer.get('role', '<unknown>')}` is {max_width}x{max_height}."
+        )
+
+
 def load_image(path: Path) -> Image.Image:
-    return Image.open(path).convert("RGBA")
+    return safe_rgba_image(path)
 
 
 def visible_bbox(layer: Image.Image) -> tuple[int, int, int, int] | None:
@@ -149,7 +195,7 @@ def layer_visible_for_state(layer: dict, state: str, visible_ids: set[str]) -> b
 
 
 def resolve_asset(kit_dir: Path, layer: dict) -> Path:
-    return kit_dir / layer["path"]
+    return resolve_kit_subpath(kit_dir, layer["path"], f"Layer `{layer.get('id', '<unknown>')}` path")
 
 
 def build_source_frame(
@@ -213,7 +259,9 @@ def build_cell(
     return render_preview_cell(kit, canvas)
 
 
-def load_layer_assets(kit_dir: Path, layers: list[dict], warnings: list[str]) -> dict[str, Image.Image]:
+def load_layer_assets(kit_dir: Path, kit_or_layers: dict | list[dict], warnings: list[str]) -> dict[str, Image.Image]:
+    kit = kit_or_layers if isinstance(kit_or_layers, dict) else None
+    layers = kit_or_layers.get("layers", []) if isinstance(kit_or_layers, dict) else kit_or_layers
     assets: dict[str, Image.Image] = {}
     for layer in layers:
         path = resolve_asset(kit_dir, layer)
@@ -222,6 +270,8 @@ def load_layer_assets(kit_dir: Path, layers: list[dict], warnings: list[str]) ->
                 raise FileNotFoundError(f"Required main pet asset not found: {path}")
             warnings.append(f"Optional asset not found: {path}")
             continue
+        if kit is not None:
+            validate_layer_image_bounds(kit, layer, path)
         assets[layer["id"]] = load_image(path)
     return assets
 
@@ -245,7 +295,7 @@ def main() -> None:
     atlas_width = int(kit["atlas"]["width"])
     atlas_height = int(kit["atlas"]["height"])
     atlas = Image.new("RGBA", (atlas_width, atlas_height), (0, 0, 0, 0))
-    layer_assets = load_layer_assets(kit_dir, kit["layers"], warnings)
+    layer_assets = load_layer_assets(kit_dir, kit, warnings)
 
     for state, info in STATE_ROWS.items():
         if state not in kit["states"]:

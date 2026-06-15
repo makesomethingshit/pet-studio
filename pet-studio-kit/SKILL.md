@@ -19,10 +19,12 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - Ask only for missing creative inputs: style source, room image, prop images, theme, display name, or whether fallback baking is wanted.
 - Run creation, validation, preview, registry, and state-bridge scripts yourself when the local workspace allows it.
 - Report outcomes as artifacts and next choices: created kit path, validation result, preview path, registered project id, layout file path, and any remaining missing asset.
+- Treat asset guardrails as part of first-room creation: fix structural input errors before generating, and route subjective style concerns to QA instead of claiming automatic visual judgment.
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Before generating helper/sub-pet base art, show the user 2-3 compact concept directions that explicitly reference the selected style source, then wait for the user's choice. Do not silently choose a helper creature, mascot, or coworker form, because helper style mismatch is hard to repair after atlas generation.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
-- Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, and project window position persistence. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
+- For widget debugging, use `tools\pet_studio_widget.cmd ... --foreground` or direct `pet-studio-widget/pet_studio_widget.py ... --foreground`; normal detached launches should be single-instance and focus the existing `Pet Studio Widget` window instead of creating stacked `pythonw.exe` copies.
+- Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, project window position persistence, and registered-project session restore. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
 
 ## First Choice
 
@@ -38,12 +40,14 @@ The selected source controls perspective, palette, outline weight, room size, pe
 
 1. Choose a hatch-pet package or style lock.
 2. Generate or provide a `384x240` room image and optional transparent prop PNGs.
-3. Prefer the repository wrapper `tools/pet_studio_create_room.py` when working inside a Pet Studio checkout. It creates the kit, validates it, renders preview/contact images, registers the project, links a workspace, and prints preflight/launch/render/QA pack commands.
+3. Prefer the repository wrapper `tools/pet_studio_create_room.py` when working inside the Pet Studio repo folder, such as the cloned `D:\pet-studio` checkout on this machine. It creates the kit, validates it, renders preview/contact images, registers the project, links a workspace, and prints preflight/launch/render/QA pack commands.
 4. Use `pet-studio-kit/scripts/create_project_room_kit.py` only as a manual/debug fallback when the wrapper is unavailable or the workflow needs low-level control.
 5. Run `scripts/validate_project_room_kit.py` before trusting any kit that was produced outside the guided wrapper.
-6. Create local QA evidence with `tools/pet_studio_create_qa_pack.py --project-id <id>` when a registered project should be reviewed.
-7. Register the kit into a project registry when it should be selectable by project id.
-8. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime, or copy the generated kit into another host. `project_room_widget.py` remains as a legacy alias.
+6. Run `tools/pet_studio_preflight.py --project-id <id>` after registration to verify Python/Pillow, registry, kit validation, render-once, hook config, and ignored local state.
+7. Create local QA evidence with `tools/pet_studio_create_qa_pack.py --project-id <id>` when a registered project should be reviewed.
+8. Use `tools/pet_studio_demo_states.py --project-id <id> --once --delay-seconds 2` when README GIF capture or manual QA needs a deterministic state sequence.
+9. Register the kit into a project registry when it should be selectable by project id.
+10. Use `pet-studio-widget/pet_studio_widget.py` from the repository scene-host runtime. When operating from the installed `$pet-studio` skill outside the repo folder, use `scripts/launch_pet_studio_widget.py`; it resolves the cloned repo location recorded by `tools/install_pet_studio_skill.py` and must not create a fallback/minimal widget.
 
 ## Guided First-Room Command
 
@@ -61,13 +65,24 @@ python tools/pet_studio_create_room.py `
 
 The wrapper refuses to overwrite an existing output directory unless `--force` is passed. Use `--dry-run` to inspect the low-level command without writing files. When a custom registry is supplied, the printed preflight/launch/render commands include the matching `--registry` or `--config` argument.
 
-Create the local QA pack after registration:
+The wrapper runs asset guardrails before creating a kit. Default `--guardrail-mode basic` fails clear structural problems, such as wrong room size, invisible props, oversized props, duplicate ids, unknown prop placements, or invalid helper packages. Subjective style consistency remains a warning and QA responsibility. Use `--guardrail-mode strict` to turn warnings into failures, or `--guardrail-mode off` to suppress subjective warnings while keeping required structural validation.
+Project ids, prop ids, and helper ids must be slug-like: letters, numbers, underscore, and hyphen only, starting with a letter or number. They become local file paths and registry keys, so reject path separators, dots, spaces, and shell-like fragments.
+For Korean users, pass `--lang ko` or set `PET_STUDIO_LANG=ko` to show user-facing repair hints in Korean while preserving command flags, paths, JSON keys, and error codes in English.
+
+Run setup check and create the local QA pack after registration:
 
 ```powershell
+python tools/pet_studio_preflight.py --project-id archive-nook
 python tools/pet_studio_create_qa_pack.py --project-id archive-nook
 ```
 
-The QA pack writes validation JSON, idle render, all-state contact sheet, widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json`. Treat it as local evidence; do not edit `QA_REPORT.md` from this handoff.
+Preflight validates the selected registry project and kit before launch or QA handoff. The QA pack writes validation JSON, idle render, all-state contact sheet, widget render, `CODER_TO_QA.md`, and `qa-pack-summary.json`. Treat it as local evidence; do not edit `QA_REPORT.md` from this handoff.
+
+When launching from the installed skill directory instead of the repo:
+
+```powershell
+python C:\Users\USER\.codex\skills\pet-studio\scripts\launch_pet_studio_widget.py --project-id archive-nook --scale 1.25
+```
 
 ## Manual/Debug Command
 
@@ -97,8 +112,11 @@ python pet-studio-kit/scripts/create_project_room_kit.py `
 - Every generated asset has a sidecar `.asset.json`.
 - Rooms include `left-door`, `right-door`, `floor-line`, and `back-wall` feature metadata.
 - Room intake clears edge-connected near-white margin pixels to transparency while preserving the `384x240` canvas; do not crop the room source.
+- Kit manifest asset paths must be relative paths that stay inside the kit directory; reject absolute paths and `..` escapes before opening images or sidecar metadata.
 - Static layers must not contain transparent RGB residue.
 - Prop layers should declare placement relative to the pet: `background`, `behind-pet`, `front-of-pet`, or `foreground`. Default generated props are `behindPet` so the main pet renders in front of furniture.
+- Props must have visible opaque pixels and fit inside the `384x240` source canvas. If a prop is large enough to read as room/background art, confirm whether it should be a prop or merged into the room source.
+- Helper packages must be standard hatch-pet packages with `pet.json` and a `1536x1872` atlas. Missing optional style sidecars are not an automatic failure, but require visual QA against the selected style source.
 - Layers may set `flipX: true` for a runtime/preview/fallback horizontal mirror. Use it for simple orientation fixes only; do not use it to paper over asymmetric text, logos, lighting direction, or identity drift.
 - Live runtime keeps room, prop, main pet, and helper pet as independent Canvas entities. Props and pets are draggable; room/background layers are locked by default.
 
@@ -117,9 +135,11 @@ Use the Pet Studio registry to map project ids to room kits. The v1 compatibilit
 
 Project linking lives in this registry. Created kit reports also include a `projectLink` block so the assigned project id, registry path, kit path, and workspace paths can be inspected without opening the registry by hand.
 
-Project-specific entity position overrides live in `pet-studio-widget/project-room-layouts.json`. That filename remains the v1 compatibility storage contract. The host writes this file only for registered `--project-id` runs; direct `--kit` runs are session-only.
+Project-specific entity position overrides live in `pet-studio-widget/project-room-layouts.json`. That filename remains the v1 compatibility storage contract. The host writes this file only for registered `--project-id` runs; direct `--kit` runs are temporary and do not persist layout, window, or session overrides.
 
 Project-specific host window position and scale live in `pet-studio-widget/project-room-window.json`. That filename remains the v1 compatibility storage contract. The host writes this file only for registered `--project-id` runs; direct `--kit` runs do not persist window placement.
+
+Registered project session snapshots live in `pet-studio-widget/project-room-session.json`. The session file stores the last visible state, message, bubble visibility, window position/scale, update time, and state source. Registered `--project-id` launches restore this by default; direct `--kit` launches do not. For deterministic QA or render/debug launches, pass `--no-restore-session`. Startup priority is explicit CLI values, fresh state bridge, session snapshot, then registry/window defaults. Stale working bridge states older than five minutes should not pin the widget in `running`, `waiting`, `review`, `failed`, `blocked`, or `handoff` after reopening.
 
 Use `pet-studio-widget/project-room-state.json` as the v1 file-based bridge from external task state to widget state. Supported external states include `idle`, `running`, `waiting`, `review`, `failed`, `done`, `blocked`, and `handoff`.
 
