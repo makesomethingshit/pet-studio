@@ -23,8 +23,9 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Before generating helper/sub-pet base art, show the user 2-3 compact concept directions that explicitly reference the selected style source, then wait for the user's choice. Do not silently choose a helper creature, mascot, or coworker form, because helper style mismatch is hard to repair after atlas generation.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
-- For widget debugging, use `tools\pet_studio_widget.cmd ... --foreground` or direct `pet-studio-widget/pet_studio_widget.py ... --foreground`; normal detached launches should be single-instance and focus the existing `Pet Studio Widget` window instead of creating stacked `pythonw.exe` copies.
+- For widget debugging, use `tools\\pet_studio_widget.cmd ... --foreground` or direct `pet-studio-widget/pet_studio_widget.py ... --foreground`; normal detached launches should be single-instance and focus the existing `Pet Studio Widget` window instead of creating stacked `pythonw.exe` copies.
 - Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, project window position persistence, and registered-project session restore. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
+- When working on Codex hook integration, use `tools/pet_studio_hook_status.py` to verify the bridge health (hooks installed, reachable, events flowing, state freshness). Run `tools/pet_studio_hook_status.py --json` for machine-parseable output.
 
 ## First Choice
 

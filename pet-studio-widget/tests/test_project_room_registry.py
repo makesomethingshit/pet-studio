@@ -880,6 +880,54 @@ class ProjectRoomRegistryTests(unittest.TestCase):
         write_json(path, {"schemaVersion": 1, "projects": [project]})
         return path
 
+    def test_project_room_registry_reexports_core_registry_api(self) -> None:
+        import pet_studio_core.registry as core_registry
+        import project_room_registry
+
+        self.assertIs(project_room_registry.ProjectAssignment, core_registry.ProjectAssignment)
+        self.assertIs(project_room_registry.ProjectRegistryError, core_registry.ProjectRegistryError)
+        self.assertIs(project_room_registry.select_project, core_registry.select_project)
+        self.assertEqual(project_room_registry.DEFAULT_REGISTRY, core_registry.DEFAULT_REGISTRY)
+
+    def test_core_state_writer_preserves_bridge_payload_shape(self) -> None:
+        from pet_studio_core.registry import read_project_state
+        from pet_studio_core.state import write_project_state
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+
+            payload = write_project_state(
+                state_file,
+                "gakju-demo",
+                "done",
+                "Done",
+                updated_at="2026-06-15T00:00:00Z",
+                reset_after_ms=1500,
+                reset_to_state="idle",
+            )
+
+            self.assertEqual(
+                payload,
+                {
+                    "projectId": "gakju-demo",
+                    "state": "done",
+                    "message": "Done",
+                    "updatedAt": "2026-06-15T00:00:00Z",
+                    "resetAfterMs": 1500,
+                    "resetToState": "idle",
+                },
+            )
+            self.assertEqual(read_project_state(state_file, "gakju-demo", "idle"), "jumping")
+
+    def test_core_package_has_no_codex_or_widget_host_imports(self) -> None:
+        core_files = list((ROOT / "pet_studio_core").glob("*.py"))
+        self.assertTrue(core_files)
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in core_files)
+
+        self.assertNotIn("codex_", combined)
+        self.assertNotIn("tkinter", combined)
+        self.assertNotIn("codex_pet_hook", combined)
+
     def test_selects_enabled_project_and_resolves_kit_path(self) -> None:
         from project_room_registry import select_project
 

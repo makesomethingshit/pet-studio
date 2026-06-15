@@ -92,14 +92,24 @@ The create command checks common asset mistakes before writing a kit: room sourc
 
 ## Roadmap
 
-The long-term vision is a small local dashboard where every Codex workspace has a recognizable room, state, mood, and companion behavior. These are future directions, not current features:
+The long-term vision is a local visual workroom for AI projects. The current project stays intentionally smaller: one Codex workspace, one tiny desktop room, and enough state to understand what the agent is doing without staring at logs.
 
-* smoother first-room creation and setup checks
-* more room themes, prop packs, and state animations
-* richer helper pet behavior and Codex event mapping
+Near-term follow-ups after `v0.2.0`:
+
+* `v0.3.0` boundary work: keep current behavior, but split shared registry/state logic into Pet Studio Core
+* make fresh-clone setup smoother
+* improve room creation docs and failure messages
+* add more sample room themes and props
+* polish state animations and helper-pet behavior
+* improve Codex event mapping without depending on an official dashboard API
+
+Larger ideas remain roadmap, not current features:
+
 * multi-project room switcher
-* macOS/Linux widget host
 * lightweight room editor
+* shareable room presets
+* macOS/Linux widget hosts
+* broader workroom concepts such as Team Rooms, Project Hubs, and task cards
 
 Detailed roadmap: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
 
@@ -108,6 +118,8 @@ Detailed roadmap: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
 * [Install](docs/INSTALL.md)
 * [Create a room](docs/CREATE_ROOM.md)
 * [Codex integration](docs/CODEX_INTEGRATION.md)
+* [Architecture](docs/ARCHITECTURE.md)
+* [Core / adapter boundary](docs/ADAPTER_BOUNDARY.md)
 * [Development checks](docs/DEVELOPMENT.md)
 * [Long-term workroom vision](docs/PET_STUDIO_WORKROOM_VISION.md)
 * [Demo script](docs/DEMO_SCRIPT.md)

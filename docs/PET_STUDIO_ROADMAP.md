@@ -19,6 +19,7 @@ The final vision is broader than the current implementation:
 This is what the repository can do today. Items outside this list should be treated as experimental or roadmap until implemented and verified.
 
 - `pet-studio-kit` can create, validate, preview, and optionally bake layered `384x240` room kits.
+- `pet_studio_core` owns shared registry and state bridge primitives used by widget and adapter compatibility modules.
 - `create_project_room_kit.py` accepts an arbitrary hatch-pet package plus generated or authored room/prop assets.
 - `pet-studio-widget` can render a layered kit as independent Canvas entities in a frameless desktop scene host.
 - `codex_state_adapter.py` can publish manual Codex-like task events into the state bridge and infer project ids from registered workspace paths.
@@ -40,13 +41,47 @@ This is what the repository can do today. Items outside this list should be trea
 
 ## Milestones
 
-### 0.2.0 Target. First Room Creation UX
+### 0.3.0 Target. Boundary RC
 
-Pet Studio 0.2.0 should make the first custom room feel achievable from a fresh clone. The release theme is: choose an existing hatch-pet package, provide a room image and optional props/helpers, generate the kit, validate it, register it, and launch or preflight it without memorizing the lower-level script flags.
+Pet Studio 0.3.0 separates the current product into clear internal layers without changing user-facing behavior. The release theme is: Codex is an adapter, not the core.
+
+Done when:
+
+- `pet_studio_core` owns shared registry and state bridge primitives.
+- Existing `project_room_*` imports and `project-room-*` files remain compatible.
+- Codex hook payloads, hook logs, and trust behavior stay in adapter modules.
+- Architecture docs define Core, Widget Host, Codex Adapter, Asset Forge, and future Workroom boundaries.
+- Team Room, Project Hub, endpoint registry, dashboard, and orchestration are still future work.
+
+### 0.2.x Follow-Up. Make The First Run Boring
+
+The 0.2.x line should keep improving the shipped first-room experience without changing the product shape. These releases are for setup reliability, clearer docs, sharper error messages, and small visual polish.
+
+Good 0.2.x work:
+
+- fix fresh-clone setup failures
+- improve install, preflight, and release documentation
+- add clearer repair hints for common user mistakes
+- improve README/demo/social-preview material
+- add small asset guardrails when real failures are found
+- polish the Windows widget launcher and state bridge behavior
+
+Not 0.2.x work:
+
+- Team Rooms or Project Hubs
+- core package extraction
+- macOS/Linux widget hosts
+- GUI room editor
+- multi-project switcher
+- schema-breaking room format changes
+
+### Completed 0.2.0. First Room Creation UX
+
+Pet Studio 0.2.0 made the first custom room achievable from a fresh clone. The release theme was: choose an existing hatch-pet package, provide a room image and optional props/helpers, generate the kit, validate it, register it, and launch or preflight it without memorizing the lower-level script flags.
 
 #### M1. Guided Create Command
 
-Status: implemented in development.
+Status: released in 0.2.0.
 
 Done when:
 
@@ -59,7 +94,7 @@ Done when:
 
 #### M2. First Room QA Pack
 
-Status: implemented in development.
+Status: released in 0.2.0.
 
 Done when:
 
@@ -68,7 +103,7 @@ Done when:
 
 #### M3. First Room Setup Check
 
-Status: implemented in development.
+Status: released in 0.2.0.
 
 Done when:
 
@@ -78,7 +113,7 @@ Done when:
 
 #### M4. Asset Guardrails
 
-Status: implemented in development.
+Status: released in 0.2.0.
 
 Done when:
 

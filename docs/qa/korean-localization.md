@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implemented the 0.2.0 Korean localization pass from `tester/gakju-archive-demo/KOREAN_LOCALIZATION_REPORT.md`.
+Implemented the 0.2.0 Korean localization pass from `tester/gakju-archive-demo/archive/KOREAN_LOCALIZATION_REPORT.md`.
 
 This is intentionally limited to public Korean onboarding docs and repair-oriented CLI prose. English remains the default language, and JSON output keeps the existing English keys and structure.
 
