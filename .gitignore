@@ -17,8 +17,10 @@ env/
 Thumbs.db
 .DS_Store
 
+# Archive
+archive/
+
 # Local QA evidence and generated room runs
-tester/
 runs/fresh-custom-pet-room/
 runs/*-test/
 runs/*/qa-pack/
@@ -38,3 +40,6 @@ pet-studio-widget/project-room-window.json
 
 # Korean roadmap (local reference only, not tracked)
 docs/PET_STUDIO_ROADMAP.ko.md
+
+# Local Hermes agent state
+.hermes/

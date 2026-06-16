@@ -110,6 +110,26 @@ Full workflow: [docs/CREATE_ROOM.md](docs/CREATE_ROOM.md)
 
 The create command checks common asset mistakes before writing a kit: room sources must be `384x240`, props must be visible and fit inside the room canvas, helper packages must contain a valid hatch-pet atlas, and prop placement ids must match supplied props. Subjective style questions remain visual QA instead of automatic rejection.
 
+## Korean CLI Output
+
+Default CLI output is English. For Korean failure/recovery messages, use `--lang ko` or `PET_STUDIO_LANG=ko`:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id gakju-archive-demo --lang ko
+```
+
+JSON keys, error codes, command flags, paths, and IDs are not translated. Machine-readable output stays English.
+
+## Demo State Cycler
+
+For README GIF capture or manual QA, use the demo state cycler:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 2
+```
+
+Use `--dry-run` to inspect state bridge payloads without writing `project-room-state.json`.
+
 ## Roadmap
 
 The long-term vision is a local visual workroom for AI projects. The current project stays intentionally smaller: one Codex workspace, one tiny desktop room, and enough state to understand what the agent is doing without staring at logs.

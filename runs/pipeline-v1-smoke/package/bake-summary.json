@@ -1,9 +1,0 @@
-{
-  "ok": true,
-  "kit": "project-room",
-  "package": "runs\\pipeline-v1-smoke\\package",
-  "spritesheet": "runs\\pipeline-v1-smoke\\package\\spritesheet.webp",
-  "pet_json": "runs\\pipeline-v1-smoke\\package\\pet.json",
-  "bakeMode": "preview/fallback",
-  "warnings": []
-}

@@ -33,9 +33,8 @@ EXPECTED_HOOKS = {
     "Stop": "stop",
 }
 LOCAL_ONLY_PATHS = [
-    "tester/README.md",
-    "runs/fresh-custom-pet-room/README.md",
-    "runs/example-room/qa-pack/CODER_TO_QA.md",
+    "archive/tester/README.md",
+    "archive/runs/full-pipeline-experiment/kit-validation.json",
     "runs/pet-studio-preflight-render.png",
     "pet-studio-widget/project-room-active.json",
     "pet-studio-widget/project-room-hook-events.jsonl",

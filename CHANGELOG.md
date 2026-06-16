@@ -2,6 +2,24 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.3.1 - 2026-06-16
+
+### Repository Hygiene
+
+- Moved `tester/` debug artifacts (70+ files) to `archive/tester/`
+- Moved 12 experimental `runs/` directories to `archive/runs/` — kept only `gakju-imagegen-room-v1` (public sample) and `gakju-archive-demo` (demo room)
+- Moved stale QA RC docs (`docs/qa/020-*, 030-*`) to `docs/qa/archive/`
+- Deleted `CODER_TO_QA.md` (auto-generated, reproducible)
+- Added `archive/` and `.hermes/` to `.gitignore`
+
+### Documentation
+
+- Synced `README.md` and `README.ko.md` section parity:
+  - Added "What Works Today" items to Korean README (one-click install, interactive creator, auto-detect)
+  - Added "Korean CLI Output" and "Demo State Cycler" sections to English README
+  - Added missing doc links (Architecture, Adapter Boundary, Demo Script) to Korean README
+- Updated roadmap links in both READMEs
+
 ## 0.3.0 - 2026-06-16
 
 ### Architecture

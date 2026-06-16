@@ -1,7 +1,0 @@
-{
-  "id": "project-room-full-experiment",
-  "displayName": "Project Room Full Experiment",
-  "description": "A side-view room-decorating kit for a Codex pet widget.",
-  "spritesheetPath": "spritesheet.webp",
-  "sourceKit": "D:\\pet-studio\\runs\\full-pipeline-experiment\\kit\\project-room.json"
-}

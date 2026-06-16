@@ -74,6 +74,9 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 - 수동 상태: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
 - 선택적 Codex hook으로 prompt/tool/compact/stop 이벤트를 말풍선에 반영
 - 스크립트 기반 방 생성, asset guardrails, validation, preview sheet, local QA pack
+- 원클릭 설치 (`install.cmd`)
+- 대화형 방 만들기 (`create_room_interactive.py`)
+- 프로젝트 자동 감지 (workspace 기반 추론)
 
 ## 아직 실험적인 부분
 
@@ -140,8 +143,11 @@ README GIF나 수동 QA를 찍을 때는 기존 state bridge를 쓰는 데모 cy
 - [Install](docs/INSTALL.md)
 - [Create a room](docs/CREATE_ROOM.md)
 - [Codex integration](docs/CODEX_INTEGRATION.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Core / adapter boundary](docs/ADAPTER_BOUNDARY.md)
 - [Development checks](docs/DEVELOPMENT.md)
 - [Long-term workroom vision](docs/PET_STUDIO_WORKROOM_VISION.ko.md)
+- [Demo script](docs/DEMO_SCRIPT.md)
 - [English README](README.md)
 
 ## License
