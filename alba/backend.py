@@ -99,9 +99,7 @@ class HermesBackend(AlbaBackend):
 
     def classify_event(self, event: dict[str, Any]) -> dict[str, Any]:
         prompt = (
-            f"Classify this event by priority (high/normal/low). "
-            f"Reply with ONE word only.\n"
-            f"Event: {json.dumps(event)}"
+            f"Classify this event by priority (high/normal/low). Reply with ONE word only.\nEvent: {json.dumps(event)}"
         )
         output = self._run_hermes(prompt)
         priority = self._parse_priority(output) if output else None

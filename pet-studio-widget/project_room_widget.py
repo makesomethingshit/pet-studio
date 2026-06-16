@@ -799,6 +799,7 @@ class ProjectRoomWidget:
         """Return alba status emoji icon based on project state."""
         try:
             from alba.state_manager import TeamState
+
             ts = TeamState()
             status = ts.alba_status
             return {"active": "\U0001f7e2", "idle": "\u26aa", "error": "\U0001f534"}.get(status, "\u26aa")
