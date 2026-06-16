@@ -245,8 +245,7 @@ def main() -> None:
 
                     try:
                         result = subprocess.run(
-                            [codex_cmd, "--prompt", codex_prompt],
-                            capture_output=True, text=True, timeout=120
+                            [codex_cmd, "--prompt", codex_prompt], capture_output=True, text=True, timeout=120
                         )
                         output = result.stdout.strip()
                         # Parse pet package path from output
@@ -264,7 +263,8 @@ def main() -> None:
                             if pets_dir.exists():
                                 pet_dirs = sorted(
                                     [d for d in pets_dir.iterdir() if d.is_dir() and (d / "pet.json").exists()],
-                                    key=lambda d: d.stat().st_mtime, reverse=True
+                                    key=lambda d: d.stat().st_mtime,
+                                    reverse=True,
                                 )
                                 if pet_dirs:
                                     pet_package = pet_dirs[0]

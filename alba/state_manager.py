@@ -59,9 +59,7 @@ class TeamState:
     def save(self) -> None:
         self._data["updatedAt"] = utc_now()
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        self.state_file.write_text(
-            json.dumps(self._data, indent=2, ensure_ascii=False), encoding="utf-8"
-        )
+        self.state_file.write_text(json.dumps(self._data, indent=2, ensure_ascii=False), encoding="utf-8")
 
     # --- Alba ---
 
@@ -161,11 +159,7 @@ class TeamState:
         self.save()
 
     def get_context_history(self, limit: int = 50) -> list[dict]:
-        return (
-            self._data.get("alba", {})
-            .get("context", {})
-            .get("history", [])[-limit:]
-        )
+        return self._data.get("alba", {}).get("context", {}).get("history", [])[-limit:]
 
     def add_project_insight(self, project_id: str, key: str, value: Any) -> None:
         insights = (
