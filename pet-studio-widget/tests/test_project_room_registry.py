@@ -297,6 +297,42 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("flip_x", signature.parameters)
         self.assertEqual(Path(project_room_widget.scale_visible_layer.__code__.co_filename).resolve().parents[1], ROOT / "pet-studio-kit")
 
+    def test_widget_tool_path_preference_does_not_delete_imported_modules(self) -> None:
+        import project_room_widget
+
+        module_name = "localized_messages"
+        sentinel = object()
+        original_module = sys.modules.get(module_name, sentinel)
+        original_path = list(sys.path)
+        original_local = project_room_widget.LOCAL_TOOLS
+        original_installed = project_room_widget.INSTALLED_TOOLS
+
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            local_tools = work / "local"
+            installed_tools = work / "installed"
+            local_tools.mkdir()
+            installed_tools.mkdir()
+            module = type(sys)(module_name)
+            module.__file__ = str(installed_tools / "localized_messages.py")
+            sys.modules[module_name] = module
+            project_room_widget.LOCAL_TOOLS = local_tools
+            project_room_widget.INSTALLED_TOOLS = installed_tools
+
+            try:
+                project_room_widget.prefer_local_room_kit_tools()
+
+                self.assertIs(sys.modules[module_name], module)
+                self.assertLess(sys.path.index(str(local_tools)), sys.path.index(str(installed_tools)))
+            finally:
+                sys.path[:] = original_path
+                project_room_widget.LOCAL_TOOLS = original_local
+                project_room_widget.INSTALLED_TOOLS = original_installed
+                if original_module is sentinel:
+                    sys.modules.pop(module_name, None)
+                else:
+                    sys.modules[module_name] = original_module
+
     def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
         from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor, save_project_z_order
 

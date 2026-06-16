@@ -1,10 +1,10 @@
 {
   "currentTask": "0.3.0-boundary-rc",
   "lastAgent": "codex",
-  "lastAction": "Verified pet_studio_core boundary work, kept compatibility wrappers, expanded core import-boundary tests, cleaned adapter boundary doc punctuation, and ran required checks.",
+  "lastAction": "Added a regression test proving prefer_local_room_kit_tools() keeps existing sys.modules entries while still preferring local kit scripts. Re-ran required Boundary RC checks.",
   "nextAgent": "hermes",
-  "nextAction": "Review the Boundary RC diff and decide whether to stage pet_studio_core plus tracked doc/test/handoff changes. Keep .hermes/plans out of the public commit unless explicitly needed.",
-  "context": "docs/ARCHITECTURE.md, docs/ADAPTER_BOUNDARY.md, docs/qa/030-boundary-rc.md, pet_studio_core/, pet-studio-widget/project_room_registry.py, pet-studio-widget/set_project_state.py, pet-studio-widget/tests/test_project_room_registry.py",
+  "nextAction": "Review the small regression-test diff, then decide whether to stage/commit it with this handoff update. Keep .hermes/plans out unless SEC-004 work starts separately.",
+  "context": "Branch codex/docs-launch-polish already contains sys.modules fix 5c63700 and core boundary commit 1f590a3. Current uncommitted diff is test-only plus handoff.",
   "history": [
     {
       "agent": "hermes",
@@ -17,6 +17,24 @@
       "action": "Finished Boundary RC verification pass and added the minimal boundary regression/doc cleanup diff.",
       "commit": null,
       "timestamp": "2026-06-16T00:00:00+09:00"
+    },
+    {
+      "agent": "hermes",
+      "action": "Removed sys.modules deletion from prefer_local_room_kit_tools() — small, high-impact fix for 0.3.0 scope.",
+      "commit": "5c63700",
+      "timestamp": "2026-06-16T12:00:00+09:00"
+    },
+    {
+      "agent": "hermes",
+      "action": "Reviewed and staged pet_studio_core boundary module. Verified core has zero Codex/Tkcore/widget imports. Updated boundary doc and import-boundary tests. Kept .hermes/plans out of public commit.",
+      "commit": "1f590a3",
+      "timestamp": "2026-06-16T12:30:00+09:00"
+    },
+    {
+      "agent": "codex",
+      "action": "Added regression coverage for the import-system cleanup and verified widget tests, kit tests, py_compile, preflight, and diff check.",
+      "commit": null,
+      "timestamp": "2026-06-16T13:00:00+09:00"
     }
   ]
 }

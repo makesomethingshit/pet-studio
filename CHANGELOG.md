@@ -2,7 +2,28 @@
 
 All notable changes to Pet Studio are documented here.
 
-## Unreleased
+## 0.3.0 - 2026-06-16
+
+### Architecture
+
+- Added `pet_studio_core/` — shared boundary module for project registry and state bridge.
+  - `registry.py`: project assignments, path resolution, workspace-to-project inference, state normalization, kit manifest validation.
+  - `state.py`: file-based state bridge with `EXTERNAL_STATES` validation, `resetAfterMs` support.
+  - Core has zero runtime imports from Codex, Tkinter, widget host, or adapter modules.
+
+### Fixes
+
+- Removed dangerous `sys.modules` deletion from `prefer_local_room_kit_tools()` in `project_room_widget.py`. The function now only reorders `sys.path` to prefer local tools, without mutating the import cache at runtime. Added regression test.
+
+### Compatibility
+
+- All `project-room-*` v1 file names and shapes preserved.
+- Existing `pet-studio-widget/` modules remain as-is; new shared behavior lands in `pet_studio_core` first.
+
+### Documentation
+
+- Expanded `ADAPTER_BOUNDARY.md`: clearer core/adapter ownership rules, adapter file map, compatibility rule.
+- Strengthened core import-boundary tests with additional forbidden patterns (`install_pet_studio_codex_integration`, `pet_studio_widget`, `image_provider`).
 
 ## 0.2.0 - 2026-06-15
 
