@@ -6,10 +6,10 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
-**Pet Studio** — 데스크탑에 작은 방을 띄워서 프로젝트 상태를 눈으로 보여주는 위젯.
+**Pet Studio** — A desktop widget that shows your project status as a tiny pet room.
 
-- **앱으로 쓰세요** → `install.cmd` 한 번이면 바로 시작
-- **복합 에이전트 쓰세요** → skill 설치 한 번이면 에이전트가 자동으로 방을 띄워줌
+- **Use as an app** → `install.cmd` once and you're ready
+- **Use with an AI agent** → install the skill once and the agent auto-launches your room
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
@@ -21,11 +21,11 @@ The README GIF follows the 10-15 second demo flow in [docs/DEMO_SCRIPT.md](docs/
 
 ## Quick Start
 
-**AI 도구 어떻게 쓰세요?**
+**How do you use AI tools?**
 
-### Option A: 앱으로 쓰세요 (install.cmd)
+### Option A: As an app (install.cmd)
 
-clone + 설치 한 번이면 바로 시작:
+Clone and install — one command to get started:
 
 ```powershell
 git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
@@ -33,27 +33,27 @@ cd codex-pet-studio-skill
 .\install.cmd
 ```
 
-설치 → 위젯 자동 실행. 트레이 아이콘에서 방 전환/상태 변경/종료.
+Installs dependencies, runs preflight, and launches the widget. Use the tray icon to switch rooms, change state, or quit.
 
-### Option B: 복합 에이전트 쓰세요? (Codex skill)
+### Option B: With an AI agent (Codex skill)
 
-skill 설치 한 번이면 에이전트가 자동으로 방을 띄워줌:
+Install the skill once and your agent auto-launches the room:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
 ```
 
-Codex/Cursor 등으로 프로젝트 열면 → 자동으로 위젯 실작 + 상태 반응.
+When you open a project in Codex/Cursor, the widget launches automatically and reacts to your task state.
 
-선택사항 — 실시간 말풍선 브릿지:
+Optional — live speech bubble bridge:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
 ```
 
-### 방 직접 만들기 (선택)
+### Create a room yourself (optional)
 
-AI가 자동 생성하지 않으면 직접 만들 수 있음:
+If no room kit exists yet, create one interactively:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\create_room_interactive.py
