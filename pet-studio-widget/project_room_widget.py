@@ -9,11 +9,10 @@ import subprocess
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PIL import Image, ImageTk
-
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_TOOLS = ROOT / "pet-studio-kit" / "scripts"
@@ -49,29 +48,28 @@ from project_room_registry import (  # noqa: E402
     project_to_summary,
     select_project,
 )
-from set_active_project import write_active_project  # noqa: E402
 from project_room_scene import (  # noqa: E402
     DEFAULT_LAYOUT_FILE,
     DEFAULT_SESSION_FILE,
     DEFAULT_WINDOW_FILE,
     SceneEntity,
     bubble_text_for_state,
+    clamp_anchor_to_source_canvas,
     kit_with_layout,
     load_project_layout,
     load_project_session,
     load_project_window,
     reset_project_layout,
+    resolve_bubble_style,
+    rounded_rectangle_points,
     save_project_anchor,
     save_project_session,
     save_project_window,
     save_project_z_order,
     scene_entities_from_kit,
-    resolve_bubble_style,
-    clamp_anchor_to_source_canvas,
-    rounded_rectangle_points,
     visible_scene_entities,
 )
-
+from set_active_project import write_active_project  # noqa: E402
 
 CHROMA = "#ff00ff"
 WINDOW_TITLE = "Pet Studio Widget"
@@ -190,8 +188,8 @@ def parse_utc_timestamp(value: object) -> datetime | None:
     except ValueError:
         return None
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def reset_state_for_payload(data: dict, now: datetime | None = None) -> str | None:
@@ -201,7 +199,7 @@ def reset_state_for_payload(data: dict, now: datetime | None = None) -> str | No
     updated_at = parse_utc_timestamp(data.get("updatedAt"))
     if updated_at is None:
         return None
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     elapsed_ms = (current - updated_at).total_seconds() * 1000
     if elapsed_ms < reset_after_ms:
         return None
@@ -229,7 +227,7 @@ def bridge_payload_is_stale(data: dict, stale_after_ms: int, now: datetime | Non
     updated_at = parse_utc_timestamp(data.get("updatedAt"))
     if updated_at is None:
         return True
-    current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    current = (now or datetime.now(UTC)).astimezone(UTC)
     return (current - updated_at).total_seconds() * 1000 > stale_after_ms
 
 
@@ -380,13 +378,17 @@ def pythonw_for(executable: str | Path) -> Path | None:
     sibling = current.with_name("pythonw.exe")
     if sibling.exists():
         return sibling
-    bundled = Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "python" / "pythonw.exe"
+    bundled = (
+        Path.home() / ".cache" / "codex-runtimes" / "codex-primary-runtime" / "dependencies" / "python" / "pythonw.exe"
+    )
     if bundled.exists():
         return bundled
     return None
 
 
-def should_relaunch_background(args: argparse.Namespace, platform: str = sys.platform, env: dict[str, str] | None = None) -> bool:
+def should_relaunch_background(
+    args: argparse.Namespace, platform: str = sys.platform, env: dict[str, str] | None = None
+) -> bool:
     if platform != "win32" or not is_gui_launch(args):
         return False
     if getattr(args, "foreground", False):
@@ -451,7 +453,7 @@ def relaunch_background(argv: list[str], executable: str | Path = sys.executable
         creation_flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
     try:
         with log_path.open("a", encoding="utf-8") as log_handle:
-            log_handle.write(f"\n[{datetime.now(timezone.utc).isoformat()}] launching Pet Studio widget\n")
+            log_handle.write(f"\n[{datetime.now(UTC).isoformat()}] launching Pet Studio widget\n")
             log_handle.flush()
             subprocess.Popen(
                 [str(pythonw), str(Path(__file__).resolve()), *argv],
@@ -485,7 +487,9 @@ def image_anchor_s_pixel_is_opaque(
     return image.convert("RGBA").getpixel((px, py))[3] > alpha_threshold
 
 
-def image_bounds_for_anchor(anchor: dict[str, int], image: Image.Image, widget_scale: float) -> tuple[int, int, int, int]:
+def image_bounds_for_anchor(
+    anchor: dict[str, int], image: Image.Image, widget_scale: float
+) -> tuple[int, int, int, int]:
     x = int(round(anchor["x"] * widget_scale))
     y = int(round(anchor["y"] * widget_scale))
     left = int(round(x - image.width / 2))
@@ -598,7 +602,11 @@ class ProjectRoomWidget:
         self.bubble_visible = bool(bubble_visible)
         self.state_source = state_source
         self.bubble_style = resolve_bubble_style(self.kit, self.kit_dir)
-        self.layout = load_project_layout(layout_file, project_id) if layout_file and project_id else {"anchors": {}, "zOrder": {}}
+        self.layout = (
+            load_project_layout(layout_file, project_id)
+            if layout_file and project_id
+            else {"anchors": {}, "zOrder": {}}
+        )
         self.entities = scene_entities_from_kit(self.kit, self.layout)
         self.entities_by_id = {entity.id: entity for entity in self.entities}
         self.warnings: list[str] = []
@@ -666,10 +674,14 @@ class ProjectRoomWidget:
             raise FileNotFoundError(f"Required scene entity asset is missing: {entity.id}")
         if entity.role == "mainPet":
             row_state = self.kit["states"][self.state].get("mainPetRow", self.state)
-            image = crop_atlas_frame(source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"]))
+            image = crop_atlas_frame(
+                source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"])
+            )
         elif entity.role == "helperPet":
             row_state = self.kit["states"][self.state].get("helperPetRow", "review")
-            image = crop_atlas_frame(source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"]))
+            image = crop_atlas_frame(
+                source, row_state, frame_index, int(self.kit["cell"]["width"]), int(self.kit["cell"]["height"])
+            )
         else:
             image = source
         scaled = scale_visible_layer(image, entity.scale * self.scale, entity.flip_x)
@@ -1022,10 +1034,19 @@ class ProjectRoomWidget:
             menu.add_command(label="Reset layout", command=self.reset_layout)
         if self.project_id and self.layout_file and entity is not None:
             menu.add_separator()
-            menu.add_command(label="Bring forward", command=lambda entity_id=entity.id: self.adjust_entity_z(entity_id, 1))
-            menu.add_command(label="Send backward", command=lambda entity_id=entity.id: self.adjust_entity_z(entity_id, -1))
-            menu.add_command(label="Bring to front", command=lambda entity_id=entity.id: self.move_entity_z_to_edge(entity_id, "front"))
-            menu.add_command(label="Send to back", command=lambda entity_id=entity.id: self.move_entity_z_to_edge(entity_id, "back"))
+            menu.add_command(
+                label="Bring forward", command=lambda entity_id=entity.id: self.adjust_entity_z(entity_id, 1)
+            )
+            menu.add_command(
+                label="Send backward", command=lambda entity_id=entity.id: self.adjust_entity_z(entity_id, -1)
+            )
+            menu.add_command(
+                label="Bring to front",
+                command=lambda entity_id=entity.id: self.move_entity_z_to_edge(entity_id, "front"),
+            )
+            menu.add_command(
+                label="Send to back", command=lambda entity_id=entity.id: self.move_entity_z_to_edge(entity_id, "back")
+            )
         menu.add_separator()
         menu.add_command(label="Larger", command=lambda: self.adjust_scale(1.1))
         menu.add_command(label="Smaller", command=lambda: self.adjust_scale(1 / 1.1))
@@ -1120,7 +1141,7 @@ class ProjectRoomWidget:
                 "bubbleVisible": self.bubble_visible,
                 "window": {"x": self.root.winfo_x(), "y": self.root.winfo_y(), "scale": self.scale},
                 "stateSource": self.state_source,
-                "updatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                "updatedAt": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             },
         )
 
@@ -1161,11 +1182,28 @@ def main() -> None:
     parser.add_argument("--project-id", help="Project id from the registry")
     parser.add_argument("--list-projects", action="store_true", help="List registered projects and exit")
     parser.add_argument("--state-file", default=None, help="Optional external project state JSON file")
-    parser.add_argument("--layout-file", default=str(DEFAULT_LAYOUT_FILE), help="Optional project entity layout JSON file")
-    parser.add_argument("--window-file", default=str(DEFAULT_WINDOW_FILE), help="Optional project window placement JSON file")
-    parser.add_argument("--session-file", default=str(DEFAULT_SESSION_FILE), help="Optional project session snapshot JSON file")
-    parser.add_argument("--restore-session", dest="restore_session", action="store_true", default=None, help="Restore the last registered project session")
-    parser.add_argument("--no-restore-session", dest="restore_session", action="store_false", help="Ignore the saved project session for deterministic launches")
+    parser.add_argument(
+        "--layout-file", default=str(DEFAULT_LAYOUT_FILE), help="Optional project entity layout JSON file"
+    )
+    parser.add_argument(
+        "--window-file", default=str(DEFAULT_WINDOW_FILE), help="Optional project window placement JSON file"
+    )
+    parser.add_argument(
+        "--session-file", default=str(DEFAULT_SESSION_FILE), help="Optional project session snapshot JSON file"
+    )
+    parser.add_argument(
+        "--restore-session",
+        dest="restore_session",
+        action="store_true",
+        default=None,
+        help="Restore the last registered project session",
+    )
+    parser.add_argument(
+        "--no-restore-session",
+        dest="restore_session",
+        action="store_false",
+        help="Ignore the saved project session for deterministic launches",
+    )
     parser.add_argument("--state-refresh-ms", type=int, default=1000)
     parser.add_argument("--state-stale-after-ms", type=int, default=DEFAULT_STATE_STALE_AFTER_MS)
     parser.add_argument("--state", default=None)
@@ -1175,7 +1213,9 @@ def main() -> None:
     parser.add_argument("--y", type=int)
     parser.add_argument("--no-topmost", action="store_true")
     parser.add_argument("--click-through", action="store_true")
-    parser.add_argument("--foreground", action="store_true", help="Keep the widget attached to this console for debugging")
+    parser.add_argument(
+        "--foreground", action="store_true", help="Keep the widget attached to this console for debugging"
+    )
     parser.add_argument("--render-once", help="Write one rendered full-size frame to PNG and exit")
     parser.add_argument("--render-project-once", help="Write one project-selected full-size frame to PNG and exit")
     args = parser.parse_args()
@@ -1221,7 +1261,11 @@ def main() -> None:
 
     render_once = args.render_project_once or args.render_once
     restore_session = restore_session_enabled(project_id, render_once, args.restore_session)
-    state_file = Path(args.state_file).expanduser() if args.state_file else (DEFAULT_STATE_FILE if project_id and args.state is None else None)
+    state_file = (
+        Path(args.state_file).expanduser()
+        if args.state_file
+        else (DEFAULT_STATE_FILE if project_id and args.state is None else None)
+    )
     layout_file = Path(args.layout_file).expanduser() if project_id and args.layout_file else None
     window_file = Path(args.window_file).expanduser() if project_id and args.window_file else None
     session_file = Path(args.session_file).expanduser() if project_id and args.session_file else None
@@ -1245,7 +1289,12 @@ def main() -> None:
         output = Path(render_once)
         output.parent.mkdir(parents=True, exist_ok=True)
         clear_transparent_rgb(frame).save(output)
-        print(json.dumps({"ok": True, "output": str(output), "state": normalize_state(state, "idle"), "projectId": project_id}, indent=2))
+        print(
+            json.dumps(
+                {"ok": True, "output": str(output), "state": normalize_state(state, "idle"), "projectId": project_id},
+                indent=2,
+            )
+        )
         return
 
     if project_id and selected_project is not None:

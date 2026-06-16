@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Default paths (backward-compatible).
 # Call init_core() to override without hard-coding widget directory layout.
@@ -58,6 +57,7 @@ class ProjectAssignment:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def init_core(
     *,
@@ -210,7 +210,9 @@ def read_active_project_id(active_project_file: str | Path | None) -> str | None
     return project_id.strip()
 
 
-def select_active_project(registry_path: str | Path | None, active_project_file: str | Path | None) -> ProjectAssignment | None:
+def select_active_project(
+    registry_path: str | Path | None, active_project_file: str | Path | None
+) -> ProjectAssignment | None:
     project_id = read_active_project_id(active_project_file)
     if not project_id:
         return None

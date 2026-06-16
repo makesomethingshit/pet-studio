@@ -9,7 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REGISTRY = ROOT / "pet-studio-widget" / "project-room-projects.json"
 CREATE_KIT_SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "create_project_room_kit.py"
@@ -206,7 +205,10 @@ def success_summary(project_id: str, out_dir: Path, registry: Path) -> dict:
 
 def guardrails_for_args(args: argparse.Namespace) -> dict:
     props = [AssetInput(prop_id, path) for prop_id, path in (parse_id_path(value, "Prop") for value in args.prop)]
-    helpers = [AssetInput(helper_id, path) for helper_id, path in (parse_id_path(value, "Helper package") for value in args.helper_package)]
+    helpers = [
+        AssetInput(helper_id, path)
+        for helper_id, path in (parse_id_path(value, "Helper package") for value in args.helper_package)
+    ]
     return run_asset_guardrails(
         pet_package=resolve_existing_path(args.pet_package, "Pet package"),
         room_image=resolve_existing_path(args.room_image, "Room image"),
@@ -225,10 +227,19 @@ def main() -> None:
     parser.add_argument("--room-image", required=True, help="384x240 room PNG")
     parser.add_argument("--out-dir", default=None, help="Output directory; defaults to runs/<project-id>")
     parser.add_argument("--registry", default=str(DEFAULT_REGISTRY))
-    parser.add_argument("--workspace-path", action="append", default=[], help="Workspace path to link; defaults to current directory")
+    parser.add_argument(
+        "--workspace-path", action="append", default=[], help="Workspace path to link; defaults to current directory"
+    )
     parser.add_argument("--prop", action="append", default=[], help="Prop asset in id=path format; may be repeated")
-    parser.add_argument("--prop-placement", action="append", default=[], help="Prop placement in id=background|behind-pet|front-of-pet|foreground format")
-    parser.add_argument("--helper-package", action="append", default=[], help="Helper pet package in id=path format; may be repeated")
+    parser.add_argument(
+        "--prop-placement",
+        action="append",
+        default=[],
+        help="Prop placement in id=background|behind-pet|front-of-pet|foreground format",
+    )
+    parser.add_argument(
+        "--helper-package", action="append", default=[], help="Helper pet package in id=path format; may be repeated"
+    )
     parser.add_argument("--theme", default="pet studio room")
     parser.add_argument("--display-name", default=None)
     parser.add_argument("--room-alpha-mode", choices=("safe", "balanced", "aggressive"), default="balanced")
@@ -237,7 +248,12 @@ def main() -> None:
     parser.add_argument("--force", action="store_true", help="Replace an existing output directory")
     parser.add_argument("--verbose", action="store_true", help="Print the underlying kit creation output")
     parser.add_argument("--dry-run", action="store_true", help="Print the planned command without creating files")
-    parser.add_argument("--lang", choices=("en", "ko"), default=None, help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English")
+    parser.add_argument(
+        "--lang",
+        choices=("en", "ko"),
+        default=None,
+        help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English",
+    )
     args = parser.parse_args()
     configure_utf8_stdio()
     lang = normalize_lang(args.lang)

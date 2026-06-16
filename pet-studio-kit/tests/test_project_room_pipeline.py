@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import json
 import importlib
 import importlib.util
+import json
 import os
 import subprocess
 import sys
@@ -11,7 +11,6 @@ import unittest
 from pathlib import Path
 
 from PIL import Image, ImageDraw
-
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "pet-studio-kit" / "scripts" / "create_project_room_kit.py"
@@ -187,7 +186,9 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             report = json.loads((out / "production-report.json").read_text(encoding="utf-8"))
 
             self.assertEqual(manifest["displayName"], "Archive Nook")
-            self.assertEqual(manifest["sourceCanvas"], {"width": 384, "height": 240, "purpose": "layered Pet Studio widget canvas"})
+            self.assertEqual(
+                manifest["sourceCanvas"], {"width": 384, "height": 240, "purpose": "layered Pet Studio widget canvas"}
+            )
             self.assertEqual(style["sourcePolicy"]["selectedSource"]["type"], "existing hatch-pet pet package")
             self.assertEqual(style["sourcePolicy"]["selectedSource"]["petId"], "sample-pet")
             self.assertEqual(prop_meta["role"], "prop")
@@ -635,7 +636,9 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             self.assertIn("--register-project", command)
             self.assertIn("--workspace-path", command)
             self.assertIn(str(ROOT / "runs" / "first-room"), command)
-            self.assertEqual(data["nextCommands"]["launch"], ".\\tools\\pet_studio_widget.cmd --project-id first-room --scale 1.25")
+            self.assertEqual(
+                data["nextCommands"]["launch"], ".\\tools\\pet_studio_widget.cmd --project-id first-room --scale 1.25"
+            )
 
     def test_guided_create_room_creates_registered_kit(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -1259,7 +1262,16 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             manifest["layers"][1]["path"] = "../outside.png"
             write_json(kit_path, manifest)
             preview = subprocess.run(
-                [sys.executable, str(RENDER_SCRIPT), "--kit", str(kit_path), "--state", "idle", "--out", str(work / "preview.png")],
+                [
+                    sys.executable,
+                    str(RENDER_SCRIPT),
+                    "--kit",
+                    str(kit_path),
+                    "--state",
+                    "idle",
+                    "--out",
+                    str(work / "preview.png"),
+                ],
                 cwd=ROOT,
                 text=True,
                 capture_output=True,
@@ -1286,7 +1298,16 @@ class ProjectRoomPipelineTests(unittest.TestCase):
             oversized.save(kit_path.parent / "props" / "desk.png")
 
             result = subprocess.run(
-                [sys.executable, str(RENDER_SCRIPT), "--kit", str(kit_path), "--state", "idle", "--out", str(work / "preview.png")],
+                [
+                    sys.executable,
+                    str(RENDER_SCRIPT),
+                    "--kit",
+                    str(kit_path),
+                    "--state",
+                    "idle",
+                    "--out",
+                    str(work / "preview.png"),
+                ],
                 cwd=ROOT,
                 text=True,
                 capture_output=True,
@@ -1368,7 +1389,16 @@ class ProjectRoomPipelineTests(unittest.TestCase):
                 check=False,
             )
             preview = subprocess.run(
-                [sys.executable, str(RENDER_SCRIPT), "--kit", str(kit_path), "--state", "idle", "--out", str(work / "preview.png")],
+                [
+                    sys.executable,
+                    str(RENDER_SCRIPT),
+                    "--kit",
+                    str(kit_path),
+                    "--state",
+                    "idle",
+                    "--out",
+                    str(work / "preview.png"),
+                ],
                 cwd=ROOT,
                 text=True,
                 capture_output=True,

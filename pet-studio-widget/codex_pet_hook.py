@@ -7,13 +7,17 @@ import json
 import locale
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from codex_state_adapter import publish_codex_event, resolve_project_id
-from project_room_registry import DEFAULT_ACTIVE_PROJECT_FILE, DEFAULT_REGISTRY, DEFAULT_STATE_FILE, ProjectRegistryError
-
+from project_room_registry import (
+    DEFAULT_ACTIVE_PROJECT_FILE,
+    DEFAULT_REGISTRY,
+    DEFAULT_STATE_FILE,
+    ProjectRegistryError,
+)
 
 DONE_RESET_AFTER_MS = 1500
 DEFAULT_HOOK_LOG_FILE = Path(__file__).with_name("project-room-hook-events.jsonl")
@@ -104,7 +108,7 @@ def run_passthrough(command: list[str]) -> int:
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def append_hook_log(log_file: Path | None, entry: dict[str, Any]) -> None:
@@ -126,7 +130,9 @@ def main() -> None:
     parser.add_argument("--message", default=None)
     parser.add_argument("--hook-log-file", default=str(DEFAULT_HOOK_LOG_FILE))
     parser.add_argument("--allow-passthrough", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--passthrough", nargs=argparse.REMAINDER, help="Optional command to run after updating the pet state")
+    parser.add_argument(
+        "--passthrough", nargs=argparse.REMAINDER, help="Optional command to run after updating the pet state"
+    )
     args = parser.parse_args()
 
     payload = load_stdin_payload()
@@ -143,7 +149,9 @@ def main() -> None:
 
     state_payload = None
     if project_id:
-        state_payload = publish_codex_event(Path(args.state_file).expanduser(), project_id, event, message, **reset_options_for_hook(args.hook))
+        state_payload = publish_codex_event(
+            Path(args.state_file).expanduser(), project_id, event, message, **reset_options_for_hook(args.hook)
+        )
     append_hook_log(
         Path(args.hook_log_file).expanduser() if args.hook_log_file else None,
         {

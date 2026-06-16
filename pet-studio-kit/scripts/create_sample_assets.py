@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import json
+from pathlib import Path
 
 from PIL import Image, ImageDraw
-
 
 STATE_ROWS = {
     "idle": {"row": 0, "frames": 6},
@@ -48,7 +47,7 @@ def write_asset_metadata(
         "perspective": PERSPECTIVE,
         "role": role,
         "features": features or [],
-        "notes": "Sample asset generated for Pet Studio pipeline validation."
+        "notes": "Sample asset generated for Pet Studio pipeline validation.",
     }
     asset_path.with_name(asset_path.stem + ".asset.json").write_text(
         json.dumps(metadata, indent=2),

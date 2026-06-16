@@ -7,12 +7,12 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
 def run_step(name: str, command: list[str], cwd: Path) -> dict:
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     completed = subprocess.run(command, cwd=cwd, text=True, capture_output=True, check=False)
     return {
         "name": name,
@@ -115,7 +115,7 @@ def main() -> None:
     ok = all(step["ok"] for step in steps)
     report = {
         "ok": ok,
-        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdAt": datetime.now(UTC).isoformat(),
         "sourceKitDir": str(source_kit_dir),
         "experimentKitDir": str(experiment_kit_dir),
         "packageDir": str(package_dir),

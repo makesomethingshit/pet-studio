@@ -12,7 +12,6 @@ from image_guardrails import ImageResourceError, safe_image_size, safe_rgba_imag
 from localized_messages import guardrail_header, guardrail_issue_message, guardrail_issue_repair, repair_label
 from project_room_assets import room_edge_margin_pixel_count
 
-
 ROOM_SIZE = (384, 240)
 ATLAS_SIZE = (1536, 1872)
 PROP_PLACEMENTS = {"background", "behind-pet", "behindPet", "front-of-pet", "frontOfPet", "foreground"}
@@ -107,14 +106,27 @@ def is_safe_id(value: str) -> bool:
     return bool(SAFE_ID_RE.fullmatch(value))
 
 
-def add_error(issues: list[GuardrailIssue], code: str, message: str, path: Path | None = None, repair: str | None = None) -> None:
-    issues.append(GuardrailIssue(code=code, severity="error", message=message, path=str(path) if path else None, repair=repair))
+def add_error(
+    issues: list[GuardrailIssue], code: str, message: str, path: Path | None = None, repair: str | None = None
+) -> None:
+    issues.append(
+        GuardrailIssue(code=code, severity="error", message=message, path=str(path) if path else None, repair=repair)
+    )
 
 
-def add_warning(issues: list[GuardrailIssue], mode: str, code: str, message: str, path: Path | None = None, repair: str | None = None) -> None:
+def add_warning(
+    issues: list[GuardrailIssue],
+    mode: str,
+    code: str,
+    message: str,
+    path: Path | None = None,
+    repair: str | None = None,
+) -> None:
     if mode == "off":
         return
-    issues.append(GuardrailIssue(code=code, severity="warning", message=message, path=str(path) if path else None, repair=repair))
+    issues.append(
+        GuardrailIssue(code=code, severity="warning", message=message, path=str(path) if path else None, repair=repair)
+    )
 
 
 def check_room_image(path: Path, mode: str, issues: list[GuardrailIssue], room_alpha_mode: str) -> None:
@@ -123,7 +135,9 @@ def check_room_image(path: Path, mode: str, issues: list[GuardrailIssue], room_a
         add_error(
             issues,
             "room-size",
-            f"Room image is {size[0]}x{size[1]} but must be {ROOM_SIZE[0]}x{ROOM_SIZE[1]}." if size else "Room image cannot be read.",
+            f"Room image is {size[0]}x{size[1]} but must be {ROOM_SIZE[0]}x{ROOM_SIZE[1]}."
+            if size
+            else "Room image cannot be read.",
             path,
             "Provide a 384x240 PNG room source. Do not crop or resize after generation.",
         )
@@ -144,7 +158,13 @@ def check_props(props: list[AssetInput], mode: str, issues: list[GuardrailIssue]
     for prop in props:
         size = image_size(prop.path)
         if size is None:
-            add_error(issues, "prop-read", f"Prop `{prop.id}` cannot be read as an image.", prop.path, "Provide a valid transparent PNG prop.")
+            add_error(
+                issues,
+                "prop-read",
+                f"Prop `{prop.id}` cannot be read as an image.",
+                prop.path,
+                "Provide a valid transparent PNG prop.",
+            )
             continue
         if size[0] > ROOM_SIZE[0] or size[1] > ROOM_SIZE[1]:
             add_error(
@@ -200,7 +220,9 @@ def check_helpers(helpers: list[AssetInput], mode: str, issues: list[GuardrailIs
             add_error(
                 issues,
                 "helper-atlas-size",
-                f"Helper `{helper.id}` atlas is {size[0]}x{size[1]} but must be {ATLAS_SIZE[0]}x{ATLAS_SIZE[1]}." if size else f"Helper `{helper.id}` atlas cannot be read.",
+                f"Helper `{helper.id}` atlas is {size[0]}x{size[1]} but must be {ATLAS_SIZE[0]}x{ATLAS_SIZE[1]}."
+                if size
+                else f"Helper `{helper.id}` atlas cannot be read.",
                 spritesheet,
                 "Regenerate or provide a standard hatch-pet atlas.",
             )
@@ -215,7 +237,9 @@ def check_helpers(helpers: list[AssetInput], mode: str, issues: list[GuardrailIs
             )
 
 
-def check_ids(props: list[AssetInput], helpers: list[AssetInput], placements: list[str], issues: list[GuardrailIssue]) -> None:
+def check_ids(
+    props: list[AssetInput], helpers: list[AssetInput], placements: list[str], issues: list[GuardrailIssue]
+) -> None:
     for item in [*props, *helpers]:
         if not is_safe_id(item.id):
             add_error(
@@ -225,18 +249,40 @@ def check_ids(props: list[AssetInput], helpers: list[AssetInput], placements: li
                 repair="Use letters, numbers, underscore, and hyphen only; start with a letter or number.",
             )
     for prop_id in sorted(duplicate_ids(props)):
-        add_error(issues, "duplicate-prop-id", f"Duplicate prop id `{prop_id}`.", repair="Use unique ids for each prop.")
+        add_error(
+            issues, "duplicate-prop-id", f"Duplicate prop id `{prop_id}`.", repair="Use unique ids for each prop."
+        )
     for helper_id in sorted(duplicate_ids(helpers)):
-        add_error(issues, "duplicate-helper-id", f"Duplicate helper id `{helper_id}`.", repair="Use unique ids for each helper pet.")
+        add_error(
+            issues,
+            "duplicate-helper-id",
+            f"Duplicate helper id `{helper_id}`.",
+            repair="Use unique ids for each helper pet.",
+        )
     prop_ids = {prop.id for prop in props}
     helper_ids = {helper.id for helper in helpers}
     for item_id in sorted(prop_ids & helper_ids):
-        add_error(issues, "asset-id-collision", f"Asset id `{item_id}` is used by both a prop and helper.", repair="Rename one asset id.")
+        add_error(
+            issues,
+            "asset-id-collision",
+            f"Asset id `{item_id}` is used by both a prop and helper.",
+            repair="Rename one asset id.",
+        )
     for reserved in sorted((prop_ids | helper_ids) & {"room", "main-owner"}):
-        add_error(issues, "reserved-asset-id", f"Asset id `{reserved}` is reserved by the runtime.", repair="Choose a custom id such as desk, plant, or reviewer.")
+        add_error(
+            issues,
+            "reserved-asset-id",
+            f"Asset id `{reserved}` is reserved by the runtime.",
+            repair="Choose a custom id such as desk, plant, or reviewer.",
+        )
     for value in placements:
         if "=" not in value:
-            add_error(issues, "prop-placement-format", f"Prop placement must use id=value format: {value}", repair="Use desk=behind-pet or desk=foreground.")
+            add_error(
+                issues,
+                "prop-placement-format",
+                f"Prop placement must use id=value format: {value}",
+                repair="Use desk=behind-pet or desk=foreground.",
+            )
             continue
         prop_id, raw_placement = value.split("=", 1)
         prop_id = prop_id.strip()
@@ -280,18 +326,32 @@ def run_asset_guardrails(
 
     pet_json = pet_package / "pet.json"
     if not pet_json.exists():
-        add_error(issues, "main-pet-json", f"Main pet package is missing pet.json.", pet_json, "Pass an existing hatch-pet package directory.")
+        add_error(
+            issues,
+            "main-pet-json",
+            "Main pet package is missing pet.json.",
+            pet_json,
+            "Pass an existing hatch-pet package directory.",
+        )
     else:
         spritesheet = helper_spritesheet_path(pet_package)
         if spritesheet is None or not spritesheet.exists():
-            add_error(issues, "main-pet-spritesheet", "Main pet package has no valid spritesheet path.", pet_package, "Check pet.json spritesheetPath.")
+            add_error(
+                issues,
+                "main-pet-spritesheet",
+                "Main pet package has no valid spritesheet path.",
+                pet_package,
+                "Check pet.json spritesheetPath.",
+            )
         else:
             size = image_size(spritesheet)
             if size != ATLAS_SIZE:
                 add_error(
                     issues,
                     "main-pet-atlas-size",
-                    f"Main pet atlas is {size[0]}x{size[1]} but must be {ATLAS_SIZE[0]}x{ATLAS_SIZE[1]}." if size else "Main pet atlas cannot be read.",
+                    f"Main pet atlas is {size[0]}x{size[1]} but must be {ATLAS_SIZE[0]}x{ATLAS_SIZE[1]}."
+                    if size
+                    else "Main pet atlas cannot be read.",
                     spritesheet,
                     "Use a standard hatch-pet package.",
                 )

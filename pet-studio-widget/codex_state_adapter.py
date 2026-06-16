@@ -17,7 +17,6 @@ from project_room_registry import (
 )
 from set_project_state import write_project_state
 
-
 EVENT_TO_STATE = {
     "start": "running",
     "wait": "waiting",
@@ -102,14 +101,20 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=str(DEFAULT_REGISTRY), help="Project assignment registry path")
     parser.add_argument("--state-file", default=str(DEFAULT_STATE_FILE), help="Project room state JSON path")
-    parser.add_argument("--active-project-file", default=str(DEFAULT_ACTIVE_PROJECT_FILE), help="Active project pin JSON path")
+    parser.add_argument(
+        "--active-project-file", default=str(DEFAULT_ACTIVE_PROJECT_FILE), help="Active project pin JSON path"
+    )
     parser.add_argument("--project-id", default=None, help="Project id override; inferred from workspace when omitted")
-    parser.add_argument("--cwd", default=None, help="Workspace directory for project inference; defaults to current directory")
+    parser.add_argument(
+        "--cwd", default=None, help="Workspace directory for project inference; defaults to current directory"
+    )
     parser.add_argument("--event", default=None, help="Codex task event to publish")
     parser.add_argument("--event-json", default=None, help="Codex event JSON path, or `-` to read stdin")
     parser.add_argument("--message", default=None)
     parser.add_argument("--updated-at", default=None, help="Override updatedAt; mainly useful for deterministic tests")
-    parser.add_argument("--reset-after-ms", type=int, default=None, help="Optional auto-reset delay for transient states")
+    parser.add_argument(
+        "--reset-after-ms", type=int, default=None, help="Optional auto-reset delay for transient states"
+    )
     parser.add_argument("--reset-to-state", default=None, help="State to show after --reset-after-ms expires")
     args = parser.parse_args()
 
@@ -131,7 +136,9 @@ def main() -> None:
         project_id = resolve_project_id(project_id_arg, args.config, cwd, args.active_project_file)
     except ProjectRegistryError as error:
         raise SystemExit(str(error)) from error
-    state_payload = publish_codex_event(state_file, project_id, event, message, updated_at, reset_after_ms, reset_to_state)
+    state_payload = publish_codex_event(
+        state_file, project_id, event, message, updated_at, reset_after_ms, reset_to_state
+    )
     print(
         json.dumps(
             {

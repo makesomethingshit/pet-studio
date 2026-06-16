@@ -7,7 +7,6 @@ from pathlib import Path
 
 from PIL import Image
 
-
 MAX_IMAGE_FILE_BYTES = 25 * 1024 * 1024
 MAX_IMAGE_PIXEL_COUNT = 4_000_000
 

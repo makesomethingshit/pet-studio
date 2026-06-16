@@ -7,7 +7,6 @@ import json
 import shutil
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "pet-studio-kit"
 DEFAULT_DESTINATION = Path.home() / ".codex" / "skills" / "pet-studio"

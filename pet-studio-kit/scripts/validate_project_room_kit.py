@@ -15,7 +15,6 @@ from bake_project_room_pet import resolve_asset, resolve_kit_subpath
 from image_guardrails import ImageResourceError, safe_image_size, safe_rgba_image
 from project_room_assets import room_edge_margin_pixel_count
 
-
 PET_ROLES = {"mainPet", "helperPet"}
 STATIC_ROLES = {"room", "prop"}
 PROP_PLACEMENTS = {"background", "behindPet", "frontOfPet", "foreground"}
@@ -84,13 +83,9 @@ def validate_layer(kit_dir: Path, kit: dict, style: dict, layer: dict, errors: l
 
     metadata = load_json(meta_path)
     if metadata.get("styleId") != style["styleId"]:
-        errors.append(
-            f"Style mismatch for `{layer_id}`: {metadata.get('styleId')} != {style['styleId']}"
-        )
+        errors.append(f"Style mismatch for `{layer_id}`: {metadata.get('styleId')} != {style['styleId']}")
     if metadata.get("perspective") != style["perspective"]:
-        errors.append(
-            f"Perspective mismatch for `{layer_id}`: {metadata.get('perspective')} != {style['perspective']}"
-        )
+        errors.append(f"Perspective mismatch for `{layer_id}`: {metadata.get('perspective')} != {style['perspective']}")
     actual_asset_type = metadata.get("assetType", metadata.get("role"))
     expected_type = expected_asset_type(role)
     if actual_asset_type != expected_type:
@@ -157,14 +152,25 @@ def main() -> None:
     if style_path and not style_path.exists():
         errors.append(f"styleLock not found: {style_path}")
 
-    style = load_json(style_path) if style_path and style_path.exists() else {"styleId": "", "geometry": {}, "perspective": ""}
+    style = (
+        load_json(style_path)
+        if style_path and style_path.exists()
+        else {"styleId": "", "geometry": {}, "perspective": ""}
+    )
     style_geometry = style.get("geometry", {})
 
-    if kit["cell"]["width"] != style_geometry.get("cellWidth") or kit["cell"]["height"] != style_geometry.get("cellHeight"):
+    if kit["cell"]["width"] != style_geometry.get("cellWidth") or kit["cell"]["height"] != style_geometry.get(
+        "cellHeight"
+    ):
         errors.append("Cell size does not match style-lock geometry.")
-    if kit.get("sourceCanvas", {}).get("width") != kit["roomModule"]["width"] or kit.get("sourceCanvas", {}).get("height") != kit["roomModule"]["height"]:
+    if (
+        kit.get("sourceCanvas", {}).get("width") != kit["roomModule"]["width"]
+        or kit.get("sourceCanvas", {}).get("height") != kit["roomModule"]["height"]
+    ):
         errors.append("Source canvas size must match room module size.")
-    if kit["roomModule"]["width"] != style_geometry.get("roomWidth") or kit["roomModule"]["height"] != style_geometry.get("roomHeight"):
+    if kit["roomModule"]["width"] != style_geometry.get("roomWidth") or kit["roomModule"][
+        "height"
+    ] != style_geometry.get("roomHeight"):
         errors.append("Room module size does not match style-lock geometry.")
     if kit["roomModule"]["perspective"] != style["perspective"]:
         errors.append("Room module perspective does not match style-lock perspective.")

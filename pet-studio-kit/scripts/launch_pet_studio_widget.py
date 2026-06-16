@@ -73,7 +73,9 @@ def launch_widget(repo_root: Path, widget_args: list[str], foreground: bool) -> 
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Launch the official Pet Studio widget runtime from an installed skill.")
+    parser = argparse.ArgumentParser(
+        description="Launch the official Pet Studio widget runtime from an installed skill."
+    )
     parser.add_argument("--repo", help="Path to the cloned Pet Studio repository")
     parser.add_argument("--foreground", action="store_true", help="Run in the current console for debugging")
     return parser

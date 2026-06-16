@@ -7,7 +7,6 @@ import json
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -22,7 +21,9 @@ def main() -> None:
     parser.add_argument("--state", required=True, help="External Pet Studio state to publish")
     parser.add_argument("--message", default="")
     parser.add_argument("--updated-at", default=None, help="Override updatedAt; mainly useful for deterministic tests")
-    parser.add_argument("--reset-after-ms", type=int, default=None, help="Optional auto-reset delay for transient states")
+    parser.add_argument(
+        "--reset-after-ms", type=int, default=None, help="Optional auto-reset delay for transient states"
+    )
     parser.add_argument("--reset-to-state", default="idle", help="State to show after --reset-after-ms expires")
     args = parser.parse_args()
 

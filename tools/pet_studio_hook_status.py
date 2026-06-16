@@ -9,10 +9,9 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
-
 
 ROOT = Path(__file__).resolve().parents[1]
 WIDGET_DIR = ROOT / "pet-studio-widget"
@@ -184,7 +183,7 @@ def check_state_bridge(state_file: Path) -> StatusItem:
     if updated_at and updated_at != "unknown":
         try:
             ts = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
-            age_s = (datetime.now(timezone.utc) - ts).total_seconds()
+            age_s = (datetime.now(UTC) - ts).total_seconds()
             if state in {"running", "waiting", "review", "failed", "blocked", "handoff"}:
                 if age_s > 300:
                     stale = True
@@ -264,7 +263,7 @@ def build_status_report(args: argparse.Namespace) -> dict[str, Any]:
     report = {
         "verdict": verdict,
         "verdictMessage": verdict_message,
-        "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "timestamp": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "projectId": args.project_id,
         "hooksFile": str(hooks_file),
         "hookLog": str(log_file),

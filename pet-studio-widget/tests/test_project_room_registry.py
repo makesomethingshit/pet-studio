@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-import json
 import inspect
+import json
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from PIL import Image
-
 
 ROOT = Path(__file__).resolve().parents[2]
 WIDGET_DIR = ROOT / "pet-studio-widget"
@@ -62,7 +61,9 @@ class ProjectRoomSceneTests(unittest.TestCase):
         entities = scene_entities_from_kit(kit)
         by_id = {entity.id: entity for entity in entities}
 
-        self.assertEqual([entity.id for entity in entities], ["room", "desk", "main-owner", "book-stack", "helper-prop-creature"])
+        self.assertEqual(
+            [entity.id for entity in entities], ["room", "desk", "main-owner", "book-stack", "helper-prop-creature"]
+        )
         self.assertTrue(by_id["room"].locked)
         self.assertFalse(by_id["room"].draggable)
         self.assertTrue(by_id["desk"].draggable)
@@ -269,10 +270,12 @@ class ProjectRoomSceneTests(unittest.TestCase):
         layer_assets = project_room_widget.load_layer_assets(DEMO_KIT.parent, kit["layers"], [])
 
         with_helper = project_room_widget.build_source_frame(DEMO_KIT.parent, kit, "review", 0, layer_assets, [])
-        without_helper = project_room_widget.build_source_frame(DEMO_KIT.parent, kit_without_helper, "review", 0, layer_assets, [])
+        without_helper = project_room_widget.build_source_frame(
+            DEMO_KIT.parent, kit_without_helper, "review", 0, layer_assets, []
+        )
         diff_pixels = sum(
             1
-            for left, right in zip(rgba_pixels(with_helper), rgba_pixels(without_helper))
+            for left, right in zip(rgba_pixels(with_helper), rgba_pixels(without_helper), strict=True)
             if left != right
         )
 
@@ -295,7 +298,10 @@ class ProjectRoomSceneTests(unittest.TestCase):
         signature = inspect.signature(project_room_widget.scale_visible_layer)
 
         self.assertIn("flip_x", signature.parameters)
-        self.assertEqual(Path(project_room_widget.scale_visible_layer.__code__.co_filename).resolve().parents[1], ROOT / "pet-studio-kit")
+        self.assertEqual(
+            Path(project_room_widget.scale_visible_layer.__code__.co_filename).resolve().parents[1],
+            ROOT / "pet-studio-kit",
+        )
 
     def test_widget_tool_path_preference_does_not_delete_imported_modules(self) -> None:
         import project_room_widget
@@ -334,7 +340,12 @@ class ProjectRoomSceneTests(unittest.TestCase):
                     sys.modules[module_name] = original_module
 
     def test_project_layout_reset_removes_saved_entity_anchors(self) -> None:
-        from project_room_scene import load_project_layout, reset_project_layout, save_project_anchor, save_project_z_order
+        from project_room_scene import (
+            load_project_layout,
+            reset_project_layout,
+            save_project_anchor,
+            save_project_z_order,
+        )
 
         with tempfile.TemporaryDirectory() as tmp:
             layout_file = Path(tmp) / "project-room-layouts.json"
@@ -473,7 +484,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
                 {"state": "review", "message": "Restored message"},
                 restore_session=True,
                 stale_after_ms=300000,
-                now=datetime(2026, 6, 14, 0, 1, tzinfo=timezone.utc),
+                now=datetime(2026, 6, 14, 0, 1, tzinfo=UTC),
             )
 
         self.assertEqual((state, message, source), ("running", "Working: fresh bridge", "bridge"))
@@ -501,7 +512,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
                 {"state": "review", "message": "Restored message", "stateSource": "manual"},
                 restore_session=True,
                 stale_after_ms=300000,
-                now=datetime(2026, 6, 14, 0, 6, tzinfo=timezone.utc),
+                now=datetime(2026, 6, 14, 0, 6, tzinfo=UTC),
             )
 
         self.assertEqual((state, message, source), ("review", "Restored message", "manual"))
@@ -585,7 +596,9 @@ class ProjectRoomSceneTests(unittest.TestCase):
     def test_bubble_text_normalizes_and_truncates_long_messages(self) -> None:
         from project_room_scene import MAX_BUBBLE_TEXT_LENGTH, bubble_text_for_state
 
-        message = "  Waiting\n\non   approval for the very long integration check before the widget can continue safely  "
+        message = (
+            "  Waiting\n\non   approval for the very long integration check before the widget can continue safely  "
+        )
 
         text = bubble_text_for_state("blocked", message)
 
@@ -739,7 +752,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
                 text = launcher.read_text(encoding="utf-8").lower()
                 self.assertIn("pet_studio_widget_python", text)
                 self.assertIn("pythonw", text)
-                self.assertIn("start \"pet studio widget\"", text)
+                self.assertIn('start "pet studio widget"', text)
                 self.assertIn("pet_studio_pythonw", text)
 
     def test_cmd_python_wrapper_avoids_broken_windows_python_shims(self) -> None:
@@ -760,7 +773,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("--foreground", text)
         self.assertIn("pet_studio_pythonw", text)
         self.assertIn("pythonw.exe", text)
-        self.assertIn("start \"pet studio widget\"", text)
+        self.assertIn('start "pet studio widget"', text)
         self.assertIn("pet_studio_widget.py", text)
         self.assertIn("start-process", ps1_text)
         self.assertIn("-windowstyle hidden", ps1_text)
@@ -774,6 +787,7 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
     def test_widget_script_relaunches_gui_runs_on_windows_python_exe(self) -> None:
         import argparse
+
         import project_room_widget
 
         args = argparse.Namespace(
@@ -865,8 +879,9 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertEqual(root.lift_count, 1)
 
     def test_done_state_resets_to_idle_after_reset_delay(self) -> None:
+        from datetime import datetime
+
         import project_room_widget
-        from datetime import datetime, timezone
 
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "project-room-state.json"
@@ -886,13 +901,13 @@ class ProjectRoomSceneTests(unittest.TestCase):
                 state_file,
                 "gakju-demo",
                 "idle",
-                now=datetime(2026, 6, 13, 0, 0, 1, tzinfo=timezone.utc),
+                now=datetime(2026, 6, 13, 0, 0, 1, tzinfo=UTC),
             )
             after_state, after_message = project_room_widget.read_project_state_payload(
                 state_file,
                 "gakju-demo",
                 "idle",
-                now=datetime(2026, 6, 13, 0, 0, 2, tzinfo=timezone.utc),
+                now=datetime(2026, 6, 13, 0, 0, 2, tzinfo=UTC),
             )
 
         self.assertEqual(before_state, "jumping")
@@ -917,8 +932,9 @@ class ProjectRoomRegistryTests(unittest.TestCase):
         return path
 
     def test_project_room_registry_reexports_core_registry_api(self) -> None:
-        import pet_studio_core.registry as core_registry
         import project_room_registry
+
+        import pet_studio_core.registry as core_registry
 
         self.assertIs(project_room_registry.ProjectAssignment, core_registry.ProjectAssignment)
         self.assertIs(project_room_registry.ProjectRegistryError, core_registry.ProjectRegistryError)
@@ -1678,7 +1694,11 @@ class ProjectRoomRegistryTests(unittest.TestCase):
                 check=False,
             )
 
-            self.assertEqual(result.returncode, 0, result.stderr.decode("utf-8", errors="replace") + result.stdout.decode("utf-8", errors="replace"))
+            self.assertEqual(
+                result.returncode,
+                0,
+                result.stderr.decode("utf-8", errors="replace") + result.stdout.decode("utf-8", errors="replace"),
+            )
             data = json.loads(state_file.read_text(encoding="utf-8"))
             self.assertEqual(data["message"], "Working: 한글 bubble 확인")
             self.assertIn("한글 bubble 확인", state_file.read_text(encoding="utf-8"))
@@ -1887,7 +1907,9 @@ class PetStudioPreflightTests(unittest.TestCase):
                             "projectId": "custom-demo",
                             "displayName": "Custom Demo",
                             "kitPath": str(relative_to_or_relpath(kit_dir, registry.parent)),
-                            "petPackagePath": str((ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner").resolve()),
+                            "petPackagePath": str(
+                                (ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "pets" / "main-owner").resolve()
+                            ),
                             "workspacePaths": [],
                             "defaultState": "idle",
                             "theme": "quiet archive nook",
@@ -1966,7 +1988,9 @@ class PetStudioPreflightTests(unittest.TestCase):
             disabled = Path(tmp) / "disabled.json"
             write_json(disabled, {"schemaVersion": 1, "projects": [{"projectId": "off", "enabled": False}]})
             disabled_result, disabled_project = pet_studio_preflight.check_project_registry(disabled, "off")
-            missing_kit_path_result, _ = pet_studio_preflight.check_project_kit(disabled, {"projectId": "no-kit", "enabled": True})
+            missing_kit_path_result, _ = pet_studio_preflight.check_project_kit(
+                disabled, {"projectId": "no-kit", "enabled": True}
+            )
             missing_manifest_result, _ = pet_studio_preflight.check_project_kit(
                 disabled,
                 {"projectId": "missing-manifest", "enabled": True, "kitPath": "missing-kit"},
@@ -2181,8 +2205,13 @@ class PetStudioDemoStateCyclerTests(unittest.TestCase):
 
         steps = pet_studio_demo_states.build_demo_sequence()
 
-        self.assertEqual([step.state for step in steps], ["idle", "running", "waiting", "blocked", "review", "done", "idle"])
-        self.assertEqual([step.message for step in steps], ["", "Working...", "Compacting context...", "Needs input", "Ready for review", "Done", ""])
+        self.assertEqual(
+            [step.state for step in steps], ["idle", "running", "waiting", "blocked", "review", "done", "idle"]
+        )
+        self.assertEqual(
+            [step.message for step in steps],
+            ["", "Working...", "Compacting context...", "Needs input", "Ready for review", "Done", ""],
+        )
 
     def test_demo_state_payload_shape_uses_existing_bridge_contract(self) -> None:
         import pet_studio_demo_states
@@ -2339,20 +2368,21 @@ class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
             self.assertIn("PostToolUse", data["hooks"])
             self.assertIn("PreCompact", data["hooks"])
             self.assertIn("Stop", data["hooks"])
-            stop_commands = [
-                hook["command"]
-                for group in data["hooks"]["Stop"]
-                for hook in group["hooks"]
-            ]
+            stop_commands = [hook["command"] for group in data["hooks"]["Stop"] for hook in group["hooks"]]
             self.assertIn("python existing_stop.py", stop_commands)
-            self.assertTrue(any("codex_pet_hook.py" in command and "--hook stop" in command for command in stop_commands))
+            self.assertTrue(
+                any("codex_pet_hook.py" in command and "--hook stop" in command for command in stop_commands)
+            )
             prompt_hook = data["hooks"]["UserPromptSubmit"][0]["hooks"][0]
             self.assertEqual(prompt_hook["type"], "command")
             self.assertIn("codex_pet_hook.py", prompt_hook["command"])
             self.assertIn("pet-studio-widget", prompt_hook["command"])
             self.assertIn("--hook user_prompt_submit", prompt_hook["command"])
             self.assertEqual(prompt_hook["timeout"], 30)
-            self.assertEqual(result["events"], ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "Stop"])
+            self.assertEqual(
+                result["events"],
+                ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse", "PreCompact", "Stop"],
+            )
 
     def test_installing_lifecycle_hooks_twice_is_idempotent(self) -> None:
         from install_pet_studio_codex_integration import install_hooks_bridge
@@ -2402,11 +2432,7 @@ class PetStudioCodexIntegrationInstallerTests(unittest.TestCase):
             install_hooks_bridge(hooks_file, dry_run=False)
 
             data = json.loads(hooks_file.read_text(encoding="utf-8"))
-            stop_commands = [
-                hook["command"]
-                for group in data["hooks"]["Stop"]
-                for hook in group["hooks"]
-            ]
+            stop_commands = [hook["command"] for group in data["hooks"]["Stop"] for hook in group["hooks"]]
             self.assertIn("python keep_me.py", stop_commands)
             self.assertNotIn("python old_codex_pet_hook.py --hook stop", stop_commands)
 
