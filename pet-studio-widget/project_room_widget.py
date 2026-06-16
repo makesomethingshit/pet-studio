@@ -10,9 +10,9 @@ import subprocess
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
-from tkinter import filedialog
 from datetime import UTC, datetime
 from pathlib import Path
+from tkinter import filedialog
 
 from PIL import Image, ImageTk
 
