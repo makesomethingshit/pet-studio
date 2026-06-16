@@ -776,18 +776,30 @@ class ProjectRoomWidget:
         )
         self._status_bar_items.append(name_item)
 
-        # State label
+        # State label + alba icon
         state_text = STATUS_LABELS.get(self.state, self.state)
+        alba_icon = self._alba_status_icon()
+        display = f"[{state_text}] {alba_icon}" if alba_icon else f"[{state_text}]"
         state_item = self.canvas.create_text(
             cw - 6,
             room_h + sb_h // 2,
-            text=f"[{state_text}]",
+            text=display,
             fill=STATUS_BAR_FG,
             font=(STATUS_BAR_FONT, font_size),
             anchor=tk.E,
             tags=("statusbar",),
         )
         self._status_bar_items.append(state_item)
+
+    def _alba_status_icon(self) -> str:
+        """Return alba status emoji icon based on project state."""
+        try:
+            from alba.state_manager import TeamState
+            ts = TeamState()
+            status = ts.alba_status
+            return {"active": "\U0001f7e2", "idle": "\u26aa", "error": "\U0001f534"}.get(status, "\u26aa")
+        except Exception:
+            return ""
 
     def draw_bubble(self) -> None:
         text = bubble_text_for_state(self.state, self.message, self.bubble_visible)
@@ -1115,6 +1127,19 @@ class ProjectRoomWidget:
             except Exception:
                 pass
 
+        # Preset submenu
+        if self.project_id:
+            preset_menu = tk.Menu(menu, tearoff=False)
+            preset_menu.add_command(
+                label="Export preset",
+                command=self._export_preset_dialog,
+            )
+            preset_menu.add_command(
+                label="Import preset",
+                command=self._import_preset_dialog,
+            )
+            menu.add_cascade(label="Preset", menu=preset_menu)
+
         if self.project_id and self.layout_file:
             menu.add_command(label="Reset layout", command=self.reset_layout)
         if self.project_id and self.layout_file and entity is not None:
@@ -1144,6 +1169,53 @@ class ProjectRoomWidget:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+    def _export_preset_dialog(self) -> None:
+        """Export current room as a preset zip via file dialog."""
+        try:
+            from tkinter import filedialog
+            from alba.preset_manager import export_preset
+
+            presets_dir = Path.cwd() / "presets"
+            presets_dir.mkdir(exist_ok=True)
+            default_name = f"{self.project_id}-preset.zip"
+            out = filedialog.asksaveasfilename(
+                title="Export preset",
+                initialdir=str(presets_dir),
+                initialfile=default_name,
+                defaultextension=".zip",
+                filetypes=[("Preset zip", "*.zip")],
+            )
+            if not out:
+                return
+            room_dir = self.kit_path.parent
+            export_preset(room_dir, Path(out), self.project_id or "room")
+        except Exception as e:
+            logger.warning("Export preset failed: %s", e)
+
+    def _import_preset_dialog(self) -> None:
+        """Import a preset zip and reload the room."""
+        try:
+            from tkinter import filedialog
+            from alba.preset_manager import import_preset
+
+            presets_dir = Path.cwd() / "presets"
+            zf = filedialog.askopenfilename(
+                title="Import preset",
+                initialdir=str(presets_dir) if presets_dir.exists() else str(Path.cwd()),
+                filetypes=[("Preset zip", "*.zip")],
+            )
+            if not zf:
+                return
+            room_dir = self.kit_path.parent
+            import_preset(Path(zf), room_dir, overwrite=True)
+            self.kit = load_kit(self.kit_path)
+            self.entities = scene_entities_from_kit(self.kit, self.layout)
+            self.entities_by_id = {entity.id: entity for entity in self.entities}
+            self.layer_assets = load_layer_assets(self.kit_dir, self.kit, self.warnings)
+            self.redraw_scene()
+        except Exception as e:
+            logger.warning("Import preset failed: %s", e)
 
     def reset_layout(self) -> None:
         if not self.project_id or not self.layout_file:

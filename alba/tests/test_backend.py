@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import unittest
+from unittest.mock import patch
 
-from alba.backend import ScriptBackend
+from alba.backend import HermesBackend, ScriptBackend
 
 
 class TestScriptBackend(unittest.TestCase):
@@ -29,6 +31,64 @@ class TestScriptBackend(unittest.TestCase):
         event = {"type": "build", "state": "running"}
         result = self.backend.classify_event(event)
         self.assertEqual(result["classification"]["priority"], "normal")
+
+
+class TestHermesBackend(unittest.TestCase):
+    def setUp(self):
+        self.backend = HermesBackend()
+
+    def test_name(self):
+        self.assertEqual(self.backend.name, "hermes")
+
+    def test_parse_priority_high(self):
+        self.assertEqual(HermesBackend._parse_priority("high"), "high")
+
+    def test_parse_priority_normal(self):
+        self.assertEqual(HermesBackend._parse_priority("normal"), "normal")
+
+    def test_parse_priority_low(self):
+        self.assertEqual(HermesBackend._parse_priority("low"), "low")
+
+    def test_parse_priority_unknown(self):
+        self.assertIsNone(HermesBackend._parse_priority("something else"))
+
+    @patch("alba.backend.subprocess.run")
+    def test_classify_with_hermes_response(self, mock_run):
+        mock_run.return_value = type("R", (), {"returncode": 0, "stdout": "high"})()
+        event = {"type": "build", "status": "failed"}
+        result = self.backend.classify_event(event)
+        self.assertEqual(result["classification"]["priority"], "high")
+        self.assertEqual(result["classification"]["source"], "hermes")
+
+    @patch("alba.backend.subprocess.run")
+    def test_classify_fallback_on_error(self, mock_run):
+        mock_run.return_value = type("R", (), {"returncode": 1, "stdout": ""})()
+        event = {"type": "build", "status": "failed"}
+        result = self.backend.classify_event(event)
+        # Falls back to script backend → "high" for "failed"
+        self.assertEqual(result["classification"]["priority"], "high")
+        self.assertIn("fallback", result["classification"]["source"])
+
+    @patch("alba.backend.subprocess.run")
+    def test_classify_fallback_on_missing_cmd(self, mock_run):
+        mock_run.side_effect = FileNotFoundError("hermes not found")
+        event = {"type": "status", "state": "idle"}
+        result = self.backend.classify_event(event)
+        self.assertEqual(result["classification"]["priority"], "low")
+        self.assertIn("fallback", result["classification"]["source"])
+
+    @patch("alba.backend.subprocess.run")
+    def test_health_check_ok(self, mock_run):
+        mock_run.return_value = type("R", (), {"returncode": 0, "stdout": "hermes 1.0"})()
+        self.assertTrue(self.backend.health_check())
+
+    @patch("alba.backend.subprocess.run")
+    def test_health_check_fail(self, mock_run):
+        mock_run.side_effect = FileNotFoundError
+        self.assertFalse(self.backend.health_check())
+
+    def test_repr(self):
+        self.assertIn("HermesBackend", repr(self.backend))
 
 
 if __name__ == "__main__":

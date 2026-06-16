@@ -7,7 +7,9 @@ All backends implement:
 
 from __future__ import annotations
 
+import json
 import logging
+import subprocess
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -64,5 +66,61 @@ class ScriptBackend(AlbaBackend):
         return True  # Always available
 
 
-# Import json for ScriptBackend
-import json  # noqa: E402
+class HermesBackend(AlbaBackend):
+    """Hermes Agent backend — subprocess-based event classification.
+
+    Uses `hermes -z` for one-shot classification via subprocess.
+    Falls back to script rules if Hermes is not available.
+    """
+
+    name = "hermes"
+
+    def __init__(self, hermes_cmd: str = "hermes", timeout: int = 10):
+        self.hermes_cmd = hermes_cmd
+        self.timeout = timeout
+        self._script_fallback = ScriptBackend()
+
+    def _run_hermes(self, prompt: str) -> str | None:
+        """Run hermes -z and return stdout, or None on failure."""
+        try:
+            result = subprocess.run(
+                [self.hermes_cmd, "-z", prompt],
+                capture_output=True,
+                text=True,
+                timeout=self.timeout,
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+            logger.warning("Hermes returned non-zero exit code: %s", result.returncode)
+            return None
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError) as e:
+            logger.warning("Hermes subprocess failed: %s", e)
+            return None
+
+    def classify_event(self, event: dict[str, Any]) -> dict[str, Any]:
+        prompt = (
+            f"Classify this event by priority (high/normal/low). "
+            f"Reply with ONE word only.\n"
+            f"Event: {json.dumps(event)}"
+        )
+        output = self._run_hermes(prompt)
+        priority = self._parse_priority(output) if output else None
+        if priority:
+            event["classification"] = {"priority": priority, "source": "hermes"}
+        else:
+            # Fallback to script rules
+            event = self._script_fallback.classify_event(event)
+            event["classification"]["source"] = "script (hermes fallback)"
+        return event
+
+    def health_check(self) -> bool:
+        result = self._run_hermes("--version")
+        return result is not None
+
+    @staticmethod
+    def _parse_priority(output: str) -> str | None:
+        text = output.strip().lower()
+        for word in ("high", "normal", "low"):
+            if word in text:
+                return word
+        return None
