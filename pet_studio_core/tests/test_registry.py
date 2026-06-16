@@ -1,4 +1,5 @@
 """Tests for pet_studio_core.registry module."""
+
 from __future__ import annotations
 
 import json
@@ -117,6 +118,7 @@ class TestInitCore(unittest.TestCase):
         try:
             init_core(registry_path=custom)
             from pet_studio_core.registry import DEFAULT_REGISTRY as reg
+
             self.assertEqual(reg, custom)
         finally:
             custom.unlink(missing_ok=True)
@@ -127,6 +129,7 @@ class TestInitCore(unittest.TestCase):
         try:
             init_core(state_file=custom)
             from pet_studio_core.registry import DEFAULT_STATE_FILE as sf
+
             self.assertEqual(sf, custom)
         finally:
             custom.unlink(missing_ok=True)
@@ -137,6 +140,7 @@ class TestInitCore(unittest.TestCase):
         try:
             init_core(active_project_file=custom)
             from pet_studio_core.registry import DEFAULT_ACTIVE_PROJECT_FILE as apf
+
             self.assertEqual(apf, custom)
         finally:
             custom.unlink(missing_ok=True)
@@ -145,19 +149,23 @@ class TestInitCore(unittest.TestCase):
         custom_states = {"idle", "running"}
         init_core(widget_states=custom_states)
         from pet_studio_core.registry import WIDGET_STATES as ws
+
         self.assertEqual(ws, custom_states)
 
     def test_override_state_aliases(self):
         custom_aliases = {"custom_done": "jumping"}
         init_core(state_aliases=custom_aliases)
         from pet_studio_core.registry import STATE_ALIASES as sa
+
         self.assertEqual(sa, custom_aliases)
 
     def test_none_keeps_existing(self):
         """Passing None should not change the current value."""
         from pet_studio_core.registry import DEFAULT_REGISTRY as original
+
         init_core(registry_path=None)
         from pet_studio_core.registry import DEFAULT_REGISTRY as reg
+
         self.assertEqual(reg, original)
 
 

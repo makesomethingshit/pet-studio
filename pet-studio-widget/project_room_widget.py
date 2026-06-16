@@ -766,7 +766,8 @@ class ProjectRoomWidget:
         name = self._project_display_name or self.project_id
         font_size = max(8, int(round(9 * self.scale)))
         name_item = self.canvas.create_text(
-            6, room_h + sb_h // 2,
+            6,
+            room_h + sb_h // 2,
             text=name,
             fill=STATUS_BAR_FG,
             font=(STATUS_BAR_FONT, font_size, "bold"),
@@ -778,7 +779,8 @@ class ProjectRoomWidget:
         # State label
         state_text = STATUS_LABELS.get(self.state, self.state)
         state_item = self.canvas.create_text(
-            cw - 6, room_h + sb_h // 2,
+            cw - 6,
+            room_h + sb_h // 2,
             text=f"[{state_text}]",
             fill=STATUS_BAR_FG,
             font=(STATUS_BAR_FONT, font_size),

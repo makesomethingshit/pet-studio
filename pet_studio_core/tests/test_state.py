@@ -1,4 +1,5 @@
 """Tests for pet_studio_core.state module."""
+
 from __future__ import annotations
 
 import json
@@ -30,7 +31,17 @@ class TestExternalStates(unittest.TestCase):
     """Test EXTERNAL_STATES constant."""
 
     def test_includes_all_widget_states(self):
-        for state in ["idle", "running", "waiting", "review", "failed", "jumping", "waving", "running-right", "running-left"]:
+        for state in [
+            "idle",
+            "running",
+            "waiting",
+            "review",
+            "failed",
+            "jumping",
+            "waving",
+            "running-right",
+            "running-left",
+        ]:
             self.assertIn(state, EXTERNAL_STATES)
 
     def test_includes_aliases(self):
@@ -80,9 +91,7 @@ class TestWriteProjectState(unittest.TestCase):
     def test_reset_after_ms(self):
         path = self._tmp_file()
         try:
-            payload = write_project_state(
-                path, "proj1", "running", "", reset_after_ms=5000, reset_to_state="idle"
-            )
+            payload = write_project_state(path, "proj1", "running", "", reset_after_ms=5000, reset_to_state="idle")
             self.assertEqual(payload["resetAfterMs"], 5000)
             self.assertEqual(payload["resetToState"], "idle")
         finally:
