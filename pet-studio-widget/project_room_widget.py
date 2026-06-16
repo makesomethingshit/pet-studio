@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import os
 import subprocess
 import sys
 import tkinter as tk
 import tkinter.font as tkfont
+from tkinter import filedialog
 from datetime import UTC, datetime
 from pathlib import Path
 
 from PIL import Image, ImageTk
+
+logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_TOOLS = ROOT / "pet-studio-kit" / "scripts"
@@ -1173,7 +1177,6 @@ class ProjectRoomWidget:
     def _export_preset_dialog(self) -> None:
         """Export current room as a preset zip via file dialog."""
         try:
-            from tkinter import filedialog
             from alba.preset_manager import export_preset
 
             presets_dir = Path.cwd() / "presets"
@@ -1196,7 +1199,6 @@ class ProjectRoomWidget:
     def _import_preset_dialog(self) -> None:
         """Import a preset zip and reload the room."""
         try:
-            from tkinter import filedialog
             from alba.preset_manager import import_preset
 
             presets_dir = Path.cwd() / "presets"
