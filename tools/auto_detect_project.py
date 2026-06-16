@@ -41,8 +41,10 @@ def activate(project_id: str, workspace: Path) -> bool:
     cmd = [
         sys.executable,
         str(ROOT / "pet-studio-widget" / "set_active_project.py"),
-        "--project-id", project_id,
-        "--cwd", str(workspace),
+        "--project-id",
+        project_id,
+        "--cwd",
+        str(workspace),
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
     return result.returncode == 0

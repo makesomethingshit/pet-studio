@@ -70,7 +70,9 @@ def slug_to_title(value: str) -> str:
 
 def validate_project_id(project_id: str) -> bool:
     if not is_safe_id(project_id):
-        print(f"    [ERROR] Invalid ID '{project_id}'. Use letters, numbers, hyphens, underscores. Must start with letter/number.")
+        print(
+            f"    [ERROR] Invalid ID '{project_id}'. Use letters, numbers, hyphens, underscores. Must start with letter/number."
+        )
         return False
     return True
 
@@ -102,15 +104,23 @@ def run_create_kit(
 ) -> bool:
     """Run the kit creation script."""
     cmd = [
-        sys.executable, str(CREATE_KIT_SCRIPT),
-        "--out-dir", str(out_dir),
-        "--pet-package", str(pet_package),
-        "--room-image", str(room_image),
-        "--project-id", project_id,
-        "--display-name", display_name,
-        "--theme", theme,
+        sys.executable,
+        str(CREATE_KIT_SCRIPT),
+        "--out-dir",
+        str(out_dir),
+        "--pet-package",
+        str(pet_package),
+        "--room-image",
+        str(room_image),
+        "--project-id",
+        project_id,
+        "--display-name",
+        display_name,
+        "--theme",
+        theme,
         "--register-project",
-        "--registry", str(DEFAULT_REGISTRY),
+        "--registry",
+        str(DEFAULT_REGISTRY),
     ]
     for prop_id, prop_path in props:
         cmd.extend(["--prop", f"{prop_id}={prop_path}"])
@@ -290,7 +300,8 @@ def main() -> None:
     preflight_cmd = [
         sys.executable,
         str(ROOT / "tools" / "pet_studio_preflight.py"),
-        "--project-id", project_id,
+        "--project-id",
+        project_id,
         "--skip-hooks",
     ]
     subprocess.run(preflight_cmd, cwd=str(ROOT))
