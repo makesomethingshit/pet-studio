@@ -630,213 +630,64 @@ The user should not need to approve every internal step.
 
 ## Roadmap
 
-### v0.2: Stable Hatch Room
+This roadmap is intentionally staged. Pet Studio should not jump from a room widget to a full agent orchestrator in one release.
 
-Stabilize the current hatch-pet room/widget foundation.
+### Current: 0.4.x Widget App Foundation
 
-- first room creation UX
-- create room -> validate -> QA pack -> launch flow
-- registry, asset, and project-id validation
-- repair hints for missing dependencies
-- Codex hook bubble bridge stability
+The current product is still a local desktop room widget.
 
-Do not add Team Room or Project Hub yet.
+- one-click install
+- project room rendering
+- project/state bridge
+- system tray controls
+- workspace/project auto-detection
+- Codex skill and hook bridge as optional adapters
+- Core boundary split so future adapters do not depend on Codex or Tkinter
 
-### v0.3: Core / Codex Adapter Boundary
+There is no Team Room UI, Project Hub, Task Card board, endpoint registry, or orchestrator yet.
 
-Separate Pet Studio Core from Codex-specific logic.
+### Next: 0.5.x Presets + Script State Manager
 
-- add architecture docs
-- define Codex Adapter responsibility
-- create a minimal `pet_studio_core` package
-- ensure Core does not import Codex Adapter
+Build the smallest useful bridge toward workroom behavior without adding LLM complexity.
 
-Goal:
+- local room preset export/import
+- script-only state manager
+- local `team_state` or equivalent state file only if the script loop needs it
+- tray/status-panel visibility for active/idle/error state
+- short local event log
 
-> Codex is an adapter, not the core.
+Backend rule: start with script mode. Add Ollama, llama.cpp, vLLM, or remote model adapters only after there is a real call site.
 
-### v0.4: Asset Pack / Hatch Pet Base
+### Later: 0.6 Team UI
 
-Turn current hatch-pet and Codex-themed assets into generic Asset Packs.
+Introduce the first visible team surface.
 
-- HatchPetBase model
-- AssetPack model
-- default asset pack from current assets
-- asset pack manifest
-- preview and QA sheet structure
+- Team Room registration/removal
+- compact team panel opened on demand
+- staff cards with avatar, name, and status
+- task queue counts
+- manual routing first; automatic classification later
 
-### v0.5: Team Room Reframe
+### Later: 0.7 Project Hub + Task Cards
 
-Introduce Team Rooms.
+Introduce the work surface only after team state is boring.
 
-- TeamRoom concept
-- TeamRoomConcept model
-- Pet = Team Avatar principle
-- internal roles: Scout / Coordinator / Codex
-- mock Team Room presets
-- Skill Slot concept
-- Team Memory concept
-
-### v0.6: Asset Forge Prompt Mode
-
-Introduce prompt-first hatch-pet asset creation.
-
-- Team Room Concept -> image prompts
-- pet, room, prop, and bubble prompts
-- hatch-pet reference-based variant prompts
-- manual import of generated results
-- imported images saved as Asset Packs
-
-No API or OAuth required.
-
-### v0.7: Project Hub Shell
-
-Introduce Project Hub as a meeting space.
-
-- ProjectHub model
-- connected Team Rooms
-- Meeting Table shell
-- Decision Log shell
-- compatibility with current one-room-per-project flow
-
-### v0.8: Mission Board / Task Cards
-
-Introduce Mission and Task Cards.
-
-- Mission model
-- TaskCard model
-- mock planner recommends Team Rooms
-- task status UI
-- mock skill selection
-
-### v0.9: Endpoint Registry
-
-Register endpoints through aliases.
-
-- EndpointProfile model
-- mock endpoint
-- local OpenAI-compatible endpoint
-- remote cheap endpoint
-- remote SOTA endpoint
-- codex/lead profile
-- cost tier, intelligence tier, and capabilities
-
-### v1.0: Mock Orchestrator / Delegation Trace
-
-First visible workroom demo.
-
-- mock orchestrator
-- automatic Team Room selection
-- TaskCard distribution
-- Delegation Trace
-- Meeting Table mock results
-- Tool Request and Tool Result cards
-- Coordinator Parallel Review mock
-- Permission Lease mock
-
-### v1.1: Real Scouts / Coordinators
-
-Connect real local/cheap endpoints to low-cost roles.
-
-- Scout uses local/main or remote/cheap
-- Coordinator uses local/main or remote/cheap
-- TeamRoom role prompt
-- built-in skill prompt execution
-- results saved to TaskCard
-- mock fallback
-
-### v1.2: Codex Packet Compiler
-
-Convert team results into compact Codex packets.
-
-- fixed CodexPacket model
-- copy Codex prompt
-- export `CODEX_TASK.md`
-- Meeting Table -> Codex Packet
-- external skill results included in packet
-
-### v1.3: Autonomous Workroom MVP
-
-Goal-only workflow.
-
+- Project Hub window
 - Mission input
-- Orchestrator selects Team Rooms
-- Scout / Coordinator real calls
-- automatic skill selection
-- Meeting Table synthesis
-- Codex Packet generation
-- Delegation Trace visibility
+- Task Cards with waiting/running/done states
+- Meeting Table summary area
+- Codex packet draft/export
 
-### v1.4: Skill Import / Trust Gate
+### Later: 0.8+ Workroom Expansion
 
-Support external skill packs.
+These remain broad future directions.
 
-- external skill import
-- skill metadata display
-- required tools display
-- risk level
-- trust level
-- team-level enable / disable
-- role-based permission restrictions
-
-### v1.5: Permission Lease / Parallel Review
-
-Make Coordinator Parallel Review real and permission-aware.
-
-- ParallelJudgment model
-- reviewer-specific endpoint aliases
-- scoped PermissionLease
-- Tool Broker checks lease scope
-- review synthesis
-- recommendation to continue, revise, or escalate
-
-### v1.6: Optional Image Provider Integration
-
-Optional image generation provider support.
-
-- optional image API connection
-- API keys only in local config/env
-- manual import remains supported
-- generation job status
-
-OAuth is not required here.
-
-### v1.7: ChatGPT App / OAuth Connector Mode
-
-Long-term ChatGPT-connected asset workflow.
-
-- ChatGPT App / connector exploration
-- OAuth-based authentication/connection
-- Pet Studio provides asset manifest, hatch-pet reference, and team concept
-- generated results imported into Asset Packs
-
-Principle:
-
-> OAuth is authentication/connection. OAuth is not the image generation mechanism.
-
-### v1.8: Auto Escalation Policy
-
-Automatic escalation based on risk, confidence, cost, and capabilities.
-
-- confidence score
-- risk level
-- cost policy
-- capability matching
-- call Security Booth when needed
-- call Design Critique Room when needed
-- call remote/sota when needed
-- prepare codex/lead packet when needed
-
-### v1.9: Codex Bridge / Reverse Delegation
-
-Connect Codex as the upper work layer.
-
-- Codex CLI / hook / MCP investigation
-- Codex handoff automation
-- Codex result logs reflected in ProjectHub
-- Codex -> Coordinator -> Scout reverse delegation
-- result cards
-- handoff notes
+- room editor
+- theme packs
+- macOS/Linux widget hosts
+- richer endpoint aliases
+- permission/trust review for imported skills
+- optional image provider integration
 
 ## Out of Scope for Early Versions
 
@@ -855,7 +706,7 @@ Do not do these early:
 
 ## First Implementation Instruction
 
-Before building future workroom features, establish boundaries.
+Before building future workroom features, keep the next step boring.
 
 Immediate task:
 
@@ -865,18 +716,16 @@ Do not build Project Hub yet.
 Do not integrate real endpoints yet.
 Do not add image generation API yet.
 
-Start by separating architecture boundaries.
+Start with local room presets and a script-only state manager.
 ```
 
 Suggested first PR:
 
-1. Add `docs/ARCHITECTURE.md`.
-2. Add `docs/ADAPTER_BOUNDARY.md`.
-3. Use this document as `docs/PET_STUDIO_WORKROOM_VISION.md`.
-4. Add a minimal `pet_studio_core` package.
-5. Define Core / Codex Adapter / Widget Host / Asset Forge / Workroom layers.
-6. Treat existing assets as a future default Asset Pack in documentation.
-7. Keep current behavior working.
+1. Add local preset export/import.
+2. Add the smallest script-only state manager.
+3. Show state only through tray/status UI if it helps debugging.
+4. Keep current widget behavior working.
+5. Add real model backends only after the script path proves useful.
 
 Definition of done:
 
@@ -919,3 +768,4 @@ It manages:
 Final definition:
 
 > Pet Studio is a local-first visual AI workroom where reusable Team Rooms, each represented by a hatch-pet-derived pet and equipped with memory, skills, asset packs, endpoint preferences, and tool permissions, connect to Project Hubs, receive Missions, coordinate work through Scout / Coordinator / Codex roles, perform visible delegation and parallel mid-level judgment, safely manage tool access through a Tool Broker and Permission Leases, and produce compact Codex-ready work packets.
+

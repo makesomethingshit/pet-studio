@@ -5,20 +5,37 @@ Use it to avoid re-reading every document while still respecting the project sco
 
 ## Current Status
 
-Pet Studio `v0.2.0` is released. The current milestone is `v0.3.0 Boundary RC` — separating shared registry and state bridge primitives into `pet_studio_core` while preserving all existing widget, CLI, and `project-room-*` compatibility behavior.
+Pet Studio `v0.4.1` is released. The current milestone is `v0.5.0 Orchestration` — multi-project team orchestration with shared alba (local LLM), employee pool (OpenRouter), and lead selection.
 
-What is shipped in 0.2.0:
-- Guided first-room creation via `tools/pet_studio_create_room.py`
-- QA pack generation via `tools/pet_studio_create_qa_pack.py`
-- Project state demo cycler via `tools/pet_studio_demo_states.py`
-- Korean localization for onboarding docs and repair hints
-- Local security hardening for IDs, paths, hook commands, and kit manifest assets
-- Asset guardrails with `basic` / `strict` / `off` modes
-
-What 0.3.0 adds:
+What is shipped in 0.4.1:
+- Desktop widget with pet room, props, helper pets, speech bubbles
+- System tray icon, auto room switching, status bar, project switching
+- Codex skill + hooks integration for live bubble updates
 - `pet_studio_core` with shared registry and state bridge primitives
-- `project_room_registry.py` becomes a compatibility re-export wrapper
-- Architecture docs defining Core, Widget Host, Codex Adapter, Asset Forge, and future Workroom boundaries
+- 245 total tests, CI green, QA Gate 5/5
+
+What 0.5.0 adds:
+- Alba (알바생) — shared local LLM backend for project monitoring and queue management
+- Employee pool (직원) — OpenRouter model pool with project assignment
+- Lead selection (리드) — user-selectable agent (Codex/Claude Code/Cursor/Continue)
+- Skill packs, permission levels, progressive intelligence
+
+See [docs/PET_STUDIO_ORCHESTRATION_PLAN.md](docs/PET_STUDIO_ORCHESTRATION_PLAN.md) for the full orchestration plan.
+
+## Orchestration Rules (ALL AGENTS MUST FOLLOW)
+
+When working on Pet Studio 0.5.0+ features, agents MUST respect these rules:
+
+1. **Read the orchestration plan first** — `docs/PET_STUDIO_ORCHESTRATION_PLAN.md` is the source of truth for team orchestration design
+2. **Alba is shared, not per-project** — route all local LLM work through the single alba backend; do not create separate local LLM instances per project
+3. **Employee pool, not per-project employees** — use the shared employee pool with project assignment, not dedicated per-project workers
+4. **Lead is user-selectable** — do not hardcode Codex; the lead endpoint is configurable (Codex/Claude Code/Cursor/Continue)
+5. **Skill packs over individual skills** — define skills as packs (감시 팩, 코딩 팩, 전체 팩) with per-agent customization
+6. **Security levels are per-project** — each project sets its own L0-L3 security level; default is L1 (경고)
+7. **Progressive intelligence** — 0.5.0 starts with context accumulation; do not implement learning/patterns until 0.6.0+
+8. **Backend adapter pattern** alba supports vllm/Ollama/llama.cpp/script — do not couple to a single backend
+9. **LLM-independent fallback** — alba MUST work in pure script mode without any LLM for GPU-less environments
+10. **Queue-based project switching** — alba cycles through projects by queue; do not implement real-time multi-project monitoring
 
 ## Required Reading
 

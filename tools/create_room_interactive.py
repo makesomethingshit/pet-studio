@@ -15,6 +15,7 @@ Walks through:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -89,6 +90,33 @@ def check_registry(project_id: str) -> bool:
     except Exception:
         pass
     return False
+
+
+def find_codex() -> str | None:
+    """Find Codex CLI binary."""
+    # Check PATH first
+    for name in ("codex", "codex.exe"):
+        try:
+            result = subprocess.run([name, "--version"], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                return name
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+
+    # Check common install paths
+    candidates = [
+        Path.home() / ".codex" / "bin" / "codex.exe",
+        Path.home() / ".codex" / "bin" / "codex",
+        Path.home() / ".local" / "bin" / "codex",
+        Path.home() / ".local" / "bin" / "codex.exe",
+        Path(os.environ.get("APPDATA", "")) / "codex" / "codex.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "codex" / "codex.exe",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+
+    return None
 
 
 def run_create_kit(
@@ -264,33 +292,6 @@ def main() -> None:
         if not pet_package:
             print("    [ERROR] Pet package is required.")
             sys.exit(1)
-
-
-def find_codex() -> str | None:
-    """Find Codex CLI binary."""
-    # Check PATH first
-    for name in ("codex", "codex.exe"):
-        try:
-            result = subprocess.run([name, "--version"], capture_output=True, text=True, timeout=5)
-            if result.returncode == 0:
-                return name
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pass
-
-    # Check common install paths
-    candidates = [
-        Path.home() / ".codex" / "bin" / "codex.exe",
-        Path.home() / ".codex" / "bin" / "codex",
-        Path.home() / ".local" / "bin" / "codex",
-        Path.home() / ".local" / "bin" / "codex.exe",
-        Path(os.environ.get("APPDATA", "")) / "codex" / "codex.exe",
-        Path(os.environ.get("LOCALAPPDATA", "")) / "codex" / "codex.exe",
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return str(candidate)
-
-    return None
 
     # Step 3: Room image
     print()

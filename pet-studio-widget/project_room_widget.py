@@ -669,7 +669,7 @@ class ProjectRoomWidget:
         self.canvas.bind("<ButtonPress-1>", self.start_drag)
         self.canvas.bind("<B1-Motion>", self.drag)
         self.canvas.bind("<ButtonRelease-1>", self.end_drag)
-        self.canvas.bind("<Double-Button-1>", self.cycle_state)
+        self.canvas.bind("<Double-Button-1>", lambda _event: self.run_demo_cycle())
         self.canvas.bind("<Button-3>", self.show_context_menu)
         self.root.protocol("WM_DELETE_WINDOW", self.close)
         self.root.bind("<Escape>", lambda _event: self.close())

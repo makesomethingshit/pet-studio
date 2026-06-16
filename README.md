@@ -137,10 +137,12 @@ Use `--dry-run` to inspect state bridge payloads without writing `project-room-s
 
 The long-term vision is a local visual workroom for your projects. The current project stays intentionally smaller: one workspace, one tiny desktop room, and enough state to understand what's happening without staring at logs.
 
-Near-term follow-ups after `v0.4.0`:
+Near-term follow-ups after `v0.4.1`:
 
 * add more sample room themes and props
-* decompose `project_room_widget.py` into smaller modules (state/session/render/bubble/window)
+* make room preset export/import boring and local
+* define the first script-only worker/state-manager loop before any LLM orchestration
+* keep decomposing widget code only where it removes real maintenance pain
 
 Completed in `v0.4.0`:
 
@@ -163,9 +165,12 @@ Completed in `v0.3.0`:
 
 Larger ideas remain roadmap, not current features:
 
-* shareable room presets / export-import
+* Team Room and Project Hub UI
+* Task Cards and Meeting Table
+* endpoint aliases for local/cheap/SOTA/Codex roles
+* shareable room presets
 * state transition animations
-* helper pet AI behavior
+* helper pet behaviors
 * multi-project room gallery
 * lightweight room editor
 * macOS/Linux widget hosts
