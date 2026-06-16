@@ -6,9 +6,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
-**Every project gets its own tiny desktop room.**
+**Every Codex project gets its own tiny desktop room.**
 
-Pet Studio is a local desktop status widget for your projects.
+Pet Studio is a Codex skill + standalone desktop widget. Install the skill once and your pet room reacts automatically as you work — or run the widget directly and manage rooms manually.
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
@@ -30,20 +30,28 @@ cd codex-pet-studio-skill
 
 This installs dependencies, runs preflight, and launches the widget with the sample room.
 
-### Option B: Manual Steps
+### Option B: Codex Skill (Recommended for Codex users)
+
+Install the Pet Studio skill into your Codex workspace:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+```
+
+This registers Pet Studio as a Codex skill. When you open Codex in a project with a room kit, the widget launches automatically and reacts to your task state.
+
+Optional — live bubble bridge (updates speech bubbles from Codex events):
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
+```
+
+### Option C: Manual Steps
 
 ```powershell
 git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
 cd codex-pet-studio-skill
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py
-.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
-```
-
-Clone and run:
-
-```powershell
-git clone https://github.com/makesomethingshit/pet-studio-skill.git
-cd pet-studio-skill
 .\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
@@ -61,6 +69,8 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * Layered room rendering: background, props, main pet, optional helper pets, speech bubbles
 * Local project registry, saved layout, saved scale, and state file bridge
 * Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
+* **Codex skill** — install once, widget auto-launches when Codex opens a project with a room kit
+* Optional Codex hooks for live bubble updates from prompt/tool/compact/stop events
 * Script-driven room creation, asset guardrails, validation, preview sheets, and local QA packs
 * Auto-project-detection: widget infers project from current workspace directory
 * Korean CLI output (`--lang ko` / `PET_STUDIO_LANG=ko`)
@@ -69,6 +79,7 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 
 * New room quality depends on the provided or generated art; visual QA is required.
 * First-room creation is script-driven, not a GUI editor.
+* Codex skill integration is optional — widget works standalone without Codex.
 * Windows is the primary tested host.
 * Internal storage still uses some `project-room-*` v1 compatibility names.
 

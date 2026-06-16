@@ -10,6 +10,7 @@ All notable changes to Pet Studio are documented here.
 - **System tray icon** — `tray_icon.py` adds a system tray icon with menu for room switching, state control, and quit (5 tests).
 - **Status bar** — canvas overlay showing current project name and state.
 - **Project switching** — right-click context menu to switch between registered projects.
+- **Codex skill** — `install_pet_studio_skill.py` registers Pet Studio as a Codex skill for auto-launch. Optional `install_pet_studio_codex_integration.py` for live bubble updates from Codex events. Widget works standalone without Codex.
 
 ### YAGNI/Scope Cleanup
 
