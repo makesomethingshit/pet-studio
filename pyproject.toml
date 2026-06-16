@@ -1,0 +1,30 @@
+[project]
+name = "pet-studio"
+version = "0.3.0"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["B011"]
+"pet-studio-kit/scripts/**" = ["E402"]
+"tools/**" = ["E402", "UP036"]
+"scripts/**" = ["E741"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

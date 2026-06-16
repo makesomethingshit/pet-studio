@@ -6,12 +6,11 @@ import copy
 import json
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
-
 
 DEFAULT_LAYOUT_FILE = Path(__file__).with_name("project-room-layouts.json")
 DEFAULT_WINDOW_FILE = Path(__file__).with_name("project-room-window.json")
@@ -265,7 +264,7 @@ def save_project_session(path: Path, project_id: str, session: dict[str, Any]) -
     projects = data.setdefault("projects", {})
     normalized = normalize_project_session(session)
     if "updatedAt" not in normalized:
-        normalized["updatedAt"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+        normalized["updatedAt"] = datetime.now(UTC).isoformat().replace("+00:00", "Z")
     projects[project_id] = normalized
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -409,7 +408,9 @@ def bubble_text_for_state(state: str, message: str | None, enabled: bool = True)
     return DEFAULT_BUBBLE_MESSAGES.get(state)
 
 
-def context_menu_labels(project_id: str | None, bubble_visible: bool = True, entity_selected: bool = False) -> tuple[str, ...]:
+def context_menu_labels(
+    project_id: str | None, bubble_visible: bool = True, entity_selected: bool = False
+) -> tuple[str, ...]:
     labels = ["Cycle state"]
     if project_id:
         labels.append("Reset layout")

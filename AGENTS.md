@@ -1,17 +1,24 @@
 # Pet Studio Agent Guide
 
-This file is a short operating guide for agents working on Pet Studio.
+This file is the operating guide for agents working on Pet Studio.
 Use it to avoid re-reading every document while still respecting the project scope and release workflow.
 
-## Current Focus
+## Current Status
 
-Pet Studio is preparing for the `v0.2.0` release candidate.
+Pet Studio `v0.2.0` is released. The current milestone is `v0.3.0 Boundary RC` — separating shared registry and state bridge primitives into `pet_studio_core` while preserving all existing widget, CLI, and `project-room-*` compatibility behavior.
 
-Current next feature:
+What is shipped in 0.2.0:
+- Guided first-room creation via `tools/pet_studio_create_room.py`
+- QA pack generation via `tools/pet_studio_create_qa_pack.py`
+- Project state demo cycler via `tools/pet_studio_demo_states.py`
+- Korean localization for onboarding docs and repair hints
+- Local security hardening for IDs, paths, hook commands, and kit manifest assets
+- Asset guardrails with `basic` / `strict` / `off` modes
 
-- Add `tools/pet_studio_demo_states.py`
-- Implement a project state demo cycler for widget state changes
-- Reuse the existing state bridge instead of creating new runtime files
+What 0.3.0 adds:
+- `pet_studio_core` with shared registry and state bridge primitives
+- `project_room_registry.py` becomes a compatibility re-export wrapper
+- Architecture docs defining Core, Widget Host, Codex Adapter, Asset Forge, and future Workroom boundaries
 
 ## Required Reading
 
@@ -22,17 +29,58 @@ Before feature work, read the relevant guide first:
 | New feature or CLI command | `docs/PET_STUDIO_ROADMAP.md`, `docs/DEVELOPMENT.md` |
 | Install/launcher/widget behavior | `docs/INSTALL.md`, `pet-studio-widget/README.md` |
 | Demo or state bridge work | `docs/DEMO_SCRIPT.md`, `docs/CODEX_INTEGRATION.md` |
-| Release closure / QA focus | `docs/CODER_TO_QA_020_RELEASE_CLOSURE.md`, `PROJECT_HANDOFF.md` |
+| Release closure / QA focus | `docs/qa/020-release-closure.md`, `PROJECT_HANDOFF.md` |
 | Skill behavior | `pet-studio-kit/SKILL.md` |
+| Codex integration / hook work | `docs/CODEX_INTEGRATION.md`, then see **Code Paths** below |
+| Architecture / boundary work | `docs/ARCHITECTURE.md`, `docs/ADAPTER_BOUNDARY.md` |
 
 Do not edit public docs based only on memory. Confirm wording against the existing files.
 
+## Code Paths
+
+Key source files for Codex integration and hook work:
+
+| File | Role |
+| --- | --- |
+| `pet-studio-widget/codex_pet_hook.py` | Hook entry point — receives Codex lifecycle events, translates to state bridge writes |
+| `pet-studio-widget/codex_state_adapter.py` | Event-to-state translation layer — `EVENT_TO_STATE` mapping, project id resolution |
+| `pet-studio-widget/pet_studio_event_adapter.py` | Alias/wrapper for `codex_state_adapter.py` |
+| `tools/install_pet_studio_codex_integration.py` | One-shot installer — skill install + hooks.json + config.toml notify wrap + active project pin |
+| `tools/pet_studio_hook_status.py` | Hook bridge health check — verifies hooks installed, events flowing, state freshness |
+| `pet-studio-widget/project_room_registry.py` | Project registry — re-exports from `pet_studio_core` (0.3.0+) |
+| `pet-studio-widget/set_project_state.py` | Low-level state file writer |
+| `pet-studio-widget/set_active_pet_studio.py` | Active project pin writer |
+| `pet_studio_core/registry.py` | Core registry primitives (0.3.0+) |
+| `pet_studio_core/state.py` | Core state bridge primitives (0.3.0+) |
+
+### Hook Event → State Mapping
+
+Defined in `codex_pet_hook.py` (`HOOK_TO_EVENT`):
+
+| Codex Hook | Event | Default Message |
+| --- | --- | --- |
+| `session_start` | `idle` | "Pet Studio ready" |
+| `user_prompt_submit` | `running` | "Working: <prompt>" |
+| `pre_tool_use` | `running` | "Using <tool>" |
+| `post_tool_use` | `running` | "Working" |
+| `pre_compact` | `waiting` | "Compacting context" |
+| `stop` | `done` → `idle` (auto-reset 1.5s) | "Done" |
+| `notify` | `done` → `idle` (auto-reset 1.5s) | "Turn ended" |
+
+State aliases: `done` → `jumping` (hatch-pet row), `blocked` → `failed`, `handoff` → `review`.
+
+### Project ID Resolution Order
+
+When `--project-id` is omitted, the adapter resolves in this order:
+1. Explicit `projectId` argument or JSON payload field
+2. Active project pin (`project-room-active.json`)
+3. Workspace path matching against registry `workspacePaths`
+
 ## Scope Rules
 
-Stay within Pet Studio `v0.2.0` scope.
+Stay within Pet Studio `v0.2.0` / `v0.3.0` scope.
 
 Do not add these as current features:
-
 - Team Room
 - Project Hub
 - cloud sync
@@ -77,6 +125,13 @@ For the demo state cycler, also verify:
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 0
 ```
 
+For Codex hook changes, also verify:
+
+```powershell
+.\tools\pet_studio_python.cmd -m py_compile pet-studio-widget\codex_pet_hook.py pet-studio-widget\codex_state_adapter.py
+.\tools\pet_studio_python.cmd pet-studio-widget\codex_pet_hook.py --hook user_prompt_submit --project-id gakju-archive-demo
+```
+
 ## Local Runtime Files
 
 Do not commit local runtime state or QA output.
@@ -103,6 +158,12 @@ Install or refresh the local Pet Studio skill:
 .\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py --force
 ```
 
+Install Codex hooks and notify bridge:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id gakju-archive-demo
+```
+
 Launch the demo widget:
 
 ```powershell
@@ -121,13 +182,47 @@ Generate QA evidence for the demo project:
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id gakju-archive-demo
 ```
 
+Inspect hook event log:
+
+```powershell
+type pet-studio-widget\project-room-hook-events.jsonl
+```
+
+Quick hook bridge health check:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\pet_studio_hook_status.py
+.\tools\pet_studio_python.cmd tools\pet_studio_hook_status.py --json
+```
+
 ## Release Mindset
 
 Pet Studio should remain:
-
 - local-first
 - lightweight
 - Windows-focused for now
 - understandable to first-time users
 - safe for local file bridges and hooks
 - clear about what is current functionality versus long-term vision
+
+## Handoff Protocol
+
+Every agent session must read and update `.hermes/handoff.json`.
+
+**On session start:**
+1. Read `.hermes/handoff.json` — understand what the last agent did and what you should do next
+2. If `nextAgent` is not your role, stop and report the mismatch to the user
+
+**On session end (before committing):**
+1. Update `.hermes/handoff.json`:
+   - Set `lastAgent` to your role (`hermes` or `codex`)
+   - Summarize what you did in `lastAction`
+   - Set `nextAgent` to the other agent
+   - Describe what the next agent should do in `nextAction`
+   - Add a `context` field pointing to relevant docs/code paths
+   - Append to `history` array (keep last 10 entries)
+2. Include the handoff update in your commit
+
+**File location:** `.hermes/handoff.json` (committed to git, shared between agents)
+
+**Do not** put runtime state or local paths in handoff.json — only task-level coordination.

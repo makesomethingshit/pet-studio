@@ -5,10 +5,8 @@ from __future__ import annotations
 from collections import deque
 from pathlib import Path
 
-from PIL import Image
-
 from image_guardrails import safe_rgba_image
-
+from PIL import Image
 
 ROOM_ALPHA_MODES = {"safe", "balanced", "aggressive"}
 

@@ -8,10 +8,8 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-
-from PIL import Image
 
 from image_guardrails import ImageResourceError, safe_image_size
 
@@ -19,9 +17,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from project_room_assets import cleanup_room_image
 from asset_guardrails import AssetInput, format_guardrail_failure, is_safe_id, run_asset_guardrails
-
+from project_room_assets import cleanup_room_image
 
 CELL_WIDTH = 192
 CELL_HEIGHT = 208
@@ -134,7 +131,9 @@ def parse_prop_placements(values: list[str], prop_ids: list[str]) -> dict[str, s
             raise SystemExit(f"Prop placement references unknown prop id `{prop_id}`")
         placement = PROP_PLACEMENTS.get(raw_placement)
         if not placement:
-            allowed = ", ".join(sorted({key for key in PROP_PLACEMENTS if "-" in key or key in {"background", "foreground"}}))
+            allowed = ", ".join(
+                sorted({key for key in PROP_PLACEMENTS if "-" in key or key in {"background", "foreground"}})
+            )
             raise SystemExit(f"Unknown prop placement `{raw_placement}` for `{prop_id}`. Allowed: {allowed}")
         placements[prop_id] = placement
     return placements
@@ -248,7 +247,9 @@ def write_asset_metadata(path: Path, style: dict, role: str, features: list[str]
     )
 
 
-def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str], prop_placements: dict[str, str] | None = None) -> dict:
+def make_manifest(
+    display_name: str, prop_ids: list[str], helper_ids: list[str], prop_placements: dict[str, str] | None = None
+) -> dict:
     prop_placements = prop_placements or {}
     layers = [
         {
@@ -335,7 +336,11 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
         "displayName": display_name,
         "description": "A side-view room-decorating kit for a Codex pet widget.",
         "styleLock": "style-lock.json",
-        "cell": {"width": CELL_WIDTH, "height": CELL_HEIGHT, "purpose": "hatch-pet preview/fallback atlas cell, not the source room size"},
+        "cell": {
+            "width": CELL_WIDTH,
+            "height": CELL_HEIGHT,
+            "purpose": "hatch-pet preview/fallback atlas cell, not the source room size",
+        },
         "sourceCanvas": {"width": ROOM_WIDTH, "height": ROOM_HEIGHT, "purpose": "layered Pet Studio widget canvas"},
         "roomModule": {
             "width": ROOM_WIDTH,
@@ -345,7 +350,11 @@ def make_manifest(display_name: str, prop_ids: list[str], helper_ids: list[str],
             "safeArea": {"left": 18, "top": 12, "right": 366, "bottom": 228},
             "doorAnchors": {"left": {"x": 28, "y": 182}, "right": {"x": 356, "y": 182}},
         },
-        "previewBake": {"mode": "contain", "purpose": "compatibility preview only; real room output should keep source layers separate", "align": "bottom-center"},
+        "previewBake": {
+            "mode": "contain",
+            "purpose": "compatibility preview only; real room output should keep source layers separate",
+            "align": "bottom-center",
+        },
         "atlas": {"columns": 8, "rows": 9, "width": ATLAS_WIDTH, "height": ATLAS_HEIGHT},
         "layers": layers,
         "anchors": anchors,
@@ -362,7 +371,12 @@ def make_generation_brief(theme: str, pet_json: dict, prop_ids: list[str]) -> di
             "displayName": pet_json.get("displayName"),
             "description": pet_json.get("description"),
         },
-        "geometry": {"roomWidth": ROOM_WIDTH, "roomHeight": ROOM_HEIGHT, "cellWidth": CELL_WIDTH, "cellHeight": CELL_HEIGHT},
+        "geometry": {
+            "roomWidth": ROOM_WIDTH,
+            "roomHeight": ROOM_HEIGHT,
+            "cellWidth": CELL_WIDTH,
+            "cellHeight": CELL_HEIGHT,
+        },
         "desiredProps": prop_ids,
         "promptConstraints": PROMPT_CONSTRAINTS,
     }
@@ -456,16 +470,25 @@ def main() -> None:
         default=[],
         help="Prop layer placement in id=background|behind-pet|front-of-pet|foreground format; may be repeated",
     )
-    parser.add_argument("--helper-package", action="append", default=[], help="Helper pet in id=path format; may be repeated")
+    parser.add_argument(
+        "--helper-package", action="append", default=[], help="Helper pet in id=path format; may be repeated"
+    )
     parser.add_argument("--theme", default="pet studio room")
     parser.add_argument("--display-name", default=None)
     parser.add_argument("--render-preview", action="store_true")
     parser.add_argument("--render-contact", action="store_true")
     parser.add_argument("--bake-fallback", action="store_true")
-    parser.add_argument("--register-project", action="store_true", help="Register the created kit in a Pet Studio registry")
+    parser.add_argument(
+        "--register-project", action="store_true", help="Register the created kit in a Pet Studio registry"
+    )
     parser.add_argument("--project-id", default=None, help="Project id to use with --register-project")
     parser.add_argument("--registry", default=None, help="Project registry path to update")
-    parser.add_argument("--workspace-path", action="append", default=[], help="Workspace path to associate with the registered project; may be repeated")
+    parser.add_argument(
+        "--workspace-path",
+        action="append",
+        default=[],
+        help="Workspace path to associate with the registered project; may be repeated",
+    )
     parser.add_argument("--python", default=sys.executable)
     parser.add_argument("--hatch-pet-dir", default=str(Path.home() / ".codex" / "skills" / "hatch-pet"))
     args = parser.parse_args()
@@ -541,7 +564,9 @@ def main() -> None:
         if not args.project_id:
             raise SystemExit("--project-id is required with --register-project")
         validate_project_id(args.project_id)
-        registry_path = Path(args.registry) if args.registry else repo_root / "pet-studio-widget" / "project-room-projects.json"
+        registry_path = (
+            Path(args.registry) if args.registry else repo_root / "pet-studio-widget" / "project-room-projects.json"
+        )
         workspace_paths = [Path(value) for value in args.workspace_path]
         registered_project = upsert_project_registry(
             registry_path,
@@ -565,7 +590,14 @@ def main() -> None:
     steps.append(
         run_step(
             "validate kit",
-            [args.python, str(scripts_dir / "validate_project_room_kit.py"), "--kit", str(kit_dir / "project-room.json"), "--json-out", str(validation_path)],
+            [
+                args.python,
+                str(scripts_dir / "validate_project_room_kit.py"),
+                "--kit",
+                str(kit_dir / "project-room.json"),
+                "--json-out",
+                str(validation_path),
+            ],
             repo_root,
         )
     )
@@ -574,7 +606,16 @@ def main() -> None:
         steps.append(
             run_step(
                 "render idle preview",
-                [args.python, str(scripts_dir / "render_project_room_preview.py"), "--kit", str(kit_dir / "project-room.json"), "--state", "idle", "--out", str(out_dir / "room-preview.png")],
+                [
+                    args.python,
+                    str(scripts_dir / "render_project_room_preview.py"),
+                    "--kit",
+                    str(kit_dir / "project-room.json"),
+                    "--state",
+                    "idle",
+                    "--out",
+                    str(out_dir / "room-preview.png"),
+                ],
                 repo_root,
             )
         )
@@ -582,7 +623,16 @@ def main() -> None:
         steps.append(
             run_step(
                 "render contact sheet",
-                [args.python, str(scripts_dir / "render_project_room_preview.py"), "--kit", str(kit_dir / "project-room.json"), "--state", "all", "--out", str(out_dir / "room-contact.png")],
+                [
+                    args.python,
+                    str(scripts_dir / "render_project_room_preview.py"),
+                    "--kit",
+                    str(kit_dir / "project-room.json"),
+                    "--state",
+                    "all",
+                    "--out",
+                    str(out_dir / "room-contact.png"),
+                ],
                 repo_root,
             )
         )
@@ -591,7 +641,18 @@ def main() -> None:
         steps.append(
             run_step(
                 "bake fallback package",
-                [args.python, str(scripts_dir / "bake_project_room_pet.py"), "--kit", str(kit_dir / "project-room.json"), "--out-dir", str(package_dir), "--pet-id", manifest["id"], "--display-name", display_name],
+                [
+                    args.python,
+                    str(scripts_dir / "bake_project_room_pet.py"),
+                    "--kit",
+                    str(kit_dir / "project-room.json"),
+                    "--out-dir",
+                    str(package_dir),
+                    "--pet-id",
+                    manifest["id"],
+                    "--display-name",
+                    display_name,
+                ],
                 repo_root,
             )
         )
@@ -602,7 +663,13 @@ def main() -> None:
             steps.append(
                 run_step(
                     "validate fallback atlas",
-                    [args.python, str(validate_atlas), str(package_dir / "spritesheet.webp"), "--json-out", str(out_dir / "atlas-validation.json")],
+                    [
+                        args.python,
+                        str(validate_atlas),
+                        str(package_dir / "spritesheet.webp"),
+                        "--json-out",
+                        str(out_dir / "atlas-validation.json"),
+                    ],
                     repo_root,
                 )
             )
@@ -610,7 +677,13 @@ def main() -> None:
             steps.append(
                 run_step(
                     "render fallback contact sheet",
-                    [args.python, str(make_contact), str(package_dir / "spritesheet.webp"), "--output", str(out_dir / "fallback-contact-sheet.png")],
+                    [
+                        args.python,
+                        str(make_contact),
+                        str(package_dir / "spritesheet.webp"),
+                        "--output",
+                        str(out_dir / "fallback-contact-sheet.png"),
+                    ],
                     repo_root,
                 )
             )
@@ -618,7 +691,7 @@ def main() -> None:
     validation = load_json(validation_path) if validation_path.exists() else {"ok": False}
     report = {
         "ok": all(step["ok"] for step in steps),
-        "createdAt": datetime.now(timezone.utc).isoformat(),
+        "createdAt": datetime.now(UTC).isoformat(),
         "kitDir": str(kit_dir),
         "generationBrief": str(out_dir / "generation-brief.json"),
         "promptsDir": str(out_dir / "prompts"),

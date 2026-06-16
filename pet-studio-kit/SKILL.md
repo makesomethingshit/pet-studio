@@ -23,8 +23,24 @@ Guide the user through the workflow instead of handing them command lists. Treat
 - If an image generation step is needed, produce prompts and intake instructions, then wait for generated PNGs or use existing assets; do not claim automatic image generation unless an image generation tool is explicitly available and used.
 - Before generating helper/sub-pet base art, show the user 2-3 compact concept directions that explicitly reference the selected style source, then wait for the user's choice. Do not silently choose a helper creature, mascot, or coworker form, because helper style mismatch is hard to repair after atlas generation.
 - Keep manual shell commands as fallback/debug details, not the main user experience.
-- For widget debugging, use `tools\pet_studio_widget.cmd ... --foreground` or direct `pet-studio-widget/pet_studio_widget.py ... --foreground`; normal detached launches should be single-instance and focus the existing `Pet Studio Widget` window instead of creating stacked `pythonw.exe` copies.
+- For widget debugging, use `tools\\pet_studio_widget.cmd ... --foreground` or direct `pet-studio-widget/pet_studio_widget.py ... --foreground`; normal detached launches should be single-instance and focus the existing `Pet Studio Widget` window instead of creating stacked `pythonw.exe` copies.
 - Preserve pet UX expectations in the scene host: speech bubble messages, right-click context menu, project window position persistence, and registered-project session restore. Full parity with the private Codex pet runtime is incremental; implement and document confirmed behaviors first.
+- When working on Codex hook integration, use `tools/pet_studio_hook_status.py` to verify the bridge health (hooks installed, reachable, events flowing, state freshness). Run `tools/pet_studio_hook_status.py --json` for machine-parseable output.
+- **Output encoding rule:** When writing docs, terminal output, or markdown that Codex will read, use ONLY ASCII characters for diagrams, arrows, and separators. Replace Unicode box-drawing characters with ASCII equivalents:
+  - `│` (U+2502) --> `|`
+  - `─` (U+2500) --> `-`
+  - `├` (U+251C) --> `+--`
+  - `└` (U+2514) --> `+--`
+  - `▼` (U+25BC) --> `v` or `-->`
+  - `▲` (U+25B2) --> `^` or `<--`
+  - `●` (U+25CF) --> `*`
+  - `○` (U+25CB) --> `o`
+  - `→` (U+2192) --> `->` or `-->`
+  - `←` (U+2190) --> `<-` or `<--`
+  - `✓` (U+2713) --> `[OK]`
+  - `✗` (U+2717) --> `[FAIL]`
+  - `⚠` (U+26A0) --> `[WARN]`
+  Rationale: Codex may not render non-ASCII box-drawing characters correctly, causing garbled output and failed patch matching.
 
 ## First Choice
 
@@ -162,3 +178,25 @@ Reject or regenerate assets when:
 - props look imported from a different game asset pack
 - helper pets read as a different franchise or rendering style
 - the room buries the main pet or makes helper states feel crowded
+
+## Handoff Protocol
+
+Every agent session must read and update `.hermes/handoff.json`.
+
+**On session start:**
+1. Read `.hermes/handoff.json` — understand what the last agent did and what you should do next
+2. If `nextAgent` is not your role (`codex`), stop and report the mismatch to the user
+
+**On session end (before committing):**
+1. Update `.hermes/handoff.json`:
+   - Set `lastAgent` to `codex`
+   - Summarize what you did in `lastAction`
+   - Set `nextAgent` to `hermes`
+   - Describe what Hermes should do next in `nextAction`
+   - Add a `context` field pointing to relevant docs/code paths
+   - Append to `history` array (keep last 10 entries)
+2. Include the handoff update in your commit
+
+**File location:** `.hermes/handoff.json` (committed to git, shared between agents)
+
+**Do not** put runtime state or local paths in handoff.json — only task-level coordination.

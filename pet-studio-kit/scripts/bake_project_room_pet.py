@@ -6,10 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from PIL import Image, ImageOps
-
 from image_guardrails import safe_image_size, safe_rgba_image
-
+from PIL import Image, ImageOps
 
 STATE_ROWS = {
     "idle": {"row": 0, "frames": 6},
@@ -173,7 +171,9 @@ def render_preview_cell(kit: dict, canvas: Image.Image) -> Image.Image:
     return cell
 
 
-def crop_atlas_frame(atlas: Image.Image, state: str, frame_index: int, cell_width: int, cell_height: int) -> Image.Image:
+def crop_atlas_frame(
+    atlas: Image.Image, state: str, frame_index: int, cell_width: int, cell_height: int
+) -> Image.Image:
     row = STATE_ROWS[state]["row"]
     left = frame_index * cell_width
     top = row * cell_height

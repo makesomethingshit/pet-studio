@@ -24,15 +24,15 @@ def validate_spritesheet(path: Path, expected_width: int, expected_height: int) 
     except ImageResourceError as exc:
         raise SystemExit(str(exc)) from exc
     if (width, height) != (expected_width, expected_height):
-        raise SystemExit(
-            f"Spritesheet is {width}x{height}; expected {expected_width}x{expected_height}"
-        )
+        raise SystemExit(f"Spritesheet is {width}x{height}; expected {expected_width}x{expected_height}")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--kit-dir", required=True, help="Path to a Pet Studio kit directory")
-    parser.add_argument("--package-dir", required=True, help="Path to a hatch-pet package containing pet.json and spritesheet.webp")
+    parser.add_argument(
+        "--package-dir", required=True, help="Path to a hatch-pet package containing pet.json and spritesheet.webp"
+    )
     parser.add_argument("--layer-id", required=True, help="Kit pet layer id, for example main-owner or helper-reviewer")
     parser.add_argument("--feature", action="append", default=[], help="Extra metadata feature; may be repeated")
     args = parser.parse_args()
@@ -62,7 +62,7 @@ def main() -> None:
         "sourcePetId": pet_json.get("id"),
         "sourceDisplayName": pet_json.get("displayName"),
         "features": ["hatch-pet-atlas", args.layer_id, *args.feature],
-        "notes": "Registered from a hatch-pet package for Pet Studio composition."
+        "notes": "Registered from a hatch-pet package for Pet Studio composition.",
     }
     write_json(target_dir / "spritesheet.asset.json", metadata)
 
@@ -71,7 +71,7 @@ def main() -> None:
         "layerId": args.layer_id,
         "sourcePackage": str(package_dir),
         "targetSpritesheet": str(target_spritesheet),
-        "metadata": str(target_dir / "spritesheet.asset.json")
+        "metadata": str(target_dir / "spritesheet.asset.json"),
     }
     print(json.dumps(summary, indent=2))
 

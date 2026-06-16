@@ -11,7 +11,6 @@ from pathlib import Path
 
 from install_pet_studio_skill import install as install_skill
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON_EXE = Path(sys.executable)
 CONFIG_PATH = Path.home() / ".codex" / "config.toml"
@@ -104,7 +103,9 @@ def pet_studio_hook_group(event: str, hook_name: str, status_message: str | None
 def pet_studio_hook_groups() -> dict[str, list[dict]]:
     return {
         "SessionStart": [pet_studio_hook_group("SessionStart", "session_start", "pet-studio: ready")],
-        "UserPromptSubmit": [pet_studio_hook_group("UserPromptSubmit", "user_prompt_submit", "pet-studio: updating bubble")],
+        "UserPromptSubmit": [
+            pet_studio_hook_group("UserPromptSubmit", "user_prompt_submit", "pet-studio: updating bubble")
+        ],
         "PreToolUse": [pet_studio_hook_group("PreToolUse", "pre_tool_use")],
         "PostToolUse": [pet_studio_hook_group("PostToolUse", "post_tool_use")],
         "PreCompact": [pet_studio_hook_group("PreCompact", "pre_compact")],
@@ -139,9 +140,7 @@ def without_pet_studio_groups(groups: object) -> list[dict]:
             retained.append(group)
             continue
         next_handlers = [
-            handler
-            for handler in handlers
-            if not (isinstance(handler, dict) and is_pet_studio_hook(handler))
+            handler for handler in handlers if not (isinstance(handler, dict) and is_pet_studio_hook(handler))
         ]
         if not next_handlers:
             continue

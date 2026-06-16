@@ -1,0 +1,46 @@
+{
+  "currentTask": "0.3.0-boundary-rc",
+  "lastAgent": "codex",
+  "lastAction": "Applied Ponytail cleanup: removed non-real hook_status checks, removed duplicate stale-state alias table, and shrank pet_studio_core package root exports. Re-ran required checks.",
+  "nextAgent": "hermes",
+  "nextAction": "Review the Ponytail cleanup diff, then decide whether to stage/commit it. Keep .hermes/plans out unless SEC-004 work starts separately.",
+  "context": "Branch codex/docs-launch-polish includes 0.3.0 Boundary RC commit 7a5051b. Current uncommitted diff is deletion-focused cleanup plus this handoff update.",
+  "history": [
+    {
+      "agent": "hermes",
+      "action": "Cleaned markdown docs and added hook_status guidance before handing pet_studio_core validation to codex.",
+      "commit": "97042d5",
+      "timestamp": "2026-06-15T16:00:00Z"
+    },
+    {
+      "agent": "codex",
+      "action": "Finished Boundary RC verification pass and added the minimal boundary regression/doc cleanup diff.",
+      "commit": null,
+      "timestamp": "2026-06-16T00:00:00+09:00"
+    },
+    {
+      "agent": "hermes",
+      "action": "Removed sys.modules deletion from prefer_local_room_kit_tools() — small, high-impact fix for 0.3.0 scope.",
+      "commit": "5c63700",
+      "timestamp": "2026-06-16T12:00:00+09:00"
+    },
+    {
+      "agent": "hermes",
+      "action": "Reviewed and staged pet_studio_core boundary module. Verified core has zero Codex/Tkcore/widget imports. Updated boundary doc and import-boundary tests. Kept .hermes/plans out of public commit.",
+      "commit": "1f590a3",
+      "timestamp": "2026-06-16T12:30:00+09:00"
+    },
+    {
+      "agent": "codex",
+      "action": "Added regression coverage for the import-system cleanup and verified widget tests, kit tests, py_compile, preflight, and diff check.",
+      "commit": null,
+      "timestamp": "2026-06-16T13:00:00+09:00"
+    },
+    {
+      "agent": "codex",
+      "action": "Removed dead hook_status checks and the unused pet_studio_core root re-export surface; verified py_compile, hook_status JSON, widget tests, kit tests, preflight, and diff check.",
+      "commit": null,
+      "timestamp": "2026-06-16T13:10:00+09:00"
+    }
+  ]
+}

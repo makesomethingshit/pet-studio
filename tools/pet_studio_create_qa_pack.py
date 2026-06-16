@@ -9,7 +9,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 WIDGET_DIR = ROOT / "pet-studio-widget"
 KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"

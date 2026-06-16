@@ -1,6 +1,6 @@
 # Pet Studio Maintainer Notes
 
-This repository is being prepared for the Pet Studio `v0.2.0` release candidate.
+This repository is being prepared for the Pet Studio `v0.3.0` release candidate.
 
 ## Public Positioning
 
@@ -86,21 +86,37 @@ docs/images/pet-studio-demo.gif
 docs/images/gakju-widget-bubble-example.png
 ```
 
-## Current 0.2.0 Focus
+## Current 0.3.0 Focus
 
-- First-room create wrapper and repair-oriented output.
-- QA pack generation.
-- Project-centered preflight.
-- Asset guardrails and style-confirmation guidance.
-- Registered widget session restore.
-- Windows widget launcher single-instance/focus behavior and detached launcher logging.
-- Project state demo cycler for README GIF capture and manual QA.
-- Korean README and minimal Korean CLI repair hints for first-room setup errors.
-- Local security hardening for IDs, replacement paths, hook commands, and kit manifest asset paths.
+- `pet_studio_core` owns shared registry and state bridge primitives
+- Existing `project_room_*` imports and `project-room-*` files remain compatible
+- Codex hook payloads, hook logs, and trust behavior stay in adapter modules
+- Architecture docs define Core, Widget Host, Codex Adapter, Asset Forge, and future Workroom boundaries
+- Team Room, Project Hub, endpoint registry, dashboard, and orchestration are still future work
+
+## Completed 0.2.0 — First Room Creation UX
+
+All 0.2.0 features are released. Summary of what was shipped:
+
+- Guided first-room creation via `tools/pet_studio_create_room.py`
+- QA pack generation via `tools/pet_studio_create_qa_pack.py`
+- Project state demo cycler via `tools/pet_studio_demo_states.py`
+- Korean localization for onboarding docs and repair hints (`--lang ko` / `PET_STUDIO_LANG=ko`)
+- Local security hardening for IDs, replacement paths, hook commands, and kit manifest asset paths
+- Asset guardrails with `basic` / `strict` / `off` modes
+- Registered widget session restore via `project-room-session.json`
+- Windows widget launcher single-instance/focus behavior and detached launcher logging
+- Codex hook bridge with `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `Stop` hooks
+
+Out of scope for 0.2.0 (and still out of scope for 0.3.0):
+- No GUI editor
+- No cloud sync or remote service
+- No full room navigation or game simulation
+- No automatic helper/sub-pet concept selection without user confirmation
+- No Team Room or Project Hub
 
 ## Notes
 
 - License is MIT from `v0.1.1`; `v0.1.0` remains available under its original Apache-2.0 terms.
 - Current release version is stored in `VERSION`.
 - Changelog entries live in `CHANGELOG.md`.
-- Do not add Team Room, Project Hub, Core package extraction, or Codex Adapter architecture docs to the 0.2.0 release scope.

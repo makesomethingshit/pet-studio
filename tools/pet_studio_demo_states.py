@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 WIDGET_DIR = ROOT / "pet-studio-widget"
 if str(WIDGET_DIR) not in sys.path:
@@ -64,7 +63,9 @@ def write_step(state_file: Path, project_id: str, step: DemoStep) -> dict[str, A
     )
 
 
-def sequence_summary(project_id: str, state_file: Path, delay_seconds: float, once: bool, dry_run: bool) -> dict[str, Any]:
+def sequence_summary(
+    project_id: str, state_file: Path, delay_seconds: float, once: bool, dry_run: bool
+) -> dict[str, Any]:
     steps = build_demo_sequence()
     return {
         "ok": True,
@@ -74,7 +75,9 @@ def sequence_summary(project_id: str, state_file: Path, delay_seconds: float, on
         "delaySeconds": delay_seconds,
         "once": once,
         "sequence": [step.to_dict() for step in steps],
-        "payloads": [payload_for_step(project_id, step, updated_at=None, delay_seconds=delay_seconds) for step in steps],
+        "payloads": [
+            payload_for_step(project_id, step, updated_at=None, delay_seconds=delay_seconds) for step in steps
+        ],
     }
 
 

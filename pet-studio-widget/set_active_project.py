@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from project_room_registry import DEFAULT_ACTIVE_PROJECT_FILE, DEFAULT_REGISTRY, ProjectRegistryError, select_project
 
 
 def utc_now() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def write_active_project(
@@ -34,7 +34,9 @@ def write_active_project(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=str(DEFAULT_REGISTRY), help="Project assignment registry path")
-    parser.add_argument("--active-project-file", default=str(DEFAULT_ACTIVE_PROJECT_FILE), help="Active project pin JSON path")
+    parser.add_argument(
+        "--active-project-file", default=str(DEFAULT_ACTIVE_PROJECT_FILE), help="Active project pin JSON path"
+    )
     parser.add_argument("--project-id", required=True)
     parser.add_argument("--cwd", default=None, help="Workspace directory to record with the active project")
     parser.add_argument("--updated-at", default=None, help="Override updatedAt; mainly useful for deterministic tests")

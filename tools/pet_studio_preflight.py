@@ -10,7 +10,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-
 ROOT = Path(__file__).resolve().parents[1]
 KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
 if str(KIT_SCRIPTS) not in sys.path:
@@ -123,7 +122,9 @@ def install_hooks_command(project_id: str) -> str:
 
 
 def hook_trust_hint(project_id: str) -> str:
-    return f"Run {install_hooks_command(project_id)}, then restart Codex or open /hooks to trust the commands if prompted."
+    return (
+        f"Run {install_hooks_command(project_id)}, then restart Codex or open /hooks to trust the commands if prompted."
+    )
 
 
 def registry_schema_hint() -> str:
@@ -203,10 +204,14 @@ def check_project_registry(registry: Path, project_id: str) -> tuple[CheckResult
     except (json.JSONDecodeError, OSError) as error:
         return fail_check("registry", f"Cannot read {display_path(registry)}: {error}"), None
     if not isinstance(data, dict):
-        return fail_check("registry", f"{display_path(registry)} must contain a JSON object. {registry_schema_hint()}"), None
+        return fail_check(
+            "registry", f"{display_path(registry)} must contain a JSON object. {registry_schema_hint()}"
+        ), None
     projects = data.get("projects")
     if not isinstance(projects, list):
-        return fail_check("registry", f"{display_path(registry)} must contain a projects list. {registry_schema_hint()}"), None
+        return fail_check(
+            "registry", f"{display_path(registry)} must contain a projects list. {registry_schema_hint()}"
+        ), None
     project = None
     for item in projects:
         if isinstance(item, dict) and item.get("projectId") == project_id:
@@ -218,7 +223,10 @@ def check_project_registry(registry: Path, project_id: str) -> tuple[CheckResult
             f"Project {project_id!r} is not registered in {display_path(registry)}. {register_project_hint(project_id, registry)}",
         ), None
     if project.get("enabled") is not True:
-        return fail_check("registry", f"Project {project_id!r} is registered but disabled. Set enabled to true in {display_path(registry)} or choose another project id."), project
+        return fail_check(
+            "registry",
+            f"Project {project_id!r} is registered but disabled. Set enabled to true in {display_path(registry)} or choose another project id.",
+        ), project
     return pass_check("registry", f"{project_id} is enabled"), project
 
 
@@ -239,7 +247,10 @@ def check_project_kit(registry: Path, project: dict[str, Any] | None) -> tuple[C
     kit_path = resolve_registry_path(registry, raw_kit_path)
     manifest = kit_path if kit_path.name == "project-room.json" else kit_path / "project-room.json"
     if not manifest.exists():
-        return fail_check("project-kit", f"Missing project manifest: {display_path(manifest)}. {kit_repair_hint(project_id, registry)}"), manifest
+        return fail_check(
+            "project-kit",
+            f"Missing project manifest: {display_path(manifest)}. {kit_repair_hint(project_id, registry)}",
+        ), manifest
     try:
         kit = load_json(manifest)
     except (json.JSONDecodeError, OSError) as error:
@@ -308,9 +319,7 @@ def check_hooks_config(hooks_file: Path, project_id: str = DEFAULT_PROJECT_ID) -
     if missing:
         return warn_check(
             "hooks",
-            "Missing Pet Studio hook entries: "
-            + ", ".join(missing)
-            + f". {hook_trust_hint(project_id)}",
+            "Missing Pet Studio hook entries: " + ", ".join(missing) + f". {hook_trust_hint(project_id)}",
         )
     return pass_check("hooks", "project-local Codex lifecycle hooks are installed; trust them in /hooks if prompted")
 
@@ -445,7 +454,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip-hooks", action="store_true")
     parser.add_argument("--show-hook-log", action="store_true")
     parser.add_argument("--json", action="store_true", help="Print machine-readable check results")
-    parser.add_argument("--lang", choices=("en", "ko"), default=None, help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English")
+    parser.add_argument(
+        "--lang",
+        choices=("en", "ko"),
+        default=None,
+        help="Human-readable CLI language; defaults to PET_STUDIO_LANG or English",
+    )
     return parser
 
 
