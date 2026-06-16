@@ -15,10 +15,8 @@ Walks through:
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +27,7 @@ KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
 if str(KIT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(KIT_SCRIPTS))
 
-from asset_guardrails import AssetInput, is_safe_id, run_asset_guardrails  # noqa: E402
+from asset_guardrails import is_safe_id  # noqa: E402
 
 
 def ask(prompt: str, default: str | None = None) -> str:
@@ -121,10 +119,10 @@ def run_create_kit(
     if workspace_path:
         cmd.extend(["--workspace-path", str(workspace_path)])
 
-    print(f"\n  Creating room kit...")
+    print("\n  Creating room kit...")
     result = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
     if result.returncode != 0:
-        print(f"    [ERROR] Kit creation failed:")
+        print("    [ERROR] Kit creation failed:")
         print(result.stderr or result.stdout)
         return False
     print(f"    OK — kit created at {out_dir}")
@@ -303,10 +301,10 @@ def main() -> None:
     print("  Room created!")
     print("=" * 50)
     print()
-    print(f"  Launch it:")
+    print("  Launch it:")
     print(f"    .\\tools\\pet_studio_widget.cmd --project-id {project_id} --scale 1.25")
     print()
-    print(f"  Create QA evidence:")
+    print("  Create QA evidence:")
     print(f"    python tools\\pet_studio_create_qa_pack.py --project-id {project_id}")
     print()
 

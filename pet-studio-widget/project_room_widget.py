@@ -1223,7 +1223,7 @@ def main() -> None:
     # Auto-detect project from workspace if --project-id not given and not listing/rendering
     if not args.project_id and not args.list_projects and not args.render_once and not args.render_project_once:
         try:
-            from registry import infer_project_for_workspace, ProjectRegistryError as _PRE
+            from registry import infer_project_for_workspace
             detected = infer_project_for_workspace(args.config, Path.cwd())
             args.project_id = detected.project_id
             print(f"  [auto-detect] Project: {args.project_id} (workspace: {Path.cwd()})")

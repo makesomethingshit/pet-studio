@@ -23,7 +23,7 @@ DEFAULT_REGISTRY = ROOT / "pet-studio-widget" / "project-room-projects.json"
 if str(CORE_DIR) not in sys.path:
     sys.path.insert(0, str(CORE_DIR))
 
-from registry import infer_project_for_workspace, ProjectRegistryError  # noqa: E402
+from registry import ProjectRegistryError, infer_project_for_workspace  # noqa: E402
 
 
 def detect(cwd: Path | None = None) -> str:
@@ -62,7 +62,7 @@ def main() -> None:
             print(json.dumps({"ok": False, "error": f"No project registered for workspace: {workspace}"}))
         else:
             print(f"  No project registered for: {workspace}")
-            print(f"  Register one with: python tools\\create_room_interactive.py")
+            print("  Register one with: python tools\\create_room_interactive.py")
         sys.exit(1)
 
     ok = activate(project_id, workspace)
@@ -73,9 +73,9 @@ def main() -> None:
         if ok:
             print(f"  Detected: {project_id}")
             print(f"  Workspace: {workspace}")
-            print(f"  Active project pin updated.")
+            print("  Active project pin updated.")
             print()
-            print(f"  Launch widget:")
+            print("  Launch widget:")
             print(f"    .\\tools\\pet_studio_widget.cmd --project-id {project_id} --scale 1.25")
         else:
             print(f"  [ERROR] Failed to activate {project_id}")
