@@ -28,20 +28,6 @@ def prefer_local_room_kit_tools() -> None:
         if tools_dir.exists():
             sys.path.insert(0, tools_text)
 
-    if not LOCAL_TOOLS.exists() or not INSTALLED_TOOLS.exists():
-        return
-    installed_root = INSTALLED_TOOLS.resolve()
-    for module_name in ("bake_project_room_pet", "project_room_assets", "localized_messages"):
-        module = sys.modules.get(module_name)
-        module_file = getattr(module, "__file__", None)
-        if not module_file:
-            continue
-        try:
-            if installed_root in Path(module_file).resolve().parents:
-                del sys.modules[module_name]
-        except OSError:
-            continue
-
 
 prefer_local_room_kit_tools()
 
