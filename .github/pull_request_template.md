@@ -1,21 +1,28 @@
 ## Summary
 
-- 
+<!-- What does this PR change? Why? -->
 
-## Current vs Roadmap
+## Type
 
-- [ ] Current-feature claims are backed by behavior in the repo.
-- [ ] Planned behavior is labeled as roadmap/experimental.
-- [ ] Windows-focused widget host limitations remain clear where relevant.
+- [ ] Feature
+- [ ] Fix
+- [ ] Docs
+- [ ] Refactor
+- [ ] Release
 
-## Checks
+## QA Gate
 
-- [ ] `.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests`
-- [ ] `.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests`
-- [ ] `.\tools\pet_studio_python.cmd -m py_compile ...`
+- [ ] `python scripts/run-qa.py` passes (all 5 checks green)
+- [ ] `ruff check .` passes
+- [ ] `ruff format --check .` passes
 
-## Visual QA
+## Checklist
 
-- [ ] Not applicable
-- [ ] Screenshot/render/contact sheet attached or linked
-- [ ] Private paths, prompts, tokens, and chat content removed
+- [ ] `project-room-*` v1 compatibility preserved (if touching storage files)
+- [ ] `pet_studio_core/` has no new Codex/Tkinter/widget imports
+- [ ] New tests added for new behavior
+- [ ] README/CHANGELOG updated if user-facing
+
+## Screenshots / Evidence
+
+<!-- If visual change, attach before/after. If QA Gate, paste terminal output. -->
