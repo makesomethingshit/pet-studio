@@ -2,7 +2,7 @@
 
 [English README](README.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Codex 프로젝트마다 작은 데스크톱 방을 붙입니다.**

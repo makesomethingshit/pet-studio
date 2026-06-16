@@ -2,7 +2,7 @@
 
 [&#54620;&#44397;&#50612; README](README.ko.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
@@ -134,13 +134,21 @@ Use `--dry-run` to inspect state bridge payloads without writing `project-room-s
 
 The long-term vision is a local visual workroom for AI projects. The current project stays intentionally smaller: one Codex workspace, one tiny desktop room, and enough state to understand what the agent is doing without staring at logs.
 
-Near-term follow-ups after `v0.3.0`:
+Near-term follow-ups after `v0.3.1`:
 
-* make fresh-clone setup smoother
-* improve room creation docs and failure messages
 * add more sample room themes and props
 * polish state animations and helper-pet behavior
 * improve Codex event mapping without depending on an official dashboard API
+* decompose `project_room_widget.py` into smaller modules (state/session/render/bubble/window)
+
+Completed in `v0.3.1`:
+
+* repo hygiene: moved debug artifacts to `archive/`, cleaned up `runs/` and `docs/qa/`
+* documentation sync: README.md / README.ko.md section parity
+* one-click installer (`install.cmd`)
+* interactive room creator (`tools/create_room_interactive.py`)
+* auto-project-detection in widget `main()`
+* QA Gate pipeline: `scripts/run-qa.py` + `Makefile` + CI lint
 
 Completed in `v0.3.0`:
 
