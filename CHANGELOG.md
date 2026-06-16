@@ -2,6 +2,20 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.4.2 - 2026-06-17
+
+### Fixes
+- Fixed `ProjectRoomWidget` crash: `<Double-Button-1>` bound to missing `self.cycle_state` method. Replaced with `lambda _event: self.run_demo_cycle()` which is already used by context menu.
+
+### Features
+- **Auto pet generation** — `create_room_interactive.py` now has "[새 펫 생성]" option that auto-detects Codex CLI, calls `$hatch-pet` skill to generate a new pet package, and continues the wizard automatically.
+- **Dependency declaration** — `pyproject.toml` now declares `pillow>=10.0` and `requires-python >= 3.11`. `install.cmd` uses `pip install -e .` instead of raw `pip install pillow`.
+
+### Documentation
+- Added `docs/PET_STUDIO_ORCHESTRATION_PLAN.md` — full orchestration plan for multi-project team management (alba/employee/lead).
+- Updated `AGENTS.md` Current Status to v0.4.1 + v0.5.0 Orchestration milestone.
+- Added `Orchestration Rules` section to AGENTS.md (10 rules all agents must follow).
+
 ## 0.4.1 - 2026-06-17
 
 ### Documentation
