@@ -1,16 +1,22 @@
 {
   "currentTask": "0.3.0-boundary-rc",
-  "lastAgent": "hermes",
-  "lastAction": "MD 문서 정리 + hook_status 도구 추가 (97042d5)",
-  "nextAgent": "codex",
-  "nextAction": "pet_studio_core 모듈 테스트 통과 확인 후 registry 마이그레이션",
-  "context": "docs/ADAPTER_BOUNDARY.md 참고. 기존 project_room_registry.py는 re-export wrapper로 변경 예정. docs/qa/030-boundary-rc.md에 구체적 작업 내역 있음.",
+  "lastAgent": "codex",
+  "lastAction": "Verified pet_studio_core boundary work, kept compatibility wrappers, expanded core import-boundary tests, cleaned adapter boundary doc punctuation, and ran required checks.",
+  "nextAgent": "hermes",
+  "nextAction": "Review the Boundary RC diff and decide whether to stage pet_studio_core plus tracked doc/test/handoff changes. Keep .hermes/plans out of the public commit unless explicitly needed.",
+  "context": "docs/ARCHITECTURE.md, docs/ADAPTER_BOUNDARY.md, docs/qa/030-boundary-rc.md, pet_studio_core/, pet-studio-widget/project_room_registry.py, pet-studio-widget/set_project_state.py, pet-studio-widget/tests/test_project_room_registry.py",
   "history": [
     {
       "agent": "hermes",
-      "action": "MD 파일 정리 (39→35개), 구조 재편, AGENTS.md/CODEX_INTEGRATION.md/ADAPTER_BOUNDARY.md 강화",
+      "action": "Cleaned markdown docs and added hook_status guidance before handing pet_studio_core validation to codex.",
       "commit": "97042d5",
       "timestamp": "2026-06-15T16:00:00Z"
+    },
+    {
+      "agent": "codex",
+      "action": "Finished Boundary RC verification pass and added the minimal boundary regression/doc cleanup diff.",
+      "commit": null,
+      "timestamp": "2026-06-16T00:00:00+09:00"
     }
   ]
 }

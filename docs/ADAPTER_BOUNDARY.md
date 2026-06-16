@@ -26,29 +26,29 @@ Pet Studio 0.3.0 defines a simple boundary:
 
 The Codex adapter lives in `pet-studio-widget/` and consists of three layers:
 
-### 1. Hook Entry Point — `codex_pet_hook.py`
+### 1. Hook Entry Point - `codex_pet_hook.py`
 
 Receives Codex lifecycle events via stdin. Each hook maps to a Pet Studio event and default message (see `HOOK_TO_EVENT` table in the file). Reads stdin payload for prompt text, tool names, and error context to build user-facing bubble messages.
 
 Responsibilities:
 - Decode stdin payload (UTF-8 / locale fallback)
-- Resolve project ID (explicit → active pin → workspace match)
-- Translate hook → event + message
+- Resolve project ID (explicit -> active pin -> workspace match)
+- Translate hook -> event + message
 - Write state bridge via `codex_pet_hook.py`
 - Append audit entry to `project-room-hook-events.jsonl`
 - Optional passthrough to previous notify command
 
-### 2. Event Adapter — `codex_state_adapter.py`
+### 2. Event Adapter - `codex_state_adapter.py`
 
 Thin translation layer between external event names and Pet Studio states.
 
 Responsibilities:
-- `EVENT_TO_STATE` mapping: `start→running`, `wait→waiting`, `review→review`, `block→blocked`, `fail→failed`, `done→done`, `idle→idle`
+- `EVENT_TO_STATE` mapping: `start -> running`, `wait -> waiting`, `review -> review`, `block -> blocked`, `fail -> failed`, `done -> done`, `idle -> idle`
 - Project ID resolution chain
 - State file write delegation to `set_project_state.py`
 - JSON payload parsing (file or stdin)
 
-### 3. Installer — `tools/install_pet_studio_codex_integration.py`
+### 3. Installer - `tools/install_pet_studio_codex_integration.py`
 
 One-shot setup for development environments.
 
@@ -64,7 +64,7 @@ Responsibilities:
 | File | Role | Boundary |
 | --- | --- | --- |
 | `pet-studio-widget/codex_pet_hook.py` | Hook entry point | Adapter |
-| `pet-studio-widget/codex_state_adapter.py` | Event→state translation | Adapter |
+| `pet-studio-widget/codex_state_adapter.py` | Event-state translation | Adapter |
 | `pet-studio-widget/pet_studio_event_adapter.py` | Alias/wrapper | Adapter |
 | `tools/install_pet_studio_codex_integration.py` | Installer | Adapter |
 | `pet_studio_core/registry.py` | Registry primitives | Core |
@@ -76,4 +76,4 @@ Existing modules under `pet-studio-widget` may remain as wrappers so old imports
 
 ## Hook Lifecycle Reference
 
-For the full hook event → state mapping table and troubleshooting guide, see `docs/CODEX_INTEGRATION.md`.
+For the full hook event -> state mapping table and troubleshooting guide, see `docs/CODEX_INTEGRATION.md`.

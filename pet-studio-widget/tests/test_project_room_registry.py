@@ -924,9 +924,16 @@ class ProjectRoomRegistryTests(unittest.TestCase):
         self.assertTrue(core_files)
         combined = "\n".join(path.read_text(encoding="utf-8") for path in core_files)
 
-        self.assertNotIn("codex_", combined)
-        self.assertNotIn("tkinter", combined)
-        self.assertNotIn("codex_pet_hook", combined)
+        for forbidden in (
+            "codex_",
+            "tkinter",
+            "codex_pet_hook",
+            "install_pet_studio_codex_integration",
+            "pet_studio_widget",
+            "image_provider",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, combined)
 
     def test_selects_enabled_project_and_resolves_kit_path(self) -> None:
         from project_room_registry import select_project
