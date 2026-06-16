@@ -6,21 +6,26 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
-**Every Codex project gets its own tiny desktop room.**
+**Pet Studio** — 데스크탑에 작은 방을 띄워서 프로젝트 상태를 눈으로 보여주는 위젯.
 
-Pet Studio is a Codex skill + standalone desktop widget. Install the skill once and your pet room reacts automatically as you work — or run the widget directly and manage rooms manually.
+- **앱으로 쓰세요** → `install.cmd` 한 번이면 바로 시작
+- **복합 에이전트 쓰세요** → skill 설치 한 번이면 에이전트가 자동으로 방을 띄워줌
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
-Pet Studio turns Codex workspaces into layered desktop rooms with pets, props, helper pets, and live speech bubbles. It is a local-first agent dashboard disguised as a tiny pet room.
+Pet Studio turns your projects into layered desktop rooms with pets, props, helper pets, and live speech bubbles. It is a local-first agent dashboard disguised as a tiny pet room.
 
-Instead of watching logs, watch your project room react as Codex starts working, uses tools, gets blocked, enters review, or finishes.
+Instead of watching logs, watch your project room react as you work — running, waiting, review, blocked, failed, or done.
 
 The README GIF follows the 10-15 second demo flow in [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 ## Quick Start
 
-### Option A: One-Click Install (Recommended)
+**AI 도구 어떻게 쓰세요?**
+
+### Option A: 앱으로 쓰세요 (install.cmd)
+
+clone + 설치 한 번이면 바로 시작:
 
 ```powershell
 git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
@@ -28,34 +33,27 @@ cd codex-pet-studio-skill
 .\install.cmd
 ```
 
-This installs dependencies, runs preflight, and launches the widget with the sample room.
+설치 → 위젯 자동 실행. 트레이 아이콘에서 방 전환/상태 변경/종료.
 
-### Option B: Codex Skill (Recommended for Codex users)
+### Option B: 복합 에이전트 쓰세요? (Codex skill)
 
-Install the Pet Studio skill into your Codex workspace:
+skill 설치 한 번이면 에이전트가 자동으로 방을 띄워줌:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
 ```
 
-This registers Pet Studio as a Codex skill. When you open Codex in a project with a room kit, the widget launches automatically and reacts to your task state.
+Codex/Cursor 등으로 프로젝트 열면 → 자동으로 위젯 실작 + 상태 반응.
 
-Optional — live bubble bridge (updates speech bubbles from Codex events):
+선택사항 — 실시간 말풍선 브릿지:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
 ```
 
-### Option C: Manual Steps
+### 방 직접 만들기 (선택)
 
-```powershell
-git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
-cd codex-pet-studio-skill
-.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py
-.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
-```
-
-### Create Your Own Room (Interactive)
+AI가 자동 생성하지 않으면 직접 만들 수 있음:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\create_room_interactive.py
