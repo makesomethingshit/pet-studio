@@ -1096,7 +1096,6 @@ class ProjectRoomWidget:
         # Switch to submenu
         if self._registry_path:
             try:
-                from project_room_registry import list_projects, project_to_summary
                 projects = [project_to_summary(p) for p in list_projects(self._registry_path)]
                 if len(projects) > 1:
                     switch_menu = tk.Menu(menu, tearoff=False)
@@ -1230,7 +1229,6 @@ class ProjectRoomWidget:
         )
 
     def switch_project(self, project_id: str) -> None:
-        from project_room_registry import select_project, ProjectRegistryError
         try:
             project = select_project(self._registry_path, project_id)
         except ProjectRegistryError:

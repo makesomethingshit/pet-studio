@@ -15,13 +15,11 @@ from pet_studio_core.registry import (
     ProjectAssignment,
     ProjectRegistryError,
     init_core,
-    list_projects,
     normalize_state,
     path_contains,
     project_to_summary,
     read_active_project_id,
     read_project_state,
-    infer_project_for_workspace,
 )
 
 
@@ -65,7 +63,7 @@ class TestStateAliases(unittest.TestCase):
             self.assertIn(target, WIDGET_STATES, f"alias {alias}->{target} not in WIDGET_STATES")
 
     def test_widget_states_is_superset_of_alias_values(self):
-        for alias, target in STATE_ALIASES.items():
+        for _alias, target in STATE_ALIASES.items():
             self.assertIn(target, WIDGET_STATES)
 
 
