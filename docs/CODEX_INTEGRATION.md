@@ -105,7 +105,7 @@ Long state messages are whitespace-normalized and capped at 80 characters so hoo
 
 ## Inspect Hook Activity
 
-Quick health check — verifies hooks installed, reachable, events flowing, state freshness:
+Quick health check — verifies hooks installed, events flowing, and state freshness:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_hook_status.py
@@ -120,12 +120,10 @@ JSON output for machine parsing:
 Checks performed:
 - **hooks-installed** — all 6 lifecycle hooks registered in `.codex/hooks.json`
 - **skill-installed** — `$pet-studio` skill found at `%USERPROFILE%\.codex\skills\pet-studio`
-- **hook-reachable** — `codex_pet_hook.py` exists and Python is available
 - **hook-activity** — recent events from `project-room-hook-events.jsonl` (last 20), with per-hook counts and staleness detection
 - **state-bridge** — current `project-room-state.json` state, with stale-state detection (>5min for active states)
 - **active-project** — active project pin status
 - **registry** — project registered and enabled
-- **widget-check** — Python/Tkinter runtime reachable
 
 Also inspect raw hook event log:
 

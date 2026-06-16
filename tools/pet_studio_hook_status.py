@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -33,11 +32,6 @@ EXPECTED_HOOKS = {
     "PostToolUse": "post_tool_use",
     "PreCompact": "pre_compact",
     "Stop": "stop",
-}
-
-STATE_ALIASES = {
-    "blocked": "failed",
-    "handoff": "review",
 }
 
 
@@ -113,42 +107,6 @@ def check_skill_installed(skill_dir: Path) -> StatusItem:
     if not skill_file.exists():
         return fail_item("skill-installed", f"Skill not found at {rel_path(skill_file)}")
     return pass_item("skill-installed", f"Installed at {rel_path(skill_file)}")
-
-
-def check_hook_reachable(hooks_file: Path) -> StatusItem:
-    """Check that the hook command can actually be resolved."""
-    try:
-        data = json.loads(hooks_file.read_text(encoding="utf-8-sig"))
-    except (json.JSONDecodeError, OSError) as error:
-        return fail_item("hook-reachable", f"Cannot read hooks.json: {error}")
-
-    hooks = data.get("hooks", {})
-    sample_event = "UserPromptSubmit"
-    groups = hooks.get(sample_event, [])
-    command_str = None
-    for group in groups:
-        if not isinstance(group, dict):
-            continue
-        for handler in group.get("hooks", []):
-            if isinstance(handler, dict) and isinstance(handler.get("command"), str):
-                command_str = handler["command"]
-                break
-        if command_str:
-            break
-
-    if not command_str:
-        return warn_item("hook-reachable", "Could not extract a hook command from hooks.json")
-
-    # Check that codex_pet_hook.py exists
-    hook_path = ROOT / "pet-studio-widget" / "codex_pet_hook.py"
-    if not hook_path.exists():
-        return fail_item("hook-reachable", f"codex_pet_hook.py not found at {rel_path(hook_path)}")
-
-    # Check that python is available
-    if sys.version_info < (3, 11):
-        return warn_item("hook-reachable", f"Python {sys.version.split()[0]} found; 3.11+ recommended")
-
-    return pass_item("hook-reachable", "Hook command resolves and script exists")
 
 
 def check_hook_log_activity(log_file: Path, max_lines: int = 20) -> StatusItem:
@@ -227,7 +185,7 @@ def check_state_bridge(state_file: Path) -> StatusItem:
         try:
             ts = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
             age_s = (datetime.now(timezone.utc) - ts).total_seconds()
-            if state in STATE_ALIASES or state in {"running", "waiting", "review", "failed", "blocked", "handoff"}:
+            if state in {"running", "waiting", "review", "failed", "blocked", "handoff"}:
                 if age_s > 300:
                     stale = True
         except (ValueError, TypeError):
@@ -272,21 +230,6 @@ def check_project_registry(registry: Path, project_id: str) -> StatusItem:
     return warn_item("registry", f"Project '{project_id}' not found in registry")
 
 
-def check_widget_runtime() -> StatusItem:
-    """Check if the widget process is currently running."""
-    try:
-        import subprocess
-        result = subprocess.run(
-            ["python", "-c", "import ctypes; print('ok')"],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
-            return pass_item("widget-check", "Python/Tkinter runtime reachable")
-        return warn_item("widget-check", "Python check failed", detail=result.stderr[:200])
-    except Exception as error:
-        return warn_item("widget-check", f"Runtime check failed: {error}")
-
-
 def build_status_report(args: argparse.Namespace) -> dict[str, Any]:
     hooks_file = Path(args.hooks_file).expanduser()
     log_file = Path(args.hook_log).expanduser()
@@ -298,12 +241,10 @@ def build_status_report(args: argparse.Namespace) -> dict[str, Any]:
     items: list[StatusItem] = [
         check_hooks_installed(hooks_file),
         check_skill_installed(skill_dir),
-        check_hook_reachable(hooks_file),
         check_hook_log_activity(log_file, args.hook_log_lines),
         check_state_bridge(state_file),
         check_active_project(active_file),
         check_project_registry(registry, args.project_id),
-        check_widget_runtime(),
     ]
 
     # Overall verdict

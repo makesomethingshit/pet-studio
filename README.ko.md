@@ -2,6 +2,9 @@
 
 [English README](README.md)
 
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **Codex 프로젝트마다 작은 데스크톱 방을 붙입니다.**
 
 Pet Studio는 Codex 작업 상태를 작은 방, 펫, 소품, 말풍선으로 보여주는 로컬 우선 데스크톱 위젯입니다.

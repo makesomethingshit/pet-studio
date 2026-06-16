@@ -2,7 +2,7 @@
 
 [&#54620;&#44397;&#50612; README](README.ko.md)
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
@@ -94,14 +94,17 @@ The create command checks common asset mistakes before writing a kit: room sourc
 
 The long-term vision is a local visual workroom for AI projects. The current project stays intentionally smaller: one Codex workspace, one tiny desktop room, and enough state to understand what the agent is doing without staring at logs.
 
-Near-term follow-ups after `v0.2.0`:
+Near-term follow-ups after `v0.3.0`:
 
-* `v0.3.0` boundary work: keep current behavior, but split shared registry/state logic into Pet Studio Core
 * make fresh-clone setup smoother
 * improve room creation docs and failure messages
 * add more sample room themes and props
 * polish state animations and helper-pet behavior
 * improve Codex event mapping without depending on an official dashboard API
+
+Completed in `v0.3.0`:
+
+* boundary work: split shared registry/state logic into Pet Studio Core
 
 Larger ideas remain roadmap, not current features:
 

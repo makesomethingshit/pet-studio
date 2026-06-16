@@ -5,13 +5,20 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 
-ROOT = Path(__file__).resolve().parents[1]
-WIDGET_DIR = ROOT / "pet-studio-widget"
-DEFAULT_REGISTRY = WIDGET_DIR / "project-room-projects.json"
-DEFAULT_STATE_FILE = WIDGET_DIR / "project-room-state.json"
-DEFAULT_ACTIVE_PROJECT_FILE = WIDGET_DIR / "project-room-active.json"
+# ---------------------------------------------------------------------------
+# Default paths (backward-compatible).
+# Call init_core() to override without hard-coding widget directory layout.
+# ---------------------------------------------------------------------------
+
+_ROOT_CANDIDATE = Path(__file__).resolve().parents[1]
+
+DEFAULT_REGISTRY: Path = _ROOT_CANDIDATE / "pet-studio-widget" / "project-room-projects.json"
+DEFAULT_STATE_FILE: Path = _ROOT_CANDIDATE / "pet-studio-widget" / "project-room-state.json"
+DEFAULT_ACTIVE_PROJECT_FILE: Path = _ROOT_CANDIDATE / "pet-studio-widget" / "project-room-active.json"
+
 STATE_ALIASES = {
     "done": "jumping",
     "blocked": "failed",
@@ -45,10 +52,50 @@ class ProjectAssignment:
     default_state: str
     theme: str
     enabled: bool
-    raw: dict
+    raw: dict[str, Any]
 
 
-def load_json(path: Path) -> dict:
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def init_core(
+    *,
+    registry_path: str | Path | None = None,
+    state_file: str | Path | None = None,
+    active_project_file: str | Path | None = None,
+    state_aliases: dict[str, str] | None = None,
+    widget_states: set[str] | None = None,
+) -> None:
+    """Override default paths and optional state model at call time.
+
+    All parameters are keyword-only and optional. Any parameter left as ``None``
+    keeps the existing default.
+
+    Example::
+
+        from pet_studio_core.registry import init_core
+        init_core(
+            registry_path="/opt/pet-studio/my-registry.json",
+            state_file="/opt/pet-studio/my-state.json",
+        )
+    """
+    global DEFAULT_REGISTRY, DEFAULT_STATE_FILE, DEFAULT_ACTIVE_PROJECT_FILE
+    global STATE_ALIASES, WIDGET_STATES
+
+    if registry_path is not None:
+        DEFAULT_REGISTRY = Path(registry_path).expanduser()
+    if state_file is not None:
+        DEFAULT_STATE_FILE = Path(state_file).expanduser()
+    if active_project_file is not None:
+        DEFAULT_ACTIVE_PROJECT_FILE = Path(active_project_file).expanduser()
+    if state_aliases is not None:
+        STATE_ALIASES = dict(state_aliases)
+    if widget_states is not None:
+        WIDGET_STATES = set(widget_states)
+
+
+def load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
 
 
@@ -79,7 +126,7 @@ def resolve_kit_manifest(value: str, base_dir: Path) -> Path:
     return path
 
 
-def resolve_workspace_paths(entry: dict, registry_dir: Path) -> tuple[Path, ...]:
+def resolve_workspace_paths(entry: dict[str, Any], registry_dir: Path) -> tuple[Path, ...]:
     values = entry.get("workspacePaths") or []
     if not isinstance(values, list):
         raise ProjectRegistryError("Project assignment `workspacePaths` must be a list")
@@ -101,7 +148,7 @@ def normalize_state(state: str | None, fallback: str = "idle") -> str:
     return mapped
 
 
-def project_from_entry(entry: dict, registry_dir: Path, *, validate_kit: bool) -> ProjectAssignment:
+def project_from_entry(entry: dict[str, Any], registry_dir: Path, *, validate_kit: bool) -> ProjectAssignment:
     project_id = entry.get("projectId")
     if not project_id:
         raise ProjectRegistryError("Project entry is missing projectId")
@@ -212,7 +259,7 @@ def read_project_state(state_file: str | Path | None, project_id: str | None, fa
     return normalize_state(data.get("state"), fallback)
 
 
-def project_to_summary(project: ProjectAssignment) -> dict:
+def project_to_summary(project: ProjectAssignment) -> dict[str, Any]:
     return {
         "projectId": project.project_id,
         "displayName": project.display_name,

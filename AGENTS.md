@@ -46,7 +46,7 @@ Key source files for Codex integration and hook work:
 | `pet-studio-widget/codex_state_adapter.py` | Event-to-state translation layer — `EVENT_TO_STATE` mapping, project id resolution |
 | `pet-studio-widget/pet_studio_event_adapter.py` | Alias/wrapper for `codex_state_adapter.py` |
 | `tools/install_pet_studio_codex_integration.py` | One-shot installer — skill install + hooks.json + config.toml notify wrap + active project pin |
-| `tools/pet_studio_hook_status.py` | Hook bridge health check — verifies hooks installed, reachable, events flowing, state freshness |
+| `tools/pet_studio_hook_status.py` | Hook bridge health check — verifies hooks installed, events flowing, state freshness |
 | `pet-studio-widget/project_room_registry.py` | Project registry — re-exports from `pet_studio_core` (0.3.0+) |
 | `pet-studio-widget/set_project_state.py` | Low-level state file writer |
 | `pet-studio-widget/set_active_pet_studio.py` | Active project pin writer |
