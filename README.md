@@ -6,9 +6,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
-**Every Codex project gets its own tiny desktop room.**
+**Every project gets its own tiny desktop room.**
 
-Pet Studio is a desktop status widget for Codex projects.
+Pet Studio is a local desktop status widget for your projects.
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
@@ -39,19 +39,13 @@ cd codex-pet-studio-skill
 .\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
-Install the Codex skill:
+Clone and run:
 
 ```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+git clone https://github.com/makesomethingshit/pet-studio-skill.git
+cd pet-studio-skill
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
-
-Optional live bubble bridge:
-
-```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id gakju-archive-demo
-```
-
-After installing hooks, restart Codex or open `/hooks` to review and trust the new commands when Codex asks.
 
 ### Create Your Own Room (Interactive)
 
@@ -67,7 +61,6 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * Layered room rendering: background, props, main pet, optional helper pets, speech bubbles
 * Local project registry, saved layout, saved scale, and state file bridge
 * Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
-* Optional Codex hooks for prompt/tool/compact/stop bubble updates
 * Script-driven room creation, asset guardrails, validation, preview sheets, and local QA packs
 * Auto-project-detection: widget infers project from current workspace directory
 * Korean CLI output (`--lang ko` / `PET_STUDIO_LANG=ko`)
@@ -76,12 +69,10 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 
 * New room quality depends on the provided or generated art; visual QA is required.
 * First-room creation is script-driven, not a GUI editor.
-* Codex integration is a local file/hook bridge, not an official Codex dashboard API.
 * Windows is the primary tested host.
-* System tray icon is deferred (no caller connected).
 * Internal storage still uses some `project-room-*` v1 compatibility names.
 
-Not included today: system tray, multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, room preset export/import, helper pet AI.
+Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, room preset export/import, helper pet AI.
 
 ## Model
 
@@ -135,18 +126,18 @@ Use `--dry-run` to inspect state bridge payloads without writing `project-room-s
 
 ## Roadmap
 
-The long-term vision is a local visual workroom for AI projects. The current project stays intentionally smaller: one Codex workspace, one tiny desktop room, and enough state to understand what the agent is doing without staring at logs.
+The long-term vision is a local visual workroom for your projects. The current project stays intentionally smaller: one workspace, one tiny desktop room, and enough state to understand what's happening without staring at logs.
 
 Near-term follow-ups after `v0.4.0`:
 
 * add more sample room themes and props
-* improve Codex event mapping without depending on an official dashboard API
 * decompose `project_room_widget.py` into smaller modules (state/session/render/bubble/window)
 
 Completed in `v0.4.0`:
 
 * workspace auto-switch: widget reacts to project changes without manual `--project-id`
-* YAGNI cleanup: removed unimplemented export/import, watcher, tray, animation, helper pet AI
+* system tray icon: room list, state control, quit from tray
+* YAGNI cleanup: removed unimplemented export/import, animation, helper pet AI
 
 Completed in `v0.3.1`:
 
@@ -163,7 +154,6 @@ Completed in `v0.3.0`:
 
 Larger ideas remain roadmap, not current features:
 
-* system tray icon
 * shareable room presets / export-import
 * state transition animations
 * helper pet AI behavior

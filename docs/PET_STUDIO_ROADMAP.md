@@ -2,14 +2,14 @@
 
 ## Vision
 
-Pet Studio turns each Codex project into a small local desktop room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a hosted dashboard or full game.
+Pet Studio turns each project into a small local desktop room. Each project owns a scene with room, pet, prop, layout, and current state, so the desktop host can show where work is happening and how it is going without becoming a hosted dashboard or full game.
 
 The long-term experience should feel like a compact side-view room near the edge of the desktop: one main owner pet as the emotional focus, optional helper pets for review or handoff moments, draggable props, and project-specific layout details that make each workspace recognizable.
 
 The final vision is broader than the current implementation:
 
-- every Codex workspace can have its own recognizable room
-- room state changes reflect real agent lifecycle events
+- every workspace can have its own recognizable room
+- room state changes reflect real project lifecycle events
 - helper pets and props make review, blocked, handoff, and done states visible without reading logs
 - users can create, tune, and share room presets without editing JSON by hand
 - the widget stays local-first and lightweight rather than becoming a hosted dashboard

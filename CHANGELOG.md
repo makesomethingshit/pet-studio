@@ -8,6 +8,8 @@ All notable changes to Pet Studio are documented here.
 
 - **Auto room switching** — `infer_project_for_workspace()` in `codex_state_adapter.py` and `project_room_widget.py` detects workspace changes and switches rooms automatically.
 - **System tray icon** — `tray_icon.py` adds a system tray icon with menu for room switching, state control, and quit (5 tests).
+- **Status bar** — canvas overlay showing current project name and state.
+- **Project switching** — right-click context menu to switch between registered projects.
 
 ### YAGNI/Scope Cleanup
 
