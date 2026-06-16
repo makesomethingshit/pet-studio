@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -67,7 +66,7 @@ class TestTeamState(unittest.TestCase):
     def test_project_insight(self):
         self.state.register_project("test-proj")
         self.state.add_project_insight("test-proj", "lastBuild", "pass")
-        history = self.state.get_context_history(limit=1)
+        self.state.get_context_history(limit=1)
         self.assertTrue(True)  # No crash = pass
 
 
