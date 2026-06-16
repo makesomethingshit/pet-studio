@@ -79,16 +79,42 @@ Do the useful low-tech version first.
 - a tiny tray/status panel only if it helps inspect that loop
 - a short local event log
 - no popups by default
+- alba (알바생) state manager: `team_state.json` schema, project queues, event logs
+- backend adapters: script / Hermes / OpenClaw
 
 Backend rule: start with script mode. Add Ollama, llama.cpp, vLLM, or remote model adapters only after there is a real call site.
 
-## Later - 0.6 Team UI
+## Later - 0.6 Team UI + Self-Improvement
 
 - Team Room registration and removal
 - compact team panel opened on demand
 - staff cards with avatar, name, and status
 - task queue counts such as `waiting 3 / running 1`
 - manual/script routing first; LLM classification later if it earns its keep
+
+### Team Self-Improvement (영감: Hermes memory/skill 시스템)
+
+팀 단위로 학습하고 개선하는 루프. Hermes의 자기 개선(memory, skill, session search)을 팀 오케스트레이션으로 확장한다.
+
+**① 작업 패턴 → 자동 스킬 생성**
+- 같은 작업 3회 반복 → "이 작업은 이렇게 한다" 스킬 자동 생성
+- 예: "lint → test → commit" 반복 → `auto-dev-cycle` 스킬
+- 실패 패턴 → 회전 목록(rotation list) 업데이트
+
+**② 팀 메모리 (`team_state.json` 확장)**
+- 프로젝트별 인사이트 축적 (공통 에러, 베스트 프랙티스)
+- 직원별 성과 기록 (성공률, 평균 소요 시간)
+- 작업 큐 패턴 분석 (어떤 작업이 어떤 직원에게 잘 맞는지)
+
+**③ 자동 최적화**
+- 작업 배분 알고리즘 개선: "이 타입 작업은 codex가 2배 빠름" → 자동 가중치
+- 프리셋 자동 추천: "이 프로젝트 타입은 이 프리셋이 가장 많이 쓰임"
+- 상태 전환 자동화: 스테일 감지 → idle 전환 (clawd-on-desk 참고)
+
+**④ 상태 → 펫 표정 매핑 (clawd-on-desk 참고)**
+- idle / thinking / typing / building / error / happy / sleeping 등
+- 에이전트 상태 → 펫 애니메이션 자동 전환
+- 스테일 감지: 30초 이상 업데이트 없으면 → idle
 
 ## Later - 0.7 Project Hub
 
