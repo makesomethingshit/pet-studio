@@ -20,10 +20,18 @@ All notable changes to Pet Studio are documented here.
 - All `project-room-*` v1 file names and shapes preserved.
 - Existing `pet-studio-widget/` modules remain as-is; new shared behavior lands in `pet_studio_core` first.
 
+### UX
+
+- Added `install.cmd` — one-click install: clone, install deps, run preflight, launch widget.
+- Added `tools/create_room_interactive.py` — interactive room creation with prompts instead of CLI flags.
+- Added auto-project-detection to widget `main()`: when `--project-id` is omitted, widget infers the project from the current workspace directory.
+
 ### Documentation
 
 - Expanded `ADAPTER_BOUNDARY.md`: clearer core/adapter ownership rules, adapter file map, compatibility rule.
 - Strengthened core import-boundary tests with additional forbidden patterns (`install_pet_studio_codex_integration`, `pet_studio_widget`, `image_provider`).
+- Updated README Quick Start: one-click install option, interactive room creation, manual steps preserved as Option B.
+- Removed "one-click installer" from "Still Experimental" list (now shipped).
 
 ## 0.2.0 - 2026-06-15
 

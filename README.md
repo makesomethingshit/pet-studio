@@ -20,6 +20,18 @@ The README GIF follows the 10-15 second demo flow in [docs/DEMO_SCRIPT.md](docs/
 
 ## Quick Start
 
+### Option A: One-Click Install (Recommended)
+
+```powershell
+git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
+cd codex-pet-studio-skill
+.\install.cmd
+```
+
+This installs dependencies, runs preflight, and launches the widget with the sample room.
+
+### Option B: Manual Steps
+
 ```powershell
 git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
 cd codex-pet-studio-skill
@@ -41,6 +53,14 @@ Optional live bubble bridge:
 
 After installing hooks, restart Codex or open `/hooks` to review and trust the new commands when Codex asks.
 
+### Create Your Own Room (Interactive)
+
+```powershell
+.\tools\pet_studio_python.cmd tools\create_room_interactive.py
+```
+
+Answer prompts to create a new project room. No need to remember CLI flags.
+
 ## What Works Today
 
 * Windows desktop widget for checked-in sample project rooms
@@ -58,7 +78,7 @@ After installing hooks, restart Codex or open `/hooks` to review and trust the n
 * Windows is the primary tested host.
 * Internal storage still uses some `project-room-*` v1 compatibility names.
 
-Not included today: multi-room gallery, one-click installer, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
+Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
 
 ## Model
 
