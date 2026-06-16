@@ -41,6 +41,20 @@ Codex is an adapter, not the core. Core should be usable by another adapter late
 
 The current asset forge is the kit generator and guardrail toolchain in `pet-studio-kit/scripts`. In 0.3.0 this remains script-based. Future asset packs and prompt workflows should build on this boundary instead of moving image generation concerns into Core.
 
+### CLI Tools
+
+`tools/` contains user-facing CLI commands for installation, room creation, QA, and Codex integration:
+
+- `tools/pet_studio_preflight.py` — preflight checks for a project room
+- `tools/pet_studio_create_room.py` — scripted room creation
+- `tools/create_room_interactive.py` — interactive room creation
+- `tools/pet_studio_codex_integration.py` — install Codex hooks
+- `tools/pet_studio_skill.py` — install Pet Studio skill
+
+**Boundary rule:** `tools/` scripts are thin wrappers. They must not contain core business logic — shared behavior belongs in `pet_studio_core/`. `tools/` may import from `pet_studio_core/` and `pet-studio-kit/scripts/` but not from `pet-studio-widget/` directly.
+
+**Distinction from Asset Forge:** `pet-studio-kit/scripts/` generates and validates room art assets (PNGs, kits). `tools/` orchestrates user workflows (install, create, QA). Do not merge these concerns.
+
 ### Future Workroom
 
 Team Room, Project Hub, endpoint registry, mission board, and orchestration concepts remain future layers. They should depend on Core contracts, not on Codex hook internals or the Tkinter widget host.

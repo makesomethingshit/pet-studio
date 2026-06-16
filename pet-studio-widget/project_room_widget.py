@@ -81,6 +81,21 @@ DEFAULT_WIDGET_LOCK = ROOT / "pet-studio-widget" / "project-room-widget.lock"
 HIT_TEST_ALPHA_THRESHOLD = 16
 DEFAULT_STATE_STALE_AFTER_MS = 300000
 DEFAULT_DEMO_CYCLE_DELAY_SECONDS = 2.0
+STATUS_BAR_HEIGHT = 20
+STATUS_BAR_BG = "#1e1e2e"
+STATUS_BAR_FG = "#cdd6f4"
+STATUS_BAR_FONT = "Segoe UI"
+STATUS_LABELS = {
+    "idle": "대기",
+    "running": "작업중",
+    "waiting": "대기중",
+    "review": "리뷰",
+    "failed": "실패",
+    "blocked": "차단됨",
+    "handoff": "전환",
+    "jumping": "완료",
+    "done": "완료",
+}
 DEMO_CYCLE_STEPS = (
     ("idle", ""),
     ("running", "Working..."),
@@ -594,6 +609,8 @@ class ProjectRoomWidget:
         self.fps = fps
         self.scale = scale
         self.project_id = project_id
+        self._project_display_name = None
+        self._registry_path = None
         self.state_file = state_file
         self.layout_file = layout_file if project_id else None
         self.window_file = window_file if project_id else None
@@ -623,6 +640,7 @@ class ProjectRoomWidget:
         self.entity_photos: dict[str, ImageTk.PhotoImage] = {}
         self.bubble_items: list[int] = []
         self.topmost = bool(topmost)
+        self._status_bar_items: list[int] = []
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
@@ -637,10 +655,11 @@ class ProjectRoomWidget:
         source_canvas = self.kit.get("sourceCanvas", self.kit["cell"])
         canvas_width = max(1, int(round(int(source_canvas["width"]) * scale)))
         canvas_height = max(1, int(round(int(source_canvas["height"]) * scale)))
+        self._canvas_height = canvas_height
         self.canvas = tk.Canvas(
             self.root,
             width=canvas_width,
-            height=canvas_height,
+            height=canvas_height + STATUS_BAR_HEIGHT,
             bg=CHROMA,
             borderwidth=0,
             highlightthickness=0,
@@ -725,6 +744,48 @@ class ProjectRoomWidget:
                 continue
             self.draw_entity(entity, self.index)
         self.draw_bubble()
+        self._draw_status_bar()
+
+    def _draw_status_bar(self) -> None:
+        for item in self._status_bar_items:
+            self.canvas.delete(item)
+        self._status_bar_items.clear()
+
+        if not self.project_id:
+            return
+
+        cw = int(self.canvas.cget("width"))
+        sb_h = STATUS_BAR_HEIGHT
+        room_h = self._canvas_height
+
+        # Background
+        rect = self.canvas.create_rectangle(0, room_h, cw, room_h + sb_h, fill=STATUS_BAR_BG, outline="")
+        self._status_bar_items.append(rect)
+
+        # Project name
+        name = self._project_display_name or self.project_id
+        font_size = max(8, int(round(9 * self.scale)))
+        name_item = self.canvas.create_text(
+            6, room_h + sb_h // 2,
+            text=name,
+            fill=STATUS_BAR_FG,
+            font=(STATUS_BAR_FONT, font_size, "bold"),
+            anchor=tk.W,
+            tags=("statusbar",),
+        )
+        self._status_bar_items.append(name_item)
+
+        # State label
+        state_text = STATUS_LABELS.get(self.state, self.state)
+        state_item = self.canvas.create_text(
+            cw - 6, room_h + sb_h // 2,
+            text=f"[{state_text}]",
+            fill=STATUS_BAR_FG,
+            font=(STATUS_BAR_FONT, font_size),
+            anchor=tk.E,
+            tags=("statusbar",),
+        )
+        self._status_bar_items.append(state_item)
 
     def draw_bubble(self) -> None:
         text = bubble_text_for_state(self.state, self.message, self.bubble_visible)
@@ -732,7 +793,7 @@ class ProjectRoomWidget:
         if not text or owner is None:
             return
         canvas_width = max(1, int(self.canvas.cget("width")))
-        canvas_height = max(1, int(self.canvas.cget("height")))
+        canvas_height = self._canvas_height
         x = int(round(owner.anchor["x"] * self.scale))
         y = int(round((owner.anchor["y"] - 116) * self.scale))
         margin = max(10, int(round(12 * self.scale)))
@@ -1001,6 +1062,7 @@ class ProjectRoomWidget:
                 self.state_source = next_source
                 self.save_session(next_source)
             return
+
         self.state = next_state
         self.message = next_message
         self.state_source = next_source
@@ -1030,6 +1092,28 @@ class ProjectRoomWidget:
         entity = self.pick_draggable_entity(event.x, event.y)
         menu = tk.Menu(self.root, tearoff=False)
         menu.add_command(label="Cycle state", command=self.run_demo_cycle)
+
+        # Switch to submenu
+        if self._registry_path:
+            try:
+                from project_room_registry import list_projects, project_to_summary
+                projects = [project_to_summary(p) for p in list_projects(self._registry_path)]
+                if len(projects) > 1:
+                    switch_menu = tk.Menu(menu, tearoff=False)
+                    for p in projects:
+                        pid = p["projectId"]
+                        name = p.get("displayName", pid)
+                        if pid == self.project_id:
+                            switch_menu.add_label(f"• {name} (current)")
+                        else:
+                            switch_menu.add_command(
+                                label=name,
+                                command=lambda pid=pid: self.switch_project(pid),
+                            )
+                    menu.add_cascade(label="Switch to", menu=switch_menu)
+            except Exception:
+                pass
+
         if self.project_id and self.layout_file:
             menu.add_command(label="Reset layout", command=self.reset_layout)
         if self.project_id and self.layout_file and entity is not None:
@@ -1144,6 +1228,39 @@ class ProjectRoomWidget:
                 "updatedAt": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             },
         )
+
+    def switch_project(self, project_id: str) -> None:
+        from project_room_registry import select_project, ProjectRegistryError
+        try:
+            project = select_project(self._registry_path, project_id)
+        except ProjectRegistryError:
+            return
+        self.project_id = project_id
+        self._project_display_name = project.display_name
+        self.kit_path = project.kit_manifest
+        self.kit_dir = project.kit_manifest.parent
+        self.kit = load_kit(project.kit_manifest)
+        self.state = normalize_state(project.default_state, "idle")
+        self.message = None
+        self.state_source = "default"
+        self.bubble_style = resolve_bubble_style(self.kit, self.kit_dir)
+        self.layout = {"anchors": {}, "zOrder": {}}
+        self.entities = scene_entities_from_kit(self.kit, self.layout)
+        self.entities_by_id = {entity.id: entity for entity in self.entities}
+        self.warnings = []
+        self.layer_assets = load_layer_assets(self.kit_dir, self.kit, self.warnings)
+        self.index = 0
+        source_canvas = self.kit.get("sourceCanvas", self.kit["cell"])
+        canvas_width = max(1, int(round(int(source_canvas["width"]) * self.scale)))
+        canvas_height = max(1, int(round(int(source_canvas["height"]) * self.scale)))
+        self._canvas_height = canvas_height
+        self.canvas.configure(width=canvas_width, height=canvas_height + STATUS_BAR_HEIGHT)
+        self.entity_items.clear()
+        self.entity_images.clear()
+        self.entity_photos.clear()
+        self.bubble_items.clear()
+        self._status_bar_items.clear()
+        self.redraw_scene()
 
     def close(self) -> None:
         self.cancel_demo_cycle()
@@ -1332,6 +1449,9 @@ def main() -> None:
         bubble_visible=bool(bubble_visible),
         state_source=state_source,
     )
+    if selected_project is not None:
+        widget._project_display_name = selected_project.display_name
+    widget._registry_path = args.config
     try:
         widget.run()
     finally:

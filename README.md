@@ -2,7 +2,7 @@
 
 [&#54620;&#44397;&#50612; README](README.ko.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
@@ -69,6 +69,8 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * Manual project states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
 * Optional Codex hooks for prompt/tool/compact/stop bubble updates
 * Script-driven room creation, asset guardrails, validation, preview sheets, and local QA packs
+* Auto-project-detection: widget infers project from current workspace directory
+* Korean CLI output (`--lang ko` / `PET_STUDIO_LANG=ko`)
 
 ## Still Experimental
 
@@ -76,9 +78,10 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * First-room creation is script-driven, not a GUI editor.
 * Codex integration is a local file/hook bridge, not an official Codex dashboard API.
 * Windows is the primary tested host.
+* System tray icon is deferred (no caller connected).
 * Internal storage still uses some `project-room-*` v1 compatibility names.
 
-Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
+Not included today: system tray, multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, room preset export/import, helper pet AI.
 
 ## Model
 
@@ -134,12 +137,16 @@ Use `--dry-run` to inspect state bridge payloads without writing `project-room-s
 
 The long-term vision is a local visual workroom for AI projects. The current project stays intentionally smaller: one Codex workspace, one tiny desktop room, and enough state to understand what the agent is doing without staring at logs.
 
-Near-term follow-ups after `v0.3.1`:
+Near-term follow-ups after `v0.4.0`:
 
 * add more sample room themes and props
-* polish state animations and helper-pet behavior
 * improve Codex event mapping without depending on an official dashboard API
 * decompose `project_room_widget.py` into smaller modules (state/session/render/bubble/window)
+
+Completed in `v0.4.0`:
+
+* workspace auto-switch: widget reacts to project changes without manual `--project-id`
+* YAGNI cleanup: removed unimplemented export/import, watcher, tray, animation, helper pet AI
 
 Completed in `v0.3.1`:
 
@@ -156,9 +163,12 @@ Completed in `v0.3.0`:
 
 Larger ideas remain roadmap, not current features:
 
-* multi-project room switcher
+* system tray icon
+* shareable room presets / export-import
+* state transition animations
+* helper pet AI behavior
+* multi-project room gallery
 * lightweight room editor
-* shareable room presets
 * macOS/Linux widget hosts
 * broader workroom concepts such as Team Rooms, Project Hubs, and task cards
 

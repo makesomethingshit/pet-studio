@@ -16,87 +16,53 @@ The final vision is broader than the current implementation:
 
 ---
 
-## Current — 0.3.x Widget Stability
+## Completed — 0.3.x Widget Stability
 
 > Make the shipped widget reliable and the core boundaries solid.
 
-Completed in 0.3.0:
+### 0.3.0 — Architecture Boundary
 
 - `pet_studio_core/` — shared boundary module (registry + state bridge) with zero Codex/Tkinter/widget imports
 - `init_core()` — external path/state injection instead of hard-coded widget directory layout
 - `write_project_state(metadata=...)` — extensible state payload for future adapters
 - Removed dangerous `sys.modules` deletion from `prefer_local_room_kit_tools()`
 - Boundary doc (`ADAPTER_BOUNDARY.md`) + import-boundary regression test hardened
-- `project-room-*`v1 compatibility preserved
+- `project-room-*` v1 compatibility preserved
 - QA Gate pipeline: `scripts/run-qa.py` (preflight, unittest, compile, boundary, smoke) + `Makefile` + CI lint
+
+### 0.3.1 — UX + Repo Hygiene
+
 - One-click installer (`install.cmd`) — deps + preflight + widget launch
 - Interactive room creator (`tools/create_room_interactive.py`) — prompts instead of CLI flags
 - Auto-project-detection in widget `main()` — infers project from workspace when `--project-id` omitted
-- README/CHANGELOG updated: one-click install option, interactive creation, auto-detect documented
-
-Planned for 0.3.x (hotfix level only):
-
-- fix fresh-clone setup failures
-- improve install/preflight error messages
-- add clearer repair hints for common user mistakes
-- polish the Windows widget launcher and state bridge behavior
-- improve README/demo/social-preview material
-
-Out of scope for 0.3.x:
-
-- Team Rooms or Project Hubs
-- core package extraction (already done)
-- macOS/Linux widget hosts
-- GUI room editor
-- multi-project switcher
-- schema-breaking room format changes
+- Repo hygiene: moved `tester/` debug artifacts to `archive/tester/`, cleaned up 12 experimental `runs/` dirs, archived stale `docs/qa/` RC files
+- README/CHANGELOG synced: version badges, roadmap sections, Korean/English parity
+- Ruff lint + format CI passing
 
 ---
 
-## Next — 0.4.x Multi-Room and Tray
+## Active — 0.4.0 Auto-Switch + Tray
 
 > One room works. Next: switch between rooms without friction.
 
-### Goals
+- `workspace_watcher.py` — polls workspace, auto-switches room on project change
+- `tray_icon.py` — system tray icon with room list, state override, quit
+- **Not in 0.4.0**: room preset export/import, state animations, helper pet behavior (Later)
 
-- Working on project A, then `cd` to project B → widget auto-switches room
-- System tray icon for quick room switching without re-launching
-- At least 2 sample rooms (not just `gakju-archive-demo`)
-- Room preset sharing (export/import a room as a zip)
+## Later — Presets + Animations
 
-### Themes
+- Room preset export/import (zip)
+- State transition animations
+- Helper pet reactive behavior
+- Sample room pack
 
-| Theme | Description | Priority |
-|-------|-------------|----------|
-| **Auto room switching** | Widget detects workspace change and loads the matching room | P0 |
-| **System tray** | Tray icon with room list, state override, quit | P0 |
-| **Sample room pack** | 2-3 pre-built rooms with different themes/props | P1 |
-| **Room preset export** | `export_room.py` → zip with kit + assets + manifest | P1 |
-| **Room preset import** | `import_room.py` ← zip, validates and registers | P1 |
-| **Widget state animations** | Smooth transitions between states (not instant swap) | P2 |
-| **Helper pet behavior** | Helper pets react to state (e.g. appears on blocked/review) | P2 |
-
-### Non-Goals for 0.4.x
+## Non-Goals for 0.4.0
 
 - GUI room editor (0.5+)
-- macOS/Linux hosts (later)
+- macOS/Linux widget hosts (later)
 - Team Rooms / Project Hubs (separate track)
 - Cloud sync
-
-### Success Criteria
-
-1. User can `cd` between two registered projects and widget follows
-2. Tray icon shows current room + allows manual switch
-3. At least 2 sample rooms included in the repo
-4. Room can be exported and imported on another machine
-5. All existing 177 tests still pass + new features covered
-
-### Technical Notes
-
-- Auto-switching: widget polls workspace directory on a timer (5s) or watches filesystem events
-- Tray: `pystray` or `infi.systray` on Windows; keep optional (graceful fallback if lib missing)
-- Sample rooms: add under `runs/` with pre-built kits, document in README
-- Export/import: zip = `kit/` + `assets/` + `manifest.json`; import validates via existing kit validator
+- Schema-breaking room format changes
 
 ---
 

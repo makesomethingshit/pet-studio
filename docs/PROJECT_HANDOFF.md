@@ -1,6 +1,6 @@
 # Pet Studio Maintainer Notes
 
-This repository is being prepared for the Pet Studio `v0.3.0` release candidate.
+This repository is being prepared for the Pet Studio `v0.4.0` release candidate.
 
 ## Public Positioning
 
@@ -57,7 +57,9 @@ Before pushing, run:
 ```powershell
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
 .\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
-.\tools\pet_studio_python.cmd -m py_compile tools\pet_studio_create_room.py tools\pet_studio_preflight.py tools\pet_studio_create_qa_pack.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py pet-studio-kit\scripts\create_project_room_kit.py pet-studio-kit\scripts\validate_project_room_kit.py pet-studio-kit\scripts\bake_project_room_pet.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\codex_pet_hook.py
+.\tools\pet_studio_python.cmd -m unittest discover -s pet_studio_core/tests
+.\tools\pet_studio_python.cmd -m unittest discover -s tools/tests -p "test_*.py"
+.\tools\pet_studio_python.cmd -m py_compile tools\pet_studio_create_room.py tools\pet_studio_preflight.py tools\pet_studio_create_qa_pack.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py pet-studio-kit\scripts\create_project_room_kit.py pet-studio-kit\scripts\validate_project_room_kit.py pet-studio-kit\scripts\bake_project_room_pet.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\codex_pet_hook.py pet-studio-widget\project_room_scene.py
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id gakju-archive-demo --skip-hooks
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id gakju-archive-demo
 git diff --check
@@ -86,13 +88,22 @@ docs/images/pet-studio-demo.gif
 docs/images/gakju-widget-bubble-example.png
 ```
 
-## Current 0.3.0 Focus
+## Current 0.4.0 Focus
 
 - `pet_studio_core` owns shared registry and state bridge primitives
+- Workspace auto-switch via `infer_project_for_workspace()` in adapter/widget (no separate watcher module)
+- System tray icon (`tray_icon.py`) when caller is connected
 - Existing `project_room_*` imports and `project-room-*` files remain compatible
 - Codex hook payloads, hook logs, and trust behavior stay in adapter modules
-- Architecture docs define Core, Widget Host, Codex Adapter, Asset Forge, and future Workroom boundaries
+- Architecture docs define Core, Widget Host, Codex Adapter, Asset Forge, CLI Tools, and future Workroom boundaries
 - Team Room, Project Hub, endpoint registry, dashboard, and orchestration are still future work
+
+**Explicitly deferred to Later / separate milestone:**
+- Room preset export/import (tools/export_room.py, tools/import_room.py)
+- Sample room pack (runs/sample-room-cozy-corner/)
+- State transition animations (reverse-frame trick)
+- Helper pet AI (behavior mapping + bubble messages)
+- Standalone workspace_watcher.py polling module
 
 ## Completed 0.2.0 — First Room Creation UX
 

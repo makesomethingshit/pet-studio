@@ -2,6 +2,27 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.4.0 - 2026-06-17
+
+### New Features
+
+- **Auto room switching** — `infer_project_for_workspace()` in `codex_state_adapter.py` and `project_room_widget.py` detects workspace changes and switches rooms automatically.
+- **System tray icon** — `tray_icon.py` adds a system tray icon with menu for room switching, state control, and quit (5 tests).
+
+### YAGNI/Scope Cleanup
+
+- Removed `tools/workspace_watcher.py` — standalone polling module with no caller.
+- Removed `tools/export_room.py` / `tools/import_room.py` — preset export/import deferred to Later.
+- Removed `runs/sample-room-cozy-corner/` — sample room pack deferred to Later.
+- Removed state transition animation from `project_room_widget.py` — `self.redraw_scene()` immediate settle is sufficient.
+- Removed helper pet AI from `project_room_scene.py` — behavior mapping + bubble messages deferred to Later.
+- Net: ~1,100 lines removed.
+
+### Test Coverage
+
+- 245 total tests (130 widget + 48 kit + 42 core + 23 tools + 2 smoke)
+- QA Gate: 5/5 green (preflight, widget, kit, compile, boundary)
+
 ## 0.3.1 - 2026-06-16
 
 ### Repository Hygiene
