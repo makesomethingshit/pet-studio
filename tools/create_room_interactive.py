@@ -210,7 +210,7 @@ def main() -> None:
                     print()
                     print("  Codex로 펫 생성 중...")
 
-                    codex_prompt = f"Create a new hatch-pet package. Theme: {theme_hint}"
+                    codex_prompt = f"Use $hatch-pet to create a new pet package. Theme: {theme_hint}"
                     if prompt_hint:
                         codex_prompt += f". Additional: {prompt_hint}"
                     codex_prompt += ". Output to ~/.codex/pets/<name>/ with pet.json and spritesheet.webp. Return the output path when done."
