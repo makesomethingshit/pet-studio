@@ -2,6 +2,15 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.4.1 - 2026-06-17
+
+### Documentation
+
+- Clarified UX positioning: app (install.cmd) vs Codex skill as two entry points
+- README Quick Start restructured around "AI 도구 어떻게 쓰세요?" decision
+- Restored Codex skill install + hooks integration scripts and tests
+- Updated roadmap and feature lists to match current positioning
+
 ## 0.4.0 - 2026-06-17
 
 ### New Features
