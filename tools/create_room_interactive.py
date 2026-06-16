@@ -187,10 +187,74 @@ def main() -> None:
             print(f"  Found {len(pet_dirs)} installed pet(s):")
             for i, pd in enumerate(pet_dirs, 1):
                 print(f"    {i}. {pd.name}")
+            print(f"    {len(pet_dirs) + 1}. [새 펫 생성]")
             print()
             choice = ask("Select pet number (or Enter to specify path)", "")
-            if choice.isdigit() and 1 <= int(choice) <= len(pet_dirs):
-                default_pet = pet_dirs[int(choice) - 1]
+            if choice.isdigit():
+                choice_idx = int(choice)
+                if 1 <= choice_idx <= len(pet_dirs):
+                    default_pet = pet_dirs[choice_idx - 1]
+                elif choice_idx == len(pet_dirs) + 1:
+                    # New pet generation via Codex
+                    print()
+                    print("  [새 펫 생성]")
+                    codex_cmd = find_codex()
+                    if not codex_cmd:
+                        print("  [ERROR] Codex CLI를 찾을 수 없습니다.")
+                        print("  Codex를 설치하거나 PATH에 추가하세요.")
+                        print("  https://github.com/openai/codex")
+                        sys.exit(1)
+
+                    theme_hint = ask("  펫 테마/스타일 (예: cute cat, robot dog, pixel dragon)", "cute pet")
+                    prompt_hint = ask("  추가 프롬프트 (선택)", "")
+                    print()
+                    print("  Codex로 펫 생성 중...")
+
+                    codex_prompt = f"Use $hatch-pet to create a new pet package. Theme: {theme_hint}"
+                    if prompt_hint:
+                        codex_prompt += f". Additional: {prompt_hint}"
+                    codex_prompt += ". Output to ~/.codex/pets/<name>/ with pet.json and spritesheet.webp. Return the output path when done."
+
+                    try:
+                        result = subprocess.run(
+                            [codex_cmd, "--prompt", codex_prompt],
+                            capture_output=True, text=True, timeout=120
+                        )
+                        output = result.stdout.strip()
+                        # Parse pet package path from output
+                        pet_package = None
+                        for line in output.splitlines():
+                            line = line.strip()
+                            if line and (line.endswith("/") or line.endswith("\\")):
+                                p = Path(line)
+                                if (p / "pet.json").exists():
+                                    pet_package = p
+                                    break
+                        if not pet_package:
+                            # Fallback: check latest pet in ~/.codex/pets
+                            pets_dir = Path.home() / ".codex" / "pets"
+                            if pets_dir.exists():
+                                pet_dirs = sorted(
+                                    [d for d in pets_dir.iterdir() if d.is_dir() and (d / "pet.json").exists()],
+                                    key=lambda d: d.stat().st_mtime, reverse=True
+                                )
+                                if pet_dirs:
+                                    pet_package = pet_dirs[0]
+                        if pet_package:
+                            print(f"    OK — 펫 생성됨: {pet_package}")
+                        else:
+                            print("    [WARN] 펫 생성 결과를 찾을 수 없습니다.")
+                            print("    Codex 출력:")
+                            print(output[:500])
+                            pet_package = ask_path("Pet package folder path")
+                            if not pet_package:
+                                sys.exit(1)
+                    except subprocess.TimeoutExpired:
+                        print("    [ERROR] Codex 호출 타임아웃 (120초)")
+                        sys.exit(1)
+                    except Exception as e:
+                        print(f"    [ERROR] Codex 호출 실패: {e}")
+                        sys.exit(1)
 
     if default_pet:
         pet_package = default_pet
@@ -200,6 +264,33 @@ def main() -> None:
         if not pet_package:
             print("    [ERROR] Pet package is required.")
             sys.exit(1)
+
+
+def find_codex() -> str | None:
+    """Find Codex CLI binary."""
+    # Check PATH first
+    for name in ("codex", "codex.exe"):
+        try:
+            result = subprocess.run([name, "--version"], capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                return name
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            pass
+
+    # Check common install paths
+    candidates = [
+        Path.home() / ".codex" / "bin" / "codex.exe",
+        Path.home() / ".codex" / "bin" / "codex",
+        Path.home() / ".local" / "bin" / "codex",
+        Path.home() / ".local" / "bin" / "codex.exe",
+        Path(os.environ.get("APPDATA", "")) / "codex" / "codex.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "codex" / "codex.exe",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+
+    return None
 
     # Step 3: Room image
     print()

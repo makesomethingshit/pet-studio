@@ -17,10 +17,10 @@ if %errorlevel% neq 0 (
 echo [1/3] Checking dependencies...
 python -c "from PIL import Image" 2>nul
 if %errorlevel% neq 0 (
-    echo         Installing Pillow...
-    python -m pip install pillow
+    echo         Installing dependencies...
+    python -m pip install -e .
     if %errorlevel% neq 0 (
-        echo [ERROR] Pillow install failed.
+        echo [ERROR] Dependency install failed.
         pause
         exit /b 1
     )
