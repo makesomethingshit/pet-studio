@@ -647,6 +647,16 @@ class ProjectRoomWidget:
             self._team_state_enabled = True
         except Exception:  # noqa: BLE001
             logger.warning("TeamState init failed — roost features disabled")
+
+        # --- Team Room Panel ---
+        self._team_panel: Any = None
+        if self._team_state_enabled and self._team_state is not None:
+            try:
+                from team_room_panel import TeamRoomPanel
+
+                self._team_panel = TeamRoomPanel(self.root, self._team_state)
+            except Exception:  # noqa: BLE001
+                logger.warning("TeamRoomPanel init failed")
         self.demo_cycle_job_id: int | None = None
         self.index = 0
         self.drag_start: tuple[int, int] | None = None
@@ -694,6 +704,7 @@ class ProjectRoomWidget:
         self.root.bind("<Control-equal>", lambda _event: self.adjust_scale(1.1))
         self.root.bind("<Control-minus>", lambda _event: self.adjust_scale(1 / 1.1))
         self.root.bind("<Control-0>", lambda _event: self.reset_scale())
+        self.root.bind("<Control-Shift-T>", lambda _event: self._toggle_team_panel())
         self.redraw_scene()
 
         if click_through:
@@ -1204,6 +1215,10 @@ class ProjectRoomWidget:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+    def _toggle_team_panel(self) -> None:
+        if self._team_panel is not None:
+            self._team_panel.toggle()
 
     def _show_team_room_popup(self) -> None:
         """Show a compact Team Room summary popup."""
