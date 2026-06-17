@@ -54,6 +54,7 @@ class TeamState:
             "projects": {},
             "employees": {"pool": []},
             "leads": {"pool": []},
+            "trust": {},
         }
 
     def save(self) -> None:
@@ -118,6 +119,12 @@ class TeamState:
         return self._data.get("projects", {}).get(project_id)
 
     def set_project_status(self, project_id: str, status: str) -> None:
+        from alba.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
         project = self._data.setdefault("projects", {}).get(project_id)
         if project:
             project["status"] = status
@@ -130,6 +137,12 @@ class TeamState:
         return []
 
     def enqueue_project(self, project_id: str, task: dict[str, Any]) -> None:
+        from alba.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
         project = self._data.setdefault("projects", {}).get(project_id)
         if project:
             queue = project.setdefault("queue", [])
@@ -147,6 +160,12 @@ class TeamState:
             if len(log) > 100:
                 log.pop(0)
             self.save()
+            # Context accumulation
+            self.add_context_history({
+                "project_id": project_id,
+                "action": event.get("type", "unknown"),
+                "priority": event.get("priority", "normal"),
+            })
 
     # --- Context accumulation ---
 

@@ -39,7 +39,11 @@ class HermesBackend:
             logger.warning("Hermes subprocess failed: %s", e)
             return None
 
-    def classify_event(self, event: dict[str, Any]) -> dict[str, Any]:
+    def classify_event(
+        self,
+        event: dict[str, Any],
+        context: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         prompt = (
             f"Classify this event by priority (high/normal/low). Reply with ONE word only.\nEvent: {json.dumps(event)}"
         )

@@ -67,6 +67,24 @@ class TestTeamState(unittest.TestCase):
         self.state.add_project_insight("test-proj", "lastBuild", "pass")
         self.state.get_context_history(limit=1)
 
+    def test_context_history_truncated_to_200(self):
+        for i in range(210):
+            self.state.add_context_history({"action": f"act-{i}"})
+        history = self.state.get_context_history(limit=500)
+        self.assertEqual(len(history), 200)
+
+    def test_trust_field_in_default_state(self):
+        self.assertIn("trust", self.state._data)
+        self.assertEqual(self.state._data["trust"], {})
+
+    def test_log_event_accumulates_context(self):
+        self.state.register_project("ctx-proj")
+        self.state.log_event("ctx-proj", {"type": "build", "priority": "high"})
+        self.state.log_event("ctx-proj", {"type": "test", "priority": "high"})
+        history = self.state.get_context_history()
+        self.assertEqual(len(history), 2)
+        self.assertEqual(history[0]["project_id"], "ctx-proj")
+
 
 if __name__ == "__main__":
     unittest.main()
