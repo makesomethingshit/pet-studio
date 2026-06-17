@@ -13,6 +13,7 @@ import tkinter.font as tkfont
 from datetime import UTC, datetime
 from pathlib import Path
 from tkinter import filedialog
+from typing import Any
 
 from PIL import Image, ImageTk
 
@@ -634,6 +635,18 @@ class ProjectRoomWidget:
         self.layer_assets = load_layer_assets(self.kit_dir, self.kit, self.warnings)
         self.state_refresh_ms = max(250, state_refresh_ms)
         self.state_stale_after_ms = max(0, state_stale_after_ms)
+
+        # --- Roost TeamState ---
+        self._team_state: Any = None
+        self._team_state_enabled = False
+        try:
+            from roost.state import TeamState
+
+            ts_path = self.state_file.parent / "team_state.json" if self.state_file else None
+            self._team_state = TeamState(ts_path) if ts_path else TeamState()
+            self._team_state_enabled = True
+        except Exception:  # noqa: BLE001
+            logger.warning("TeamState init failed — roost features disabled")
         self.demo_cycle_job_id: int | None = None
         self.index = 0
         self.drag_start: tuple[int, int] | None = None
@@ -1132,6 +1145,23 @@ class ProjectRoomWidget:
             except Exception:
                 pass
 
+        # Team Room
+        if self._team_state_enabled and self._team_state is not None:
+            try:
+                pending = self._team_state.get_pending_approvals()
+                queue = self._team_state.get_roost_queue()
+                pending_count = len(pending)
+                queue_count = len(queue)
+                label = "Team Room"
+                if pending_count:
+                    label += f" ({pending_count} approval{'s' if pending_count != 1 else ''} pending)"
+                elif queue_count:
+                    label += f" ({queue_count} in queue)"
+                menu.add_command(label=label, command=self._show_team_room_popup)
+                menu.add_separator()
+            except Exception:  # noqa: BLE001
+                pass
+
         # Preset submenu
         if self.project_id:
             preset_menu = tk.Menu(menu, tearoff=False)
@@ -1174,6 +1204,91 @@ class ProjectRoomWidget:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
+
+    def _show_team_room_popup(self) -> None:
+        """Show a compact Team Room summary popup."""
+        if not self._team_state_enabled or self._team_state is None:
+            return
+        try:
+            pending = self._team_state.get_pending_approvals()
+            employees = self._team_state.get_employees()
+            queue = self._team_state.get_roost_queue()
+
+            popup = tk.Toplevel(self.root)
+            popup.title("Team Room")
+            popup.resizable(False, False)
+            popup.attributes("-topmost", True)
+
+            frame = tk.Frame(padx=12, pady=8)
+            frame.pack(fill="both", expand=True)
+
+            # --- Approvals ---
+            tk.Label(frame, text="Approvals", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+            if pending:
+                for a in pending[:5]:
+                    row = tk.Frame(frame)
+                    row.pack(fill="x", pady=1)
+                    tk.Label(row, text=f"  {a['action']}", font=("Segoe UI", 8)).pack(side="left")
+                    tk.Label(row, text=a["projectId"], font=("Segoe UI", 8), fg="gray").pack(side="left", padx=4)
+                    tk.Button(
+                        row,
+                        text="Approve",
+                        font=("Segoe UI", 7),
+                        command=lambda aid=a["id"]: self._resolve_approval(aid, True, popup),
+                    ).pack(side="right")
+                    tk.Button(
+                        row,
+                        text="Reject",
+                        font=("Segoe UI", 7),
+                        command=lambda aid=a["id"]: self._resolve_approval(aid, False, popup),
+                    ).pack(side="right", padx=2)
+            else:
+                tk.Label(frame, text="  No pending approvals", font=("Segoe UI", 8), fg="gray").pack(anchor="w")
+
+            tk.Frame(frame, height=1, bg="#ccc").pack(fill="x", pady=4)
+
+            # --- Employees ---
+            tk.Label(frame, text="Staff", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+            status_colors = {"idle": "#888", "running": "#0a0", "review": "#c80"}
+            if employees:
+                for emp in employees:
+                    row = tk.Frame(frame)
+                    row.pack(fill="x", pady=1)
+                    color = status_colors.get(emp.get("status", "idle"), "#888")
+                    tk.Label(row, text=f"  {emp['name']}", font=("Segoe UI", 8)).pack(side="left")
+                    tk.Label(row, text=emp.get("status", "idle"), font=("Segoe UI", 8), fg=color).pack(side="right")
+            else:
+                tk.Label(frame, text="  No staff assigned", font=("Segoe UI", 8), fg="gray").pack(anchor="w")
+
+            tk.Frame(frame, height=1, bg="#ccc").pack(fill="x", pady=4)
+
+            # --- Queue ---
+            tk.Label(frame, text=f"Queue ({len(queue)} items)", font=("Segoe UI", 9, "bold")).pack(anchor="w")
+            if queue:
+                for item in queue[:3]:
+                    tk.Label(frame, text=f"  {item.get('type', 'unknown')}", font=("Segoe UI", 8)).pack(anchor="w")
+                if len(queue) > 3:
+                    tk.Label(frame, text=f"  ... +{len(queue) - 3} more", font=("Segoe UI", 8), fg="gray").pack(
+                        anchor="w"
+                    )
+            else:
+                tk.Label(frame, text="  Queue empty", font=("Segoe UI", 8), fg="gray").pack(anchor="w")
+
+            tk.Button(frame, text="Close", command=popup.destroy).pack(pady=(6, 0))
+
+            # Center near widget
+            popup.update_idletasks()
+            rx = self.root.winfo_rootx()
+            ry = self.root.winfo_rooty()
+            popup.geometry(f"+{rx + 40}+{ry + 40}")
+        except Exception:  # noqa: BLE001
+            logger.warning("Team Room popup failed")
+
+    def _resolve_approval(self, approval_id: str, approved: bool, popup: tk.Toplevel) -> None:
+        if self._team_state is not None:
+            self._team_state.resolve_approval(approval_id, approved)
+        popup.destroy()
+        self._show_team_room_popup()
 
     def _export_preset_dialog(self) -> None:
         """Export current room as a preset zip via file dialog."""

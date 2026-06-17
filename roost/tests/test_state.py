@@ -85,6 +85,68 @@ class TestTeamState(unittest.TestCase):
         self.assertEqual(len(history), 2)
         self.assertEqual(history[0]["project_id"], "ctx-proj")
 
+    # --- Employees ---
+
+    def test_default_employees(self):
+        emps = self.state.get_employees()
+        self.assertEqual(len(emps), 2)
+        self.assertEqual(emps[0]["id"], "emp-1")
+        self.assertEqual(emps[0]["name"], "Codex")
+
+    def test_set_employee_status(self):
+        self.state.register_project("test-proj")
+        result = self.state.set_employee_status("emp-1", "running")
+        self.assertTrue(result)
+        emps = self.state.get_employees()
+        self.assertEqual(emps[0]["status"], "running")
+
+    def test_set_employee_status_not_found(self):
+        self.state.register_project("test-proj")
+        result = self.state.set_employee_status("emp-999", "running")
+        self.assertFalse(result)
+
+    # --- Approvals ---
+
+    def test_add_approval_request(self):
+        self.state.register_project("test-proj")
+        aid = self.state.add_approval_request("test-proj", "deploy")
+        self.assertIsInstance(aid, str)
+        self.assertTrue(len(aid) > 0)
+
+    def test_get_pending_approvals(self):
+        self.state.register_project("test-proj")
+        self.state.add_approval_request("test-proj", "deploy")
+        self.state.add_approval_request("test-proj", "layout.reset")
+        pending = self.state.get_pending_approvals()
+        self.assertEqual(len(pending), 2)
+
+    def test_resolve_approval(self):
+        self.state.register_project("test-proj")
+        aid = self.state.add_approval_request("test-proj", "deploy")
+        result = self.state.resolve_approval(aid, approved=True)
+        self.assertTrue(result)
+        pending = self.state.get_pending_approvals()
+        self.assertEqual(len(pending), 0)
+
+    def test_resolve_approval_reject(self):
+        self.state.register_project("test-proj")
+        aid = self.state.add_approval_request("test-proj", "deploy")
+        self.state.resolve_approval(aid, approved=False)
+        approvals = self.state._data["approvals"]
+        self.assertEqual(approvals[0]["status"], "rejected")
+        self.assertIn("resolvedAt", approvals[0])
+
+    def test_resolve_approval_not_found(self):
+        result = self.state.resolve_approval("nonexistent", approved=True)
+        self.assertFalse(result)
+
+    def test_approvals_trimmed_to_50(self):
+        self.state.register_project("test-proj")
+        for i in range(55):
+            self.state.add_approval_request("test-proj", f"action-{i}")
+        approvals = self.state._data["approvals"]
+        self.assertEqual(len(approvals), 50)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,6 @@
 [project]
 name = "pet-studio"
-version = "0.5.0"
+version = "0.6.0"
 requires-python = ">=3.11"
 dependencies = [
     "pillow>=10.0",

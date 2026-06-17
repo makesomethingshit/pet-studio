@@ -41,7 +41,7 @@ class TeamState:
 
     def _default_state(self) -> dict[str, Any]:
         return {
-            "version": "0.5.0",
+            "version": "0.6.0",
             "updatedAt": utc_now(),
             "roost": {
                 "status": "idle",
@@ -52,9 +52,15 @@ class TeamState:
                 "context": {"history": [], "patterns": {}, "projectInsights": {}},
             },
             "projects": {},
-            "employees": {"pool": []},
+            "employees": {
+                "pool": [
+                    {"id": "emp-1", "name": "Codex", "status": "idle", "role": "worker"},
+                    {"id": "emp-2", "name": "Claude", "status": "idle", "role": "worker"},
+                ]
+            },
             "leads": {"pool": []},
             "trust": {},
+            "approvals": [],
         }
 
     def save(self) -> None:
@@ -191,3 +197,60 @@ class TeamState:
         )
         insights[key] = value
         self.save()
+
+    # --- Employees ---
+
+    def get_employees(self) -> list[dict]:
+        return self._data.get("employees", {}).get("pool", [])
+
+    def set_employee_status(self, employee_id: str, status: str) -> bool:
+        pool = self._data.setdefault("employees", {}).setdefault("pool", [])
+        for emp in pool:
+            if emp.get("id") == employee_id:
+                emp["status"] = status
+                self.save()
+                return True
+        return False
+
+    # --- Approvals ---
+
+    def add_approval_request(
+        self,
+        project_id: str,
+        action: str,
+        requester: str = "system",
+    ) -> str:
+        """Add an approval request. Returns the approval ID."""
+        import uuid
+
+        approval_id = str(uuid.uuid4())[:8]
+        approvals = self._data.setdefault("approvals", [])
+        approvals.append(
+            {
+                "id": approval_id,
+                "projectId": project_id,
+                "action": action,
+                "requester": requester,
+                "timestamp": utc_now(),
+                "status": "pending",
+            }
+        )
+        # Trim to last 50
+        if len(approvals) > 50:
+            self._data["approvals"] = approvals[-50:]
+        self.save()
+        return approval_id
+
+    def resolve_approval(self, approval_id: str, approved: bool) -> bool:
+        """Resolve an approval request. Returns True if found and resolved."""
+        approvals = self._data.get("approvals", [])
+        for a in approvals:
+            if a.get("id") == approval_id:
+                a["status"] = "approved" if approved else "rejected"
+                a["resolvedAt"] = utc_now()
+                self.save()
+                return True
+        return False
+
+    def get_pending_approvals(self) -> list[dict]:
+        return [a for a in self._data.get("approvals", []) if a.get("status") == "pending"]
