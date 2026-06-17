@@ -161,11 +161,13 @@ class TeamState:
                 log.pop(0)
             self.save()
             # Context accumulation
-            self.add_context_history({
-                "project_id": project_id,
-                "action": event.get("type", "unknown"),
-                "priority": event.get("priority", "normal"),
-            })
+            self.add_context_history(
+                {
+                    "project_id": project_id,
+                    "action": event.get("type", "unknown"),
+                    "priority": event.get("priority", "normal"),
+                }
+            )
 
     # --- Context accumulation ---
 

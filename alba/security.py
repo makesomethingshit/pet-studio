@@ -101,9 +101,7 @@ def check_security(
         )
 
     # L1 (default): warn but allow
-    logger.warning(
-        "L1 WARN: action=%s risk=%d project=%s", action, risk, project_id
-    )
+    logger.warning("L1 WARN: action=%s risk=%d project=%s", action, risk, project_id)
     return {
         "allowed": True,
         "reason": f"L1 WARN: {action} allowed with warning",
