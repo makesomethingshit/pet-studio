@@ -16,7 +16,7 @@ The final vision is broader than the current implementation:
 
 ## Current Reality
 
-Current 0.4.x is a widget-app line, not a team orchestrator.
+Current 0.5.0 is a widget-app line with team orchestration foundation.
 
 What exists today:
 
@@ -28,6 +28,11 @@ What exists today:
 - system tray controls
 - Codex skill and hook bridge as optional adapters
 - `pet_studio_core/` boundary for shared registry and state behavior
+- **Alba state manager** (`alba/state.py`) — `team_state.json` for project queues, event logs, context accumulation
+- **Room preset export/import** — zip-based preset sharing
+- **Hermes backend** (`alba/backend/hermes.py`) — optional LLM-powered event classification
+- **Security levels L0–L3** (`alba/security.py`) — per-project access control
+- **Context-aware event classification** — priority adjustment from recent history
 - QA gate and CI checks
 
 What does not exist today:
@@ -36,11 +41,22 @@ What does not exist today:
 - Project Hub
 - Task Cards
 - endpoint registry
-- LLM worker orchestration
-- preset export/import
+- trust score auto-approval
+- approval queue UI
 - macOS/Linux widget hosts
 
-## Completed - 0.3.x Foundation
+## Completed - 0.5.0 Security + Context
+
+### 0.5.0 - Security Levels + Context Accumulation
+
+- `alba/security.py` — L0/L1/L2/L3 per-project security levels
+- `alba/state.py` — security checks on `set_project_status()`, `enqueue_project()`
+- `alba/state.py` — automatic context accumulation in `log_event()`
+- `alba/backend/script.py` — context-aware priority adjustment (3+ high → keep high)
+- `alba/backend/hermes.py` — unified `classify_event(event, context=None)` signature
+- `team_state.json` schema: `trust: {}` field for future auto-approval
+
+## Completed - 0.4.x Widget App Line
 
 ### 0.3.0 - Core Boundary
 
@@ -70,17 +86,16 @@ The 0.4.x line makes the room widget usable as a small app.
 - optional Codex skill install and hook bridge
 - release metadata should stay aligned across `VERSION`, `pyproject.toml`, README, and CHANGELOG
 
-## Next - 0.5.x Presets + Script State Manager
+## Completed - 0.5.0 Presets + Script State Manager
 
-Do the useful low-tech version first.
+### 0.5.0 - Presets + State Manager
 
 - room preset export/import as local zip files
-- a script-only state manager before any LLM backend
-- a tiny tray/status panel only if it helps inspect that loop
-- a short local event log
-- no popups by default
+- script-only state manager before any LLM backend
 - alba (알바생) state manager: `team_state.json` schema, project queues, event logs
-- backend adapters: script / Hermes / OpenClaw
+- backend adapters: script / Hermes
+- security levels L0–L3 with per-project enforcement
+- context-aware event classification from accumulated history
 
 Backend rule: start with script mode. Add Ollama, llama.cpp, vLLM, or remote model adapters only after there is a real call site.
 
@@ -133,7 +148,7 @@ Backend rule: start with script mode. Add Ollama, llama.cpp, vLLM, or remote mod
 - permission/trust review for imported skills
 - optional image provider integration
 
-## Non-Goals for 0.4.x / 0.5.x
+## Non-Goals for 0.5.x / 0.6.x
 
 - GUI room editor
 - macOS/Linux widget hosts
