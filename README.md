@@ -76,6 +76,8 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * **Alba state manager** — `team_state.json` for project queues, event logs, employee tracking
 * **Hermes backend** — optional LLM-powered event classification via Hermes Agent
 * Status bar with alba status icon (🟢 active / ⚪ idle / 🔴 error)
+* **Security levels (L0–L3)** — per-project access control: Allow / Warn / Ask / Deny
+* **Context-aware event classification** — alba learns from recent history to adjust priority
 
 ## Still Experimental
 
@@ -86,7 +88,7 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * Internal storage still uses some `project-room-*` v1 compatibility names.
 * Hermes backend requires Hermes Agent installed separately; falls back to script rules otherwise.
 
-Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, helper pet AI, team self-improvement loop.
+Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, helper pet AI, team self-improvement loop, trust score auto-approval.
 
 ## Model
 
@@ -186,6 +188,8 @@ Completed in `v0.5.0`:
 * Hermes backend (`alba/backend/hermes.py`) — subprocess-based LLM event classification
 * alba status icon in widget status bar (🟢⚪🔴)
 * preset export/import from widget context menu
+* security levels L0–L3 (`alba/security.py`) — per-project access control
+* context-aware event classification — alba adjusts priority from recent history
 
 Completed in `v0.4.0`:
 

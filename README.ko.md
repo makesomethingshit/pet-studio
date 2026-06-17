@@ -81,6 +81,8 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 - **알바 상태 관리자** — `team_state.json`으로 프로젝트 큐, 이벤트 로그 관리
 - **Hermes 백엔드** — Hermes Agent 연동 시 LLM 기반 이벤트 분류 (선택)
 - 상태바 알바 상태 아이콘 (🟢 활성 / ⚪ 비활성 / 🔴 오류)
+- **보안 레벨 (L0~L3)** — 프로젝트별 접근 제어: 허용 / 경고 / 승인요청 / 차단
+- **컨텍스트 기반 이벤트 분류** — 최근 이력을 바탕으로 우선순위 자동 조정
 
 ## 아직 실험적인 부분
 
@@ -91,7 +93,7 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 - 내부 저장소에는 호환성을 위해 일부 `project-room-*` 파일명이 남아 있습니다.
 - Hermes 백엔드는 Hermes Agent 별도 설치 필요 (없으면 규칙 기반으로 폴백).
 
-현재 포함되지 않은 것: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, 팀 자기 개선 루프.
+현재 포함되지 않은 것: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, 팀 자기 개선 루프, 신뢰 점수 자동 승인.
 
 ## 방 만들기
 
@@ -143,14 +145,21 @@ from alba.state import TeamState
 
 ts = TeamState()
 ts.alba_status = "active"
-ts.register_project("my-project", "내 프로젝트")
+ts.register_project("my-project", "내 프로젝트", security_level=1)
 ts.enqueue_project("my-project", {"task": "lint"})
-ts.log_event("my-project", {"type": "build", "status": "pass"})
+ts.log_event("my-project", {"type": "build", "status": "pass", "priority": "normal"})
 ```
+
+보안 레벨:
+- **L0 (허용)**: 모든 작업 즉시 실행
+- **L1 (경고, 기본값)**: 위험 작업 시 로그만 남기고 실행
+- **L2 (승인요청)**: 위험 작업 시 사용자 승인 필요
+- **L3 (차단)**: 위험 작업 완전 차단
 
 백엔드:
 - **ScriptBackend** — 규칙 기반, LLM 없음 (기본)
 - **HermesBackend** — Hermes Agent 연동 LLM (선택)
+- 컨텍스트 축적: `log_event()` 호출 시 자동으로 히스토리 누적, 최근 3회 이상 high → 우선순위 보정
 
 ## 한국어 CLI 출력
 
@@ -182,10 +191,14 @@ v0.5.0에서 완료:
 - Hermes 백엔드 (`alba/backend/hermes.py`)
 - 상태바 알바 상태 아이콘
 - 컨텍스트 메뉴 프리셋 서브메뉴
+- 보안 레벨 L0~L3 (`alba/security.py`)
+- 컨텍스트 기반 이벤트 분류 (우선순위 자동 보정)
 
 v0.6.0 목표:
 - 팀 오케스트레이션 UI
 - 팀 자기 개선 (Hermes memory/skill 참고)
+- 신뢰 점수 자동 승인
+- 승인 대기 목록 (상태바 팝업)
 
 자세한 로드맵: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
 장기 Workroom 비전: [docs/PET_STUDIO_WORKROOM_VISION.ko.md](docs/PET_STUDIO_WORKROOM_VISION.ko.md)

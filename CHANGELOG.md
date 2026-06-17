@@ -2,6 +2,30 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.5.0 - 2026-06-17
+
+### New Features
+
+- **Security levels (L0–L3)** — per-project access control (`alba/security.py`):
+  - L0 Allow: all actions pass
+  - L1 Warn (default): dangerous actions logged but allowed
+  - L2 Ask: dangerous actions raise `SecurityError` (require approval)
+  - L3 Deny: all risky actions blocked
+- **Context-aware event classification** — `ScriptBackend` adjusts priority from recent history (3+ high-priority events → keep high)
+- **Backend signature unification** — `classify_event(event, context=None)` across `ScriptBackend` and `HermesBackend`
+- **Context accumulation** — `log_event()` auto-records to `team_state.json` history
+- **Trust field** — `team_state.json` schema includes `trust: {}` for future auto-approval
+
+### Test Coverage
+
+- 276 total tests (68 alba + 42 core + 118 widget + 48 kit/tools)
+- New: `alba/tests/test_security.py` (16 tests), `alba/tests/test_script_backend.py` (8 tests)
+
+### Fixes
+
+- Fixed `PYTHONPATH` pollution — removed fusion-proxy venv from system `PYTHONPATH`, restoring clean `python3` PIL import
+- Fixed `install.cmd` — added tkinter check, split pillow install from `pip install -e .`
+
 ## 0.4.2 - 2026-06-17
 
 ### Fixes

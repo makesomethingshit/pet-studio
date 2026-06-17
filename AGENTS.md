@@ -5,20 +5,26 @@ Use it to avoid re-reading every document while still respecting the project sco
 
 ## Current Status
 
-Pet Studio `v0.4.1` is released. The current milestone is `v0.5.0 Orchestration` — multi-project team orchestration with shared alba (local LLM), employee pool (OpenRouter), and lead selection.
+Pet Studio `v0.5.0` is released.
 
-What is shipped in 0.4.1:
+What is shipped in v0.5.0:
 - Desktop widget with pet room, props, helper pets, speech bubbles
 - System tray icon, auto room switching, status bar, project switching
 - Codex skill + hooks integration for live bubble updates
 - `pet_studio_core` with shared registry and state bridge primitives
-- 245 total tests, CI green, QA Gate 5/5
+- **Alba state manager** (`alba/state.py`) — `team_state.json` for project queues, event logs, context accumulation
+- **Room preset export/import** — zip-based preset sharing
+- **Hermes backend** (`alba/backend/hermes.py`) — optional LLM-powered event classification
+- **Security levels L0–L3** (`alba/security.py`) — per-project access control (Allow/Warn/Ask/Deny)
+- **Context-aware event classification** — ScriptBackend adjusts priority from recent history (3+ high → keep high)
+- **Backend signature unification** — `classify_event(event, context=None)` across all backends
+- 276 total tests, CI green, QA Gate 5/5
 
-What 0.5.0 adds:
-- Alba (알바생) — shared local LLM backend for project monitoring and queue management
-- Employee pool (직원) — OpenRouter model pool with project assignment
-- Lead selection (리드) — user-selectable agent (Codex/Claude Code/Cursor/Continue)
-- Skill packs, permission levels, progressive intelligence
+What v0.6.0 targets:
+- Team orchestration UI
+- Trust score auto-approval
+- Approval queue (status bar popup)
+- Team self-improvement (Hermes memory/skill reference)
 
 See [docs/PET_STUDIO_ORCHESTRATION_PLAN.md](docs/PET_STUDIO_ORCHESTRATION_PLAN.md) for the full orchestration plan.
 
@@ -31,11 +37,12 @@ When working on Pet Studio 0.5.0+ features, agents MUST respect these rules:
 3. **Employee pool, not per-project employees** — use the shared employee pool with project assignment, not dedicated per-project workers
 4. **Lead is user-selectable** — do not hardcode Codex; the lead endpoint is configurable (Codex/Claude Code/Cursor/Continue)
 5. **Skill packs over individual skills** — define skills as packs (감시 팩, 코딩 팩, 전체 팩) with per-agent customization
-6. **Security levels are per-project** — each project sets its own L0-L3 security level; default is L1 (경고)
-7. **Progressive intelligence** — 0.5.0 starts with context accumulation; do not implement learning/patterns until 0.6.0+
-8. **Backend adapter pattern** alba supports vllm/Ollama/llama.cpp/script — do not couple to a single backend
-9. **LLM-independent fallback** — alba MUST work in pure script mode without any LLM for GPU-less environments
-10. **Queue-based project switching** — alba cycles through projects by queue; do not implement real-time multi-project monitoring
+6. **Security levels are per-project** — each project sets its own L0-L3 security level; default is L1 (경고). L2+ actions raise `SecurityError` that must be caught by the caller.
+7. **Context accumulation is automatic** — `log_event()` records to history; `ScriptBackend` uses it for priority adjustment. Do not call `add_context_history()` manually.
+8. **Progressive intelligence** — 0.5.0 has context accumulation + security levels. Trust scores and auto-approval are v0.6.0.
+9. **Backend adapter pattern** — alba supports vllm/Ollama/llama.cpp/script — do not couple to a single backend
+10. **LLM-independent fallback** — alba MUST work in pure script mode without any LLM for GPU-less environments
+11. **Queue-based project switching** — alba cycles through projects by queue; do not implement real-time multi-project monitoring
 
 ## Required Reading
 
