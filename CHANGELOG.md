@@ -6,7 +6,7 @@ All notable changes to Pet Studio are documented here.
 
 ### Added
 
-- Security levels L0-L3 for per-project access control in `alba/security.py`.
+- Security levels L0-L3 for per-project access control in `roost/security.py`.
 - Context-aware event classification in `ScriptBackend`.
 - Unified backend signature: `classify_event(event, context=None)`.
 - Automatic context accumulation through `TeamState.log_event()`.
@@ -14,8 +14,8 @@ All notable changes to Pet Studio are documented here.
 
 ### Tests
 
-- 276 total tests: 68 alba, 42 core, 118 widget, 48 kit/tools.
-- Added `alba/tests/test_security.py` and `alba/tests/test_script_backend.py`.
+- 276 total tests: 68 roost, 42 core, 118 widget, 48 kit/tools.
+- Added `roost/tests/test_security.py` and `roost/tests/test_script_backend.py`.
 
 ### Fixed
 

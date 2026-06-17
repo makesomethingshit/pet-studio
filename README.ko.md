@@ -129,22 +129,22 @@ zip 파일로 방을 내보내고 가져올 수 있습니다:
 Python으로도 가능:
 
 ```python
-from alba.preset import export_preset, import_preset
+from roost.preset import export_preset, import_preset
 from pathlib import Path
 
 export_preset(Path("runs/my-room"), Path("presets/my-room.zip"), "내 방")
 import_preset(Path("presets/my-room.zip"), Path("runs/my-room-imported"))
 ```
 
-## 알바 상태 관리자
+## 루스트 상태 관리자
 
-Pet Studio에는 `alba`라는 팀 오케스트레이션 레이어가 포함되어 있습니다:
+Pet Studio에는 `roost`라는 팀 오케스트레이션 레이어가 포함되어 있습니다:
 
 ```python
-from alba.state import TeamState
+from roost.state import TeamState
 
 ts = TeamState()
-ts.alba_status = "active"
+ts.roost_status = "active"
 ts.register_project("my-project", "내 프로젝트", security_level=1)
 ts.enqueue_project("my-project", {"task": "lint"})
 ts.log_event("my-project", {"type": "build", "status": "pass", "priority": "normal"})
@@ -187,11 +187,11 @@ README GIF나 수동 QA를 찍을 때:
 
 v0.5.0에서 완료:
 - 룸 프리셋 내보내기/가져오기 (zip)
-- 스크립트 전용 상태 관리자 (`alba/state.py`)
-- Hermes 백엔드 (`alba/backend/hermes.py`)
-- 상태바 알바 상태 아이콘
+- 스크립트 전용 상태 관리자 (`roost/state.py`)
+- Hermes 백엔드 (`roost/backend/hermes.py`)
+- 상태바 루스트 상태 아이콘
 - 컨텍스트 메뉴 프리셋 서브메뉴
-- 보안 레벨 L0~L3 (`alba/security.py`)
+- 보안 레벨 L0~L3 (`roost/security.py`)
 - 컨텍스트 기반 이벤트 분류 (우선순위 자동 보정)
 
 v0.6.0 목표:

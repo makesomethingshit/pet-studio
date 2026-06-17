@@ -1,4 +1,4 @@
-"""Tests for alba state manager."""
+"""Tests for roost state manager."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from alba.state import TeamState
+from roost.state import TeamState
 
 
 class TestTeamState(unittest.TestCase):
@@ -19,21 +19,21 @@ class TestTeamState(unittest.TestCase):
         Path(self.tmp.name).unlink(missing_ok=True)
 
     def test_default_state(self):
-        self.assertEqual(self.state.alba_status, "idle")
-        self.assertEqual(self.state.alba_backend, "script")
+        self.assertEqual(self.state.roost_status, "idle")
+        self.assertEqual(self.state.roost_backend, "script")
 
-    def test_alba_status_set(self):
-        self.state.alba_status = "active"
-        self.assertEqual(self.state.alba_status, "active")
+    def test_roost_status_set(self):
+        self.state.roost_status = "active"
+        self.assertEqual(self.state.roost_status, "active")
         self.state._load()
-        self.assertEqual(self.state.alba_status, "active")
+        self.assertEqual(self.state.roost_status, "active")
 
-    def test_enqueue_dequeue_alba(self):
+    def test_enqueue_dequeue_roost(self):
         event = {"type": "file_change", "path": "test.py"}
-        self.state.enqueue_alba(event)
-        queue = self.state.get_alba_queue()
+        self.state.enqueue_roost(event)
+        queue = self.state.get_roost_queue()
         self.assertEqual(len(queue), 1)
-        item = self.state.dequeue_alba()
+        item = self.state.dequeue_roost()
         self.assertEqual(item["type"], "file_change")
 
     def test_register_project(self):

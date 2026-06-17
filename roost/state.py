@@ -1,4 +1,4 @@
-"""Alba (알바생) — shared state manager for Pet Studio team orchestration.
+"""Roost — shared state manager for Pet Studio team orchestration.
 
 Manages team_state.json: project queues, employee/lead status, event logs.
 Works without any LLM (script mode). LLM backends add smarter event classification.
@@ -43,7 +43,7 @@ class TeamState:
         return {
             "version": "0.5.0",
             "updatedAt": utc_now(),
-            "alba": {
+            "roost": {
                 "status": "idle",
                 "backend": "script",
                 "model": None,
@@ -62,32 +62,32 @@ class TeamState:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state_file.write_text(json.dumps(self._data, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # --- Alba ---
+    # --- Roost ---
 
     @property
-    def alba_status(self) -> str:
-        return self._data.get("alba", {}).get("status", "idle")
+    def roost_status(self) -> str:
+        return self._data.get("roost", {}).get("status", "idle")
 
-    @alba_status.setter
-    def alba_status(self, value: str) -> None:
-        self._data.setdefault("alba", {})["status"] = value
+    @roost_status.setter
+    def roost_status(self, value: str) -> None:
+        self._data.setdefault("roost", {})["status"] = value
         self.save()
 
     @property
-    def alba_backend(self) -> str:
-        return self._data.get("alba", {}).get("backend", "script")
+    def roost_backend(self) -> str:
+        return self._data.get("roost", {}).get("backend", "script")
 
-    def get_alba_queue(self) -> list[dict]:
-        return self._data.get("alba", {}).get("queue", [])
+    def get_roost_queue(self) -> list[dict]:
+        return self._data.get("roost", {}).get("queue", [])
 
-    def enqueue_alba(self, event: dict[str, Any]) -> None:
-        queue = self._data.setdefault("alba", {}).setdefault("queue", [])
+    def enqueue_roost(self, event: dict[str, Any]) -> None:
+        queue = self._data.setdefault("roost", {}).setdefault("queue", [])
         event["enqueuedAt"] = utc_now()
         queue.append(event)
         self.save()
 
-    def dequeue_alba(self) -> dict[str, Any] | None:
-        queue = self._data.setdefault("alba", {}).setdefault("queue", [])
+    def dequeue_roost(self) -> dict[str, Any] | None:
+        queue = self._data.setdefault("roost", {}).setdefault("queue", [])
         if queue:
             item = queue.pop(0)
             self.save()
@@ -119,7 +119,7 @@ class TeamState:
         return self._data.get("projects", {}).get(project_id)
 
     def set_project_status(self, project_id: str, status: str) -> None:
-        from alba.security import SecurityError, check_security
+        from roost.security import SecurityError, check_security
 
         try:
             check_security(project_id, "state.write", self)
@@ -137,7 +137,7 @@ class TeamState:
         return []
 
     def enqueue_project(self, project_id: str, task: dict[str, Any]) -> None:
-        from alba.security import SecurityError, check_security
+        from roost.security import SecurityError, check_security
 
         try:
             check_security(project_id, "state.write", self)
@@ -172,7 +172,7 @@ class TeamState:
     # --- Context accumulation ---
 
     def add_context_history(self, entry: dict[str, Any]) -> None:
-        history = self._data.setdefault("alba", {}).setdefault("context", {}).setdefault("history", [])  # noqa: E501
+        history = self._data.setdefault("roost", {}).setdefault("context", {}).setdefault("history", [])  # noqa: E501
         entry["timestamp"] = utc_now()
         history.append(entry)
         if len(history) > 200:
@@ -180,11 +180,11 @@ class TeamState:
         self.save()
 
     def get_context_history(self, limit: int = 50) -> list[dict]:
-        return self._data.get("alba", {}).get("context", {}).get("history", [])[-limit:]
+        return self._data.get("roost", {}).get("context", {}).get("history", [])[-limit:]
 
     def add_project_insight(self, project_id: str, key: str, value: Any) -> None:
         insights = (
-            self._data.setdefault("alba", {})
+            self._data.setdefault("roost", {})
             .setdefault("context", {})
             .setdefault("projectInsights", {})
             .setdefault(project_id, {})

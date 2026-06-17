@@ -1,4 +1,4 @@
-"""Tests for alba preset manager."""
+"""Tests for roost preset manager."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from alba.preset import PresetError, export_preset, import_preset, list_presets
+from roost.preset import PresetError, export_preset, import_preset, list_presets
 
 
 class TestPresetManager(unittest.TestCase):

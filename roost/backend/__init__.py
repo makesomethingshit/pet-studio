@@ -1,4 +1,4 @@
-"""Alba backend adapters."""
+"""Roost backend adapters."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-class AlbaBackend(ABC):
-    """Base class for alba LLM backends."""
+class RoostBackend(ABC):
+    """Base class for roost LLM backends."""
 
     name: str = "base"
 
@@ -24,7 +24,7 @@ class AlbaBackend(ABC):
         return f"<{self.__class__.__name__} name={self.name}>"
 
 
-from alba.backend.hermes import HermesBackend  # noqa: E402
-from alba.backend.script import ScriptBackend  # noqa: E402
+from roost.backend.hermes import HermesBackend  # noqa: E402
+from roost.backend.script import ScriptBackend  # noqa: E402
 
-__all__ = ["AlbaBackend", "ScriptBackend", "HermesBackend"]
+__all__ = ["RoostBackend", "ScriptBackend", "HermesBackend"]

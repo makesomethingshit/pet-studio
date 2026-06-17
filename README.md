@@ -47,8 +47,8 @@ Create a room interactively:
 - Tray icon, status bar, context menu controls
 - Codex skill install and optional hook integration
 - Room creation, validation, preview sheets, and QA packs
-- Room preset export/import through `alba.preset`
-- Alba project queues, event logs, security levels, and script/Hermes classifiers
+- Room preset export/import through `roost.preset`
+- Roost project queues, event logs, security levels, and script/Hermes classifiers
 - Korean CLI repair hints via `--lang ko` or `PET_STUDIO_LANG=ko`
 
 Still experimental:
@@ -91,18 +91,18 @@ Python API:
 
 ```python
 from pathlib import Path
-from alba.preset import export_preset, import_preset
+from roost.preset import export_preset, import_preset
 
 export_preset(Path("runs/my-room"), Path("presets/my-room.zip"), "My Room")
 import_preset(Path("presets/my-room.zip"), Path("runs/my-room-imported"))
 ```
 
-## Alba
+## Roost
 
-`alba` stores local project orchestration state in `team_state.json`.
+`roost` stores local project orchestration state in `team_state.json`.
 
 ```python
-from alba.state import TeamState
+from roost.state import TeamState
 
 state = TeamState()
 state.register_project("my-project", "My Project")

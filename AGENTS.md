@@ -5,7 +5,7 @@ Use this as the short operating guide for agents working in this repository.
 ## Current Shape
 
 Pet Studio is a local-first Windows desktop widget for project rooms, plus the
-`alba` foundation for lightweight project queues, presets, security levels, and
+`roost` foundation for lightweight project queues, presets, security levels, and
 script/Hermes event classification.
 
 Check `VERSION`, `pyproject.toml`, and `CHANGELOG.md` before making release
@@ -16,7 +16,7 @@ claims. Those files have drifted before.
 | Task | Read |
 | --- | --- |
 | Roadmap or feature scope | `docs/PET_STUDIO_ROADMAP.md` |
-| Orchestration or Alba work | `docs/PET_STUDIO_ORCHESTRATION_PLAN.md` |
+| Orchestration or Roost work | `docs/PET_STUDIO_ORCHESTRATION_PLAN.md` |
 | Install, launcher, widget behavior | `docs/INSTALL.md`, `pet-studio-widget/README.md` |
 | Codex hook or state bridge work | `docs/CODEX_INTEGRATION.md` |
 | Core/adapter boundary work | `docs/ARCHITECTURE.md`, `docs/ADAPTER_BOUNDARY.md` |
@@ -34,7 +34,7 @@ Do not edit public docs from memory. Confirm against current files.
 - Do not edit `.codex/config.toml` or `.codex/hooks.json` during ordinary work.
 - Do not add Team Room, Project Hub, hosted dashboard, cloud sync, or full
   simulation behavior as current functionality.
-- For orchestration work, Alba must work without an LLM. Script mode is the
+- For orchestration work, Roost must work without an LLM. Script mode is the
   fallback; optional backends are adapters.
 
 ## Key Paths
@@ -47,10 +47,10 @@ Do not edit public docs from memory. Confirm against current files.
 | `pet-studio-widget/codex_state_adapter.py` | event-to-state bridge |
 | `pet_studio_core/registry.py` | shared registry primitives |
 | `pet_studio_core/state.py` | shared state bridge writer |
-| `alba/state.py` | project queue and event state |
-| `alba/security.py` | per-project L0-L3 security checks |
-| `alba/preset.py` | room preset export/import |
-| `alba/backend/` | script and Hermes classifiers |
+| `roost/state.py` | project queue and event state |
+| `roost/security.py` | per-project L0-L3 security checks |
+| `roost/preset.py` | room preset export/import |
+| `roost/backend/` | script and Hermes classifiers |
 
 ## Testing
 

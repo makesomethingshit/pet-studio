@@ -1,4 +1,4 @@
-"""Tests for alba security level enforcement."""
+"""Tests for roost security level enforcement."""
 
 from __future__ import annotations
 
@@ -6,11 +6,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from alba.security import (
+from roost.security import (
     SecurityError,
     check_security,
 )
-from alba.state import TeamState
+from roost.state import TeamState
 
 
 class TestSecurityLevel(unittest.TestCase):
@@ -98,20 +98,20 @@ class TestSecurityLevel(unittest.TestCase):
 
 class TestActionRiskLevels(unittest.TestCase):
     def test_safe_actions_are_risk_zero(self) -> None:
-        from alba.security import ACTION_RISK
+        from roost.security import ACTION_RISK
 
         self.assertEqual(ACTION_RISK["state.read"], 0)
         self.assertEqual(ACTION_RISK["state.write"], 0)
         self.assertEqual(ACTION_RISK["preset.export"], 0)
 
     def test_moderate_actions_are_risk_one(self) -> None:
-        from alba.security import ACTION_RISK
+        from roost.security import ACTION_RISK
 
         self.assertEqual(ACTION_RISK["preset.import"], 1)
         self.assertEqual(ACTION_RISK["layout.reset"], 1)
 
     def test_critical_actions_are_risk_three(self) -> None:
-        from alba.security import ACTION_RISK
+        from roost.security import ACTION_RISK
 
         self.assertEqual(ACTION_RISK["project.delete"], 3)
         self.assertEqual(ACTION_RISK["team.reconfigure"], 3)

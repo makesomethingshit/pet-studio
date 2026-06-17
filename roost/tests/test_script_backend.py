@@ -1,10 +1,10 @@
-"""Tests for alba script backend — context-aware classification."""
+"""Tests for roost script backend — context-aware classification."""
 
 from __future__ import annotations
 
 import unittest
 
-from alba.backend.script import ScriptBackend
+from roost.backend.script import ScriptBackend
 
 
 class TestScriptBackend(unittest.TestCase):

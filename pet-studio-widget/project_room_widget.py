@@ -780,10 +780,10 @@ class ProjectRoomWidget:
         )
         self._status_bar_items.append(name_item)
 
-        # State label + alba icon
+        # State label + roost icon
         state_text = STATUS_LABELS.get(self.state, self.state)
-        alba_icon = self._alba_status_icon()
-        display = f"[{state_text}] {alba_icon}" if alba_icon else f"[{state_text}]"
+        roost_icon = self._roost_status_icon()
+        display = f"[{state_text}] {roost_icon}" if roost_icon else f"[{state_text}]"
         state_item = self.canvas.create_text(
             cw - 6,
             room_h + sb_h // 2,
@@ -795,13 +795,13 @@ class ProjectRoomWidget:
         )
         self._status_bar_items.append(state_item)
 
-    def _alba_status_icon(self) -> str:
-        """Return alba status emoji icon based on project state."""
+    def _roost_status_icon(self) -> str:
+        """Return roost status emoji icon based on project state."""
         try:
-            from alba.state import TeamState
+            from roost.state import TeamState
 
             ts = TeamState()
-            status = ts.alba_status
+            status = ts.roost_status
             return {"active": "\U0001f7e2", "idle": "\u26aa", "error": "\U0001f534"}.get(status, "\u26aa")
         except Exception:
             return ""
@@ -1178,7 +1178,7 @@ class ProjectRoomWidget:
     def _export_preset_dialog(self) -> None:
         """Export current room as a preset zip via file dialog."""
         try:
-            from alba.preset import export_preset
+            from roost.preset import export_preset
 
             presets_dir = Path.cwd() / "presets"
             presets_dir.mkdir(exist_ok=True)
@@ -1200,7 +1200,7 @@ class ProjectRoomWidget:
     def _import_preset_dialog(self) -> None:
         """Import a preset zip and reload the room."""
         try:
-            from alba.preset import import_preset
+            from roost.preset import import_preset
 
             presets_dir = Path.cwd() / "presets"
             zf = filedialog.askopenfilename(

@@ -13,8 +13,8 @@ Shipped or present in the current codebase:
 - Codex skill and optional Codex hook bridge
 - `pet_studio_core` for registry and state primitives
 - room creation, validation, previews, and QA packs
-- room preset export/import through `alba.preset`
-- Alba state manager with queues, event history, L0-L3 security levels
+- room preset export/import through `roost.preset`
+- Roost state manager with queues, event history, L0-L3 security levels
 - script and Hermes event classifiers
 - QA gate and CI checks
 
