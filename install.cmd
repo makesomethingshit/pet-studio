@@ -15,16 +15,26 @@ if %errorlevel% neq 0 (
 )
 
 echo [1/3] Checking dependencies...
-python -c "from PIL import Image" 2>nul
+
+python -c "from PIL import Image; print('pillow OK')" 2>nul
 if %errorlevel% neq 0 (
-    echo         Installing dependencies...
-    python -m pip install -e .
+    echo         Installing pillow...
+    python -m pip install pillow
     if %errorlevel% neq 0 (
-        echo [ERROR] Dependency install failed.
+        echo [ERROR] pillow install failed. Try: python -m pip install pillow
         pause
         exit /b 1
     )
 )
+
+python -c "import tkinter; print('tkinter OK')" 2>nul
+if %errorlevel% neq 0 (
+    echo [ERROR] tkinter not found. Reinstall Python with "tcl/tk and IDLE" option enabled.
+    echo         Download: https://python.org/downloads/
+    pause
+    exit /b 1
+)
+
 echo         OK.
 
 echo [2/3] Installing Pet Studio skill...
