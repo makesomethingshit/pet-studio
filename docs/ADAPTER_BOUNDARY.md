@@ -1,6 +1,6 @@
 # Core / Adapter Boundary
 
-Pet Studio 0.3.0 defines a simple boundary:
+Pet Studio 0.5.0 defines a simple boundary:
 
 > Core describes Pet Studio projects and state. Adapters translate external systems into that state.
 

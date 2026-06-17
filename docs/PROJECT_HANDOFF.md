@@ -1,6 +1,6 @@
 # Pet Studio Maintainer Notes
 
-This repository is being prepared for the Pet Studio `v0.4.0` release candidate.
+This repository is being prepared for the Pet Studio `v0.5.0` release.
 
 ## Public Positioning
 
@@ -88,7 +88,7 @@ docs/images/pet-studio-demo.gif
 docs/images/gakju-widget-bubble-example.png
 ```
 
-## Current 0.4.0 Focus
+## Completed 0.4.0 — Status Bar, System Tray, Auto-Switch
 
 - `pet_studio_core` owns shared registry and state bridge primitives
 - Workspace auto-switch via `infer_project_for_workspace()` in adapter/widget (no separate watcher module)
@@ -99,7 +99,6 @@ docs/images/gakju-widget-bubble-example.png
 - Team Room, Project Hub, endpoint registry, dashboard, and orchestration are still future work
 
 **Explicitly deferred to Later / separate milestone:**
-- Room preset export/import (tools/export_room.py, tools/import_room.py)
 - Sample room pack (runs/sample-room-cozy-corner/)
 - State transition animations (reverse-frame trick)
 - Helper pet AI (behavior mapping + bubble messages)
@@ -119,7 +118,7 @@ All 0.2.0 features are released. Summary of what was shipped:
 - Windows widget launcher single-instance/focus behavior and detached launcher logging
 - Codex hook bridge with `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `Stop` hooks
 
-Out of scope for 0.2.0 (and still out of scope for 0.3.0):
+Out of scope for 0.2.0 (and still out of scope as of 0.5.0):
 - No GUI editor
 - No cloud sync or remote service
 - No full room navigation or game simulation
