@@ -15,12 +15,10 @@ class AlbaBackend(ABC):
     name: str = "base"
 
     @abstractmethod
-    def classify_event(self, event: dict[str, Any]) -> dict[str, Any]:
-        ...
+    def classify_event(self, event: dict[str, Any]) -> dict[str, Any]: ...
 
     @abstractmethod
-    def health_check(self) -> bool:
-        ...
+    def health_check(self) -> bool: ...
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} name={self.name}>"
