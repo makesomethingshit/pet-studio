@@ -47,7 +47,7 @@ Not current:
 - Codex skill install and optional hook bridge
 - removed speculative watcher/export/import/animation/helper-AI code until it had callers
 
-### 0.5.x - Alba Foundation
+### 0.5.x - Roost Foundation
 
 - room preset export/import
 - script-only state manager with `team_state.json`
