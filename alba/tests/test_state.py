@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from alba.state_manager import TeamState
+from alba.state import TeamState
 
 
 class TestTeamState(unittest.TestCase):
@@ -25,7 +25,6 @@ class TestTeamState(unittest.TestCase):
     def test_alba_status_set(self):
         self.state.alba_status = "active"
         self.assertEqual(self.state.alba_status, "active")
-        # Reload from disk
         self.state._load()
         self.assertEqual(self.state.alba_status, "active")
 
@@ -67,7 +66,6 @@ class TestTeamState(unittest.TestCase):
         self.state.register_project("test-proj")
         self.state.add_project_insight("test-proj", "lastBuild", "pass")
         self.state.get_context_history(limit=1)
-        self.assertTrue(True)  # No crash = pass
 
 
 if __name__ == "__main__":

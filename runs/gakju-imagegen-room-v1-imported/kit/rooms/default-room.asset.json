@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "styleId": "project-room-soft-sticker-v1",
+  "perspective": "eye-level-side-view",
+  "role": "room",
+  "features": [
+    "left-door",
+    "right-door",
+    "floor-line",
+    "back-wall",
+    "sd-chibi-room",
+    "gakju-style"
+  ],
+  "source": "gpt-imagegen",
+  "notes": "Generated to match Gakju, a tiny SD librarian-researcher hatch-pet."
+}

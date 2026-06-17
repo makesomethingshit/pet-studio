@@ -8,7 +8,7 @@ import unittest
 import zipfile
 from pathlib import Path
 
-from alba.preset_manager import PresetError, export_preset, import_preset, list_presets
+from alba.preset import PresetError, export_preset, import_preset, list_presets
 
 
 class TestPresetManager(unittest.TestCase):
@@ -18,22 +18,17 @@ class TestPresetManager(unittest.TestCase):
         self.kit_dir = self.room_dir / "kit"
         self.kit_dir.mkdir(parents=True)
 
-        # Minimal project-room.json
         (self.kit_dir / "project-room.json").write_text(
             json.dumps({"schemaVersion": 1, "id": "test", "displayName": "Test Room"}),
             encoding="utf-8",
         )
-        # Fake pet spritesheet
         (self.kit_dir / "spritesheet.webp").write_text("fake-webp", encoding="utf-8")
-        # Fake room image
         (self.kit_dir / "room.png").write_text("fake-png", encoding="utf-8")
 
-        # Layout
         (self.room_dir / "layout.json").write_text(
             json.dumps({"anchors": {}, "zOrder": {}}),
             encoding="utf-8",
         )
-        # Session
         (self.room_dir / "session.json").write_text(
             json.dumps({"x": 100, "y": 200, "scale": 1.0, "state": "idle"}),
             encoding="utf-8",

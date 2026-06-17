@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "styleId": "project-room-soft-sticker-v1",
+  "perspective": "eye-level-side-view",
+  "role": "pet",
+  "assetType": "pet",
+  "sourcePetId": "helper-prop-creature",
+  "sourceDisplayName": "Helper Prop Creature",
+  "features": [
+    "hatch-pet-atlas",
+    "helper",
+    "sub-pet",
+    "prop-creature",
+    "paper-book-helper"
+  ],
+  "bubbleStyle": {
+    "fill": "#fff4dc",
+    "outline": "#7a4d32",
+    "shadow": "#d8bd91",
+    "text": "#2d241e"
+  },
+  "notes": "Selected public demo sub-pet: a compact living paper/book helper matched to the Gakju archive room style."
+}

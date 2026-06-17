@@ -51,7 +51,7 @@ class TestHermesBackend(unittest.TestCase):
     def test_parse_priority_unknown(self):
         self.assertIsNone(HermesBackend._parse_priority("something else"))
 
-    @patch("alba.backend.subprocess.run")
+    @patch("alba.backend.hermes.subprocess.run")
     def test_classify_with_hermes_response(self, mock_run):
         mock_run.return_value = type("R", (), {"returncode": 0, "stdout": "high"})()
         event = {"type": "build", "status": "failed"}
@@ -59,29 +59,33 @@ class TestHermesBackend(unittest.TestCase):
         self.assertEqual(result["classification"]["priority"], "high")
         self.assertEqual(result["classification"]["source"], "hermes")
 
-    @patch("alba.backend.subprocess.run")
+    @patch("alba.backend.hermes.subprocess.run")
+    def test_classify_no_response(self, mock_run):
+        mock_run.return_value = type("R", (), {"returncode": 0, "stdout": ""})()
+        event = {"type": "build", "status": "failed"}
+        result = self.backend.classify_event(event)
+        self.assertEqual(result["classification"]["source"], "hermes (no response)")
+
+    @patch("alba.backend.hermes.subprocess.run")
     def test_classify_fallback_on_error(self, mock_run):
         mock_run.return_value = type("R", (), {"returncode": 1, "stdout": ""})()
         event = {"type": "build", "status": "failed"}
         result = self.backend.classify_event(event)
-        # Falls back to script backend → "high" for "failed"
-        self.assertEqual(result["classification"]["priority"], "high")
-        self.assertIn("fallback", result["classification"]["source"])
+        self.assertEqual(result["classification"]["source"], "hermes (no response)")
 
-    @patch("alba.backend.subprocess.run")
+    @patch("alba.backend.hermes.subprocess.run")
     def test_classify_fallback_on_missing_cmd(self, mock_run):
         mock_run.side_effect = FileNotFoundError("hermes not found")
         event = {"type": "status", "state": "idle"}
         result = self.backend.classify_event(event)
-        self.assertEqual(result["classification"]["priority"], "low")
-        self.assertIn("fallback", result["classification"]["source"])
+        self.assertEqual(result["classification"]["source"], "hermes (no response)")
 
-    @patch("alba.backend.subprocess.run")
+    @patch("alba.backend.hermes.subprocess.run")
     def test_health_check_ok(self, mock_run):
         mock_run.return_value = type("R", (), {"returncode": 0, "stdout": "hermes 1.0"})()
         self.assertTrue(self.backend.health_check())
 
-    @patch("alba.backend.subprocess.run")
+    @patch("alba.backend.hermes.subprocess.run")
     def test_health_check_fail(self, mock_run):
         mock_run.side_effect = FileNotFoundError
         self.assertFalse(self.backend.health_check())

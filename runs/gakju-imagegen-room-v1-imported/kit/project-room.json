@@ -1,0 +1,236 @@
+{
+  "schemaVersion": 1,
+  "id": "project-room",
+  "displayName": "Project Room",
+  "description": "A side-view room-decorating kit for a Codex pet widget.",
+  "styleLock": "style-lock.json",
+  "cell": {
+    "width": 192,
+    "height": 208,
+    "purpose": "hatch-pet preview/fallback atlas cell, not the source room size"
+  },
+  "sourceCanvas": {
+    "width": 384,
+    "height": 240,
+    "purpose": "layered project-room widget canvas"
+  },
+  "roomModule": {
+    "width": 384,
+    "height": 240,
+    "perspective": "eye-level-side-view",
+    "requiredFeatures": [
+      "left-door",
+      "right-door",
+      "floor-line",
+      "back-wall"
+    ],
+    "safeArea": {
+      "left": 18,
+      "top": 12,
+      "right": 366,
+      "bottom": 228
+    },
+    "doorAnchors": {
+      "left": {
+        "x": 28,
+        "y": 182
+      },
+      "right": {
+        "x": 356,
+        "y": 182
+      }
+    }
+  },
+  "previewBake": {
+    "mode": "contain",
+    "purpose": "compatibility preview only; real room output should keep source layers separate",
+    "align": "bottom-center"
+  },
+  "atlas": {
+    "columns": 8,
+    "rows": 9,
+    "width": 1536,
+    "height": 1872
+  },
+  "layers": [
+    {
+      "id": "room",
+      "role": "room",
+      "path": "rooms/default-room.png",
+      "z": 0,
+      "anchor": "room",
+      "scale": 1.0,
+      "draggable": false,
+      "locked": true
+    },
+    {
+      "id": "desk",
+      "role": "prop",
+      "path": "props/desk.png",
+      "placement": "behindPet",
+      "z": 12,
+      "anchor": "desk",
+      "scale": 1.0,
+      "draggable": true,
+      "locked": false
+    },
+    {
+      "id": "book-stack",
+      "role": "prop",
+      "path": "props/book-stack.png",
+      "placement": "foreground",
+      "z": 30,
+      "anchor": "book-stack",
+      "scale": 1.0,
+      "draggable": true,
+      "locked": false
+    },
+    {
+      "id": "main-owner",
+      "role": "mainPet",
+      "path": "pets/main-owner/spritesheet.webp",
+      "z": 20,
+      "anchor": "owner",
+      "scale": 0.68,
+      "draggable": true,
+      "locked": false
+    },
+    {
+      "id": "helper-prop-creature",
+      "role": "helperPet",
+      "path": "pets/helper-prop-creature/spritesheet.webp",
+      "z": 32,
+      "anchor": "helper-prop-creature-anchor",
+      "scale": 0.4,
+      "draggable": true,
+      "locked": false
+    }
+  ],
+  "anchors": {
+    "cell-bottom-center": {
+      "x": 96,
+      "y": 190
+    },
+    "room": {
+      "x": 192,
+      "y": 240
+    },
+    "desk": {
+      "x": 218,
+      "y": 205
+    },
+    "owner": {
+      "x": 138,
+      "y": 206
+    },
+    "helper-prop-creature-anchor": {
+      "x": 304,
+      "y": 205
+    },
+    "book-stack": {
+      "x": 308,
+      "y": 216
+    }
+  },
+  "states": {
+    "idle": {
+      "mainPetRow": "idle",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "running-right": {
+      "mainPetRow": "running-right",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "running-left": {
+      "mainPetRow": "running-left",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "waving": {
+      "mainPetRow": "waving",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "jumping": {
+      "mainPetRow": "jumping",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "failed": {
+      "mainPetRow": "failed",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "waiting": {
+      "mainPetRow": "waiting",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "running": {
+      "mainPetRow": "running",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "book-stack",
+        "helper-prop-creature",
+        "main-owner"
+      ]
+    },
+    "review": {
+      "mainPetRow": "review",
+      "helperPetRow": "review",
+      "visibleLayers": [
+        "room",
+        "desk",
+        "helper-prop-creature",
+        "book-stack",
+        "main-owner"
+      ]
+    }
+  }
+}

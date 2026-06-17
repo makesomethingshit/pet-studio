@@ -798,7 +798,7 @@ class ProjectRoomWidget:
     def _alba_status_icon(self) -> str:
         """Return alba status emoji icon based on project state."""
         try:
-            from alba.state_manager import TeamState
+            from alba.state import TeamState
 
             ts = TeamState()
             status = ts.alba_status
@@ -1178,7 +1178,7 @@ class ProjectRoomWidget:
     def _export_preset_dialog(self) -> None:
         """Export current room as a preset zip via file dialog."""
         try:
-            from alba.preset_manager import export_preset
+            from alba.preset import export_preset
 
             presets_dir = Path.cwd() / "presets"
             presets_dir.mkdir(exist_ok=True)
@@ -1200,7 +1200,7 @@ class ProjectRoomWidget:
     def _import_preset_dialog(self) -> None:
         """Import a preset zip and reload the room."""
         try:
-            from alba.preset_manager import import_preset
+            from alba.preset import import_preset
 
             presets_dir = Path.cwd() / "presets"
             zf = filedialog.askopenfilename(
