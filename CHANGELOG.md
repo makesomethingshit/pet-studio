@@ -4,160 +4,85 @@ All notable changes to Pet Studio are documented here.
 
 ## 0.5.0 - 2026-06-17
 
-### New Features
+### Added
 
-- **Security levels (L0–L3)** — per-project access control (`alba/security.py`):
-  - L0 Allow: all actions pass
-  - L1 Warn (default): dangerous actions logged but allowed
-  - L2 Ask: dangerous actions raise `SecurityError` (require approval)
-  - L3 Deny: all risky actions blocked
-- **Context-aware event classification** — `ScriptBackend` adjusts priority from recent history (3+ high-priority events → keep high)
-- **Backend signature unification** — `classify_event(event, context=None)` across `ScriptBackend` and `HermesBackend`
-- **Context accumulation** — `log_event()` auto-records to `team_state.json` history
-- **Trust field** — `team_state.json` schema includes `trust: {}` for future auto-approval
+- Security levels L0-L3 for per-project access control in `alba/security.py`.
+- Context-aware event classification in `ScriptBackend`.
+- Unified backend signature: `classify_event(event, context=None)`.
+- Automatic context accumulation through `TeamState.log_event()`.
+- `trust: {}` field in `team_state.json` for future auto-approval.
 
-### Test Coverage
+### Tests
 
-- 276 total tests (68 alba + 42 core + 118 widget + 48 kit/tools)
-- New: `alba/tests/test_security.py` (16 tests), `alba/tests/test_script_backend.py` (8 tests)
+- 276 total tests: 68 alba, 42 core, 118 widget, 48 kit/tools.
+- Added `alba/tests/test_security.py` and `alba/tests/test_script_backend.py`.
 
-### Fixes
+### Fixed
 
-- Fixed `PYTHONPATH` pollution — removed fusion-proxy venv from system `PYTHONPATH`, restoring clean `python3` PIL import
-- Fixed `install.cmd` — added tkinter check, split pillow install from `pip install -e .`
+- Removed external `PYTHONPATH` pollution from local test runs.
+- Updated `install.cmd` dependency checks for tkinter and Pillow.
 
 ## 0.4.2 - 2026-06-17
 
-### Fixes
-- Fixed `ProjectRoomWidget` crash: `<Double-Button-1>` bound to missing `self.cycle_state` method. Replaced with `lambda _event: self.run_demo_cycle()` which is already used by context menu.
+### Fixed
 
-### Features
-- **Auto pet generation** — `create_room_interactive.py` now has "[새 펫 생성]" option that auto-detects Codex CLI, calls `$hatch-pet` skill to generate a new pet package, and continues the wizard automatically.
-- **Dependency declaration** — `pyproject.toml` now declares `pillow>=10.0` and `requires-python >= 3.11`. `install.cmd` uses `pip install -e .` instead of raw `pip install pillow`.
+- Fixed `ProjectRoomWidget` startup crash caused by `<Double-Button-1>` binding to
+  the removed `cycle_state` method. The binding now calls `run_demo_cycle()`.
 
-### Documentation
-- Added `docs/PET_STUDIO_ORCHESTRATION_PLAN.md` — full orchestration plan for multi-project team management (alba/employee/lead).
-- Updated `AGENTS.md` Current Status to v0.4.1 + v0.5.0 Orchestration milestone.
-- Added `Orchestration Rules` section to AGENTS.md (10 rules all agents must follow).
+### Added
+
+- Auto pet generation path in `create_room_interactive.py`.
+- Python package dependency declaration for Pillow and Python 3.11+.
+- `docs/PET_STUDIO_ORCHESTRATION_PLAN.md`.
 
 ## 0.4.1 - 2026-06-17
 
 ### Documentation
 
-- Clarified UX positioning: app (install.cmd) vs Codex skill as two entry points
-- README Quick Start restructured around "AI 도구 어떻게 쓰세요?" decision
-- Restored Codex skill install + hooks integration scripts and tests
-- Updated roadmap and feature lists to match current positioning
+- Clarified app install vs Codex skill install as two entry points.
+- Restored Codex skill install and hook integration scripts/tests in docs.
+- Updated roadmap and feature lists.
 
 ## 0.4.0 - 2026-06-17
 
-### New Features
+### Added
 
-- **Auto room switching** — `infer_project_for_workspace()` in `codex_state_adapter.py` and `project_room_widget.py` detects workspace changes and switches rooms automatically.
-- **System tray icon** — `tray_icon.py` adds a system tray icon with menu for room switching, state control, and quit (5 tests).
-- **Status bar** — canvas overlay showing current project name and state.
-- **Project switching** — right-click context menu to switch between registered projects.
-- **Codex skill** — `install_pet_studio_skill.py` registers Pet Studio as a Codex skill for auto-launch. Optional `install_pet_studio_codex_integration.py` for live bubble updates from Codex events. Widget works standalone without Codex.
+- Workspace auto-detection through registry workspace paths.
+- System tray icon.
+- Status bar with current project/state.
+- Right-click project switching.
+- Codex skill install and optional Codex hook bridge.
 
-### YAGNI/Scope Cleanup
+### Removed
 
-- Removed `tools/workspace_watcher.py` — standalone polling module with no caller.
-- Removed `tools/export_room.py` / `tools/import_room.py` — preset export/import deferred to Later.
-- Removed `runs/sample-room-cozy-corner/` — sample room pack deferred to Later.
-- Removed state transition animation from `project_room_widget.py` — `self.redraw_scene()` immediate settle is sufficient.
-- Removed helper pet AI from `project_room_scene.py` — behavior mapping + bubble messages deferred to Later.
-- Net: ~1,100 lines removed.
+- Unused standalone `tools/workspace_watcher.py`.
+- Uncalled preset import/export tools before the later Alba preset implementation.
+- Deferred sample room pack, state transition animation, and helper pet AI.
 
-### Test Coverage
+### Tests
 
-- 245 total tests (130 widget + 48 kit + 42 core + 23 tools + 2 smoke)
-- QA Gate: 5/5 green (preflight, widget, kit, compile, boundary)
+- 245 total tests.
+- QA Gate 5/5 green.
 
 ## 0.3.1 - 2026-06-16
 
 ### Repository Hygiene
 
-- Moved `tester/` debug artifacts (70+ files) to `archive/tester/`
-- Moved 12 experimental `runs/` directories to `archive/runs/` — kept only `gakju-imagegen-room-v1` (public sample) and `gakju-archive-demo` (demo room)
-- Moved stale QA RC docs (`docs/qa/020-*, 030-*`) to `docs/qa/archive/`
-- Deleted `CODER_TO_QA.md` (auto-generated, reproducible)
-- Added `archive/` and `.hermes/` to `.gitignore`
-
-### Documentation
-
-- Synced `README.md` and `README.ko.md` section parity:
-  - Added "What Works Today" items to Korean README (one-click install, interactive creator, auto-detect)
-  - Added "Korean CLI Output" and "Demo State Cycler" sections to English README
-  - Added missing doc links (Architecture, Adapter Boundary, Demo Script) to Korean README
-- Updated roadmap links in both READMEs
+- Archived stale debug artifacts and QA docs.
+- Kept only public/demo room assets in active `runs/`.
+- Added one-click installer, interactive room creator, and auto project detection.
+- Added QA gate pipeline and CI lint.
+- Synced English/Korean docs.
 
 ## 0.3.0 - 2026-06-16
 
 ### Architecture
 
-- Added `pet_studio_core/` — shared boundary module for project registry and state bridge.
-  - `registry.py`: project assignments, path resolution, workspace-to-project inference, state normalization, kit manifest validation.
-  - `state.py`: file-based state bridge with `EXTERNAL_STATES` validation, `resetAfterMs` support.
-  - Core has zero runtime imports from Codex, Tkinter, widget host, or adapter modules.
+- Added `pet_studio_core` for shared registry and state bridge behavior.
+- Kept Core free of Codex, Tkinter, widget, launcher, and image-provider imports.
+- Re-exported compatibility APIs from existing widget modules.
+- Preserved `project-room-*` v1 file names and payload shapes.
 
-### Fixes
+### Fixed
 
-- Removed dangerous `sys.modules` deletion from `prefer_local_room_kit_tools()` in `project_room_widget.py`. The function now only reorders `sys.path` to prefer local tools, without mutating the import cache at runtime. Added regression test.
-
-### Compatibility
-
-- All `project-room-*` v1 file names and shapes preserved.
-- Existing `pet-studio-widget/` modules remain as-is; new shared behavior lands in `pet_studio_core` first.
-
-### UX
-
-- Added `install.cmd` — one-click install: clone, install deps, run preflight, launch widget.
-- Added `tools/create_room_interactive.py` — interactive room creation with prompts instead of CLI flags.
-- Added auto-project-detection to widget `main()`: when `--project-id` is omitted, widget infers the project from the current workspace directory.
-
-### Documentation
-
-- Expanded `ADAPTER_BOUNDARY.md`: clearer core/adapter ownership rules, adapter file map, compatibility rule.
-- Strengthened core import-boundary tests with additional forbidden patterns (`install_pet_studio_codex_integration`, `pet_studio_widget`, `image_provider`).
-- Updated README Quick Start: one-click install option, interactive room creation, manual steps preserved as Option B.
-- Removed "one-click installer" from "Still Experimental" list (now shipped).
-
-## 0.2.0 - 2026-06-15
-
-- Started the first-room creation UX with a guided public wrapper for kit creation, validation, rendering, and registry linking.
-- Added a local QA pack generator for validation evidence, renders, and `CODER_TO_QA.md` handoff files.
-- Added project-centered preflight checks for generated rooms, including repair hints for registry, kit, hook, dependency, and render issues.
-- Added asset guardrails for room size, transparent props, oversized props, duplicate ids, prop/helper collisions, invalid placements, and helper package validation.
-- Added registered-project session restore so reopened widgets can restore the last state, bubble visibility, window position, and scale while ignoring stale bridge states.
-- Hardened force-replace, hook passthrough, hook command quoting, id validation, manifest path containment, and direct render/bake image bounds.
-- Added Korean public documentation and minimal Korean CLI repair hints for first-room creation and preflight failures.
-- Fixed the Windows widget launcher path so normal launches focus an existing widget, avoid stacked detached `pythonw.exe` instances, and write detached output to local log files.
-- Added a project state demo cycler for README GIF capture and manual QA that reuses the existing state bridge.
-- Added `docs/PET_STUDIO_WORKROOM_VISION.md` as a long-term direction document without making workroom features part of the current release.
-
-## 0.1.2 - 2026-06-14
-
-Public stability hardening.
-
-- Added a release preflight command that checks the public demo, local install, Codex hooks, ignored runtime files, and one-frame rendering.
-- Documented the first-run demo flow, hook bubble policy, hook log debugging, and known limitations.
-- Kept post-tool Codex hook bubbles in `Working` instead of premature review wording.
-
-## 0.1.1 - 2026-06-14
-
-License update.
-
-- Changed the project license from Apache-2.0 to MIT for simpler public reuse.
-- Updated package metadata and README badges to report the MIT license.
-- Previous `v0.1.0` release remains available under its original Apache-2.0 terms.
-
-## 0.1.0 - 2026-06-13
-
-Initial public release.
-
-- Added the `$pet-studio` Codex skill for generating and maintaining style-matched pet room kits.
-- Added layered Pet Studio kit generation, validation, preview rendering, and optional hatch-pet fallback baking.
-- Added the frameless Pet Studio widget runtime with draggable room entities, helper pets, speech bubbles, layout persistence, and registered project selection.
-- Added Codex event bridge commands plus a local installer for project-scoped `hooks.json` lifecycle integration that updates widget bubble state from Codex task activity.
-- Added the public Gakju archive room example and README screenshot.
-- Kept `project-room.json` and `project-room-*` runtime files as the v1 compatibility format while exposing Pet Studio naming in public commands.
+- Removed runtime `sys.modules` deletion from widget import preference logic.
