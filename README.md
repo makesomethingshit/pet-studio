@@ -1,8 +1,8 @@
 # Pet Studio
 
-[&#54620;&#44397;&#50612; README](README.ko.md)
+[한국어 README](README.ko.md)
 
-[![Version](https://img.shields.io/badge/version-0.4.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
 
@@ -72,6 +72,10 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * Script-driven room creation, asset guardrails, validation, preview sheets, and local QA packs
 * Auto-project-detection: widget infers project from current workspace directory
 * Korean CLI output (`--lang ko` / `PET_STUDIO_LANG=ko`)
+* **Room preset export/import** — save and share room presets as zip files
+* **Alba state manager** — `team_state.json` for project queues, event logs, employee tracking
+* **Hermes backend** — optional LLM-powered event classification via Hermes Agent
+* Status bar with alba status icon (🟢 active / ⚪ idle / 🔴 error)
 
 ## Still Experimental
 
@@ -80,8 +84,9 @@ Answer prompts to create a new project room. No need to remember CLI flags.
 * Codex skill integration is optional — widget works standalone without Codex.
 * Windows is the primary tested host.
 * Internal storage still uses some `project-room-*` v1 compatibility names.
+* Hermes backend requires Hermes Agent installed separately; falls back to script rules otherwise.
 
-Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, room preset export/import, helper pet AI.
+Not included today: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, helper pet AI, team self-improvement loop.
 
 ## Model
 
@@ -113,6 +118,43 @@ Full workflow: [docs/CREATE_ROOM.md](docs/CREATE_ROOM.md)
 
 The create command checks common asset mistakes before writing a kit: room sources must be `384x240`, props must be visible and fit inside the room canvas, helper packages must contain a valid hatch-pet atlas, and prop placement ids must match supplied props. Subjective style questions remain visual QA instead of automatic rejection.
 
+## Room Presets
+
+Export and import room presets as zip files:
+
+```powershell
+# Right-click the widget → Preset → Export preset
+# Right-click the widget → Preset → Import preset
+```
+
+Or via Python:
+
+```python
+from alba.preset import export_preset, import_preset
+from pathlib import Path
+
+export_preset(Path("runs/my-room"), Path("presets/my-room.zip"), "My Room")
+import_preset(Path("presets/my-room.zip"), Path("runs/my-room-imported"))
+```
+
+## Alba State Manager
+
+Pet Studio includes `alba`, a team orchestration layer that manages `team_state.json`:
+
+```python
+from alba.state import TeamState
+
+ts = TeamState()
+ts.alba_status = "active"
+ts.register_project("my-project", "My Project")
+ts.enqueue_project("my-project", {"task": "lint"})
+ts.log_event("my-project", {"type": "build", "status": "pass"})
+```
+
+Backends:
+- **ScriptBackend** — rule-based, no LLM (default)
+- **HermesBackend** — LLM-powered via Hermes Agent subprocess (optional)
+
 ## Korean CLI Output
 
 Default CLI output is English. For Korean failure/recovery messages, use `--lang ko` or `PET_STUDIO_LANG=ko`:
@@ -137,12 +179,13 @@ Use `--dry-run` to inspect state bridge payloads without writing `project-room-s
 
 The long-term vision is a local visual workroom for your projects. The current project stays intentionally smaller: one workspace, one tiny desktop room, and enough state to understand what's happening without staring at logs.
 
-Near-term follow-ups after `v0.4.1`:
+Completed in `v0.5.0`:
 
-* add more sample room themes and props
-* make room preset export/import boring and local
-* define the first script-only worker/state-manager loop before any LLM orchestration
-* keep decomposing widget code only where it removes real maintenance pain
+* room preset export/import as local zip files
+* script-only state manager (`alba/state.py`) with `team_state.json` schema
+* Hermes backend (`alba/backend/hermes.py`) — subprocess-based LLM event classification
+* alba status icon in widget status bar (🟢⚪🔴)
+* preset export/import from widget context menu
 
 Completed in `v0.4.0`:
 
@@ -168,13 +211,13 @@ Larger ideas remain roadmap, not current features:
 * Team Room and Project Hub UI
 * Task Cards and Meeting Table
 * endpoint aliases for local/cheap/SOTA/Codex roles
-* shareable room presets
+* shareable room presets (v0.5.0 — done)
 * state transition animations
 * helper pet behaviors
 * multi-project room gallery
 * lightweight room editor
 * macOS/Linux widget hosts
-* broader workroom concepts such as Team Rooms, Project Hubs, and task cards
+* team self-improvement loop (v0.6.0 target)
 
 Detailed roadmap: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
 

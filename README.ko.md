@@ -2,7 +2,7 @@
 
 [English README](README.md)
 
-[![Version](https://img.shields.io/badge/version-0.3.1-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **Codex 프로젝트마다 작은 데스크톱 방을 붙입니다.**
@@ -77,6 +77,10 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 - 원클릭 설치 (`install.cmd`)
 - 대화형 방 만들기 (`create_room_interactive.py`)
 - 프로젝트 자동 감지 (workspace 기반 추론)
+- **룸 프리셋 내보내기/가져오기** — zip 파일로 방 저장 및 공유
+- **알바 상태 관리자** — `team_state.json`으로 프로젝트 큐, 이벤트 로그 관리
+- **Hermes 백엔드** — Hermes Agent 연동 시 LLM 기반 이벤트 분류 (선택)
+- 상태바 알바 상태 아이콘 (🟢 활성 / ⚪ 비활성 / 🔴 오류)
 
 ## 아직 실험적인 부분
 
@@ -85,8 +89,9 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 - Codex 연동은 로컬 file/hook bridge이며 공식 Codex dashboard API가 아닙니다.
 - Windows가 주 테스트 환경입니다.
 - 내부 저장소에는 호환성을 위해 일부 `project-room-*` 파일명이 남아 있습니다.
+- Hermes 백엔드는 Hermes Agent 별도 설치 필요 (없으면 규칙 기반으로 폴백).
 
-현재 포함되지 않은 것: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior.
+현재 포함되지 않은 것: multi-room gallery, cloud sync, team dashboard, macOS/Linux widget host, full simulation/game behavior, 팀 자기 개선 루프.
 
 ## 방 만들기
 
@@ -110,6 +115,43 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 
 전체 흐름: [docs/CREATE_ROOM.md](docs/CREATE_ROOM.md)
 
+## 룸 프리셋
+
+zip 파일로 방을 내보내고 가져올 수 있습니다:
+
+```
+위젯 우클릭 → Preset → Export preset
+위젯 우클릭 → Preset → Import preset
+```
+
+Python으로도 가능:
+
+```python
+from alba.preset import export_preset, import_preset
+from pathlib import Path
+
+export_preset(Path("runs/my-room"), Path("presets/my-room.zip"), "내 방")
+import_preset(Path("presets/my-room.zip"), Path("runs/my-room-imported"))
+```
+
+## 알바 상태 관리자
+
+Pet Studio에는 `alba`라는 팀 오케스트레이션 레이어가 포함되어 있습니다:
+
+```python
+from alba.state import TeamState
+
+ts = TeamState()
+ts.alba_status = "active"
+ts.register_project("my-project", "내 프로젝트")
+ts.enqueue_project("my-project", {"task": "lint"})
+ts.log_event("my-project", {"type": "build", "status": "pass"})
+```
+
+백엔드:
+- **ScriptBackend** — 규칙 기반, LLM 없음 (기본)
+- **HermesBackend** — Hermes Agent 연동 LLM (선택)
+
 ## 한국어 CLI 출력
 
 기본 CLI 출력은 영어입니다. 사람이 읽는 실패/복구 안내만 한국어로 보고 싶으면 `--lang ko` 또는 `PET_STUDIO_LANG=ko`를 사용하세요.
@@ -118,11 +160,11 @@ hook 설치 후 Codex를 다시 시작하거나 `/hooks`를 열어 새 명령을
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id gakju-archive-demo --lang ko
 ```
 
-JSON key, error code, command flag, path, id는 번역하지 않습니다. 자동화가 깨지지 않도록 machine-readable 출력은 영어 구조를 유지합니다.
+JSON key, error code, command flag, path, id는 번역하지 않습니다.
 
-## 데모 상태 순회
+## 데모 상태 순환
 
-README GIF나 수동 QA를 찍을 때는 기존 state bridge를 쓰는 데모 cycler를 사용할 수 있습니다.
+README GIF나 수동 QA를 찍을 때:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 2
@@ -132,10 +174,20 @@ README GIF나 수동 QA를 찍을 때는 기존 state bridge를 쓰는 데모 cy
 
 ## 로드맵
 
-장기 방향은 모든 Codex workspace가 알아보기 쉬운 방, 상태, 분위기, companion behavior를 갖는 것입니다. 이는 현재 기능이 아니라 미래 방향입니다.
+장기 방향은 모든 Codex workspace가 알아보기 쉬운 방, 상태, 분위기를 갖는 것입니다.
+
+v0.5.0에서 완료:
+- 룸 프리셋 내보내기/가져오기 (zip)
+- 스크립트 전용 상태 관리자 (`alba/state.py`)
+- Hermes 백엔드 (`alba/backend/hermes.py`)
+- 상태바 알바 상태 아이콘
+- 컨텍스트 메뉴 프리셋 서브메뉴
+
+v0.6.0 목표:
+- 팀 오케스트레이션 UI
+- 팀 자기 개선 (Hermes memory/skill 참고)
 
 자세한 로드맵: [docs/PET_STUDIO_ROADMAP.md](docs/PET_STUDIO_ROADMAP.md)
-
 장기 Workroom 비전: [docs/PET_STUDIO_WORKROOM_VISION.ko.md](docs/PET_STUDIO_WORKROOM_VISION.ko.md)
 
 ## 문서
