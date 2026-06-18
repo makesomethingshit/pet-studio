@@ -801,9 +801,7 @@ class ProjectRoomWidget:
         cw = int(self.canvas.cget("width"))
         room_h = self._canvas_height
         sb_h = STATUS_BAR_HEIGHT
-        fg = {"error": "#f38ba8", "warn": "#f9e2af", "info": "#89b4fa"}.get(
-            self._toast_level, "#f38ba8"
-        )
+        fg = {"error": "#f38ba8", "warn": "#f9e2af", "info": "#89b4fa"}.get(self._toast_level, "#f38ba8")
         font_size = max(8, int(round(9 * self.scale)))
         text_item = self.canvas.create_text(
             cw // 2,
@@ -829,9 +827,7 @@ class ProjectRoomWidget:
         # Background (use toast bg color if toast is active)
         bg = STATUS_BAR_BG
         if self._toast_message and self._toast_level:
-            bg = {"error": "#4c1c24", "warn": "#4c4420", "info": "#1c2e4c"}.get(
-                self._toast_level, STATUS_BAR_BG
-            )
+            bg = {"error": "#4c1c24", "warn": "#4c4420", "info": "#1c2e4c"}.get(self._toast_level, STATUS_BAR_BG)
         rect = self.canvas.create_rectangle(0, room_h, cw, room_h + sb_h, fill=bg, outline="")
         self._status_bar_items.append(rect)
 
