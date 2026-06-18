@@ -644,7 +644,7 @@ class ProjectRoomWidget:
             ts_path = self.state_file.parent / "team_state.json" if self.state_file else None
             self._team_state = TeamState(ts_path) if ts_path else TeamState()
         except Exception:  # noqa: BLE001
-            logger.warning("TeamState init failed — roost features disabled")
+            self._toast_message = "TeamState init failed"
         self.demo_cycle_job_id: int | None = None
         self.index = 0
         self.drag_start: tuple[int, int] | None = None
@@ -656,6 +656,14 @@ class ProjectRoomWidget:
         self.bubble_items: list[int] = []
         self.topmost = bool(topmost)
         self._status_bar_items: list[int] = []
+        self._toast_items: list[int] = []
+        self._toast_job_id: int | None = None
+        self._toast_message: str | None = None
+        self._team_room_popup: tk.Toplevel | None = None
+
+        # Feedback when no project detected
+        if not self.project_id:
+            self._toast_message = "No project detected — right-click to register"
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
@@ -760,38 +768,93 @@ class ProjectRoomWidget:
             self.draw_entity(entity, self.index)
         self.draw_bubble()
         self._draw_status_bar()
+        self._render_toast()
+
+    def _clear_toast(self) -> None:
+        for item in self._toast_items:
+            self.canvas.delete(item)
+        self._toast_items.clear()
+        if self._toast_job_id is not None:
+            try:
+                self.root.after_cancel(self._toast_job_id)
+            except tk.TclError:
+                pass
+            self._toast_job_id = None
+        self._toast_message = None
+        self._toast_level = None
+
+    def show_toast(self, message: str, level: str = "error", duration_ms: int = 3000) -> None:
+        self._toast_message = message
+        self._toast_level = level
+        self._render_toast()
+        if self._toast_job_id is not None:
+            try:
+                self.root.after_cancel(self._toast_job_id)
+            except tk.TclError:
+                pass
+        self._toast_job_id = self.root.after(duration_ms, self._clear_toast)
+
+    def _render_toast(self) -> None:
+        self._clear_toast()
+        if not self._toast_message:
+            return
+        cw = int(self.canvas.cget("width"))
+        room_h = self._canvas_height
+        sb_h = STATUS_BAR_HEIGHT
+        fg = {"error": "#f38ba8", "warn": "#f9e2af", "info": "#89b4fa"}.get(
+            self._toast_level, "#f38ba8"
+        )
+        font_size = max(8, int(round(9 * self.scale)))
+        text_item = self.canvas.create_text(
+            cw // 2,
+            room_h + sb_h // 2,
+            text=self._toast_message,
+            fill=fg,
+            font=(STATUS_BAR_FONT, font_size, "bold"),
+            anchor=tk.CENTER,
+            tags=("toast",),
+        )
+        self._toast_items.append(text_item)
+        self.canvas.tag_raise(text_item)
 
     def _draw_status_bar(self) -> None:
         for item in self._status_bar_items:
             self.canvas.delete(item)
         self._status_bar_items.clear()
 
-        if not self.project_id:
-            return
-
         cw = int(self.canvas.cget("width"))
         sb_h = STATUS_BAR_HEIGHT
         room_h = self._canvas_height
 
-        # Background
-        rect = self.canvas.create_rectangle(0, room_h, cw, room_h + sb_h, fill=STATUS_BAR_BG, outline="")
+        # Background (use toast bg color if toast is active)
+        bg = STATUS_BAR_BG
+        if self._toast_message and self._toast_level:
+            bg = {"error": "#4c1c24", "warn": "#4c4420", "info": "#1c2e4c"}.get(
+                self._toast_level, STATUS_BAR_BG
+            )
+        rect = self.canvas.create_rectangle(0, room_h, cw, room_h + sb_h, fill=bg, outline="")
         self._status_bar_items.append(rect)
 
-        # Project name
-        name = self._project_display_name or self.project_id
-        font_size = max(8, int(round(9 * self.scale)))
-        name_item = self.canvas.create_text(
-            6,
-            room_h + sb_h // 2,
-            text=name,
-            fill=STATUS_BAR_FG,
-            font=(STATUS_BAR_FONT, font_size, "bold"),
-            anchor=tk.W,
-            tags=("statusbar",),
-        )
-        self._status_bar_items.append(name_item)
+        # Skip text when toast is active (toast renders in same area)
+        if self._toast_message:
+            return
 
-        # State label + roost icon
+        # Project name (only when project_id is set)
+        if self.project_id:
+            name = self._project_display_name or self.project_id
+            font_size = max(8, int(round(9 * self.scale)))
+            name_item = self.canvas.create_text(
+                6,
+                room_h + sb_h // 2,
+                text=name,
+                fill=STATUS_BAR_FG,
+                font=(STATUS_BAR_FONT, font_size, "bold"),
+                anchor=tk.W,
+                tags=("statusbar",),
+            )
+            self._status_bar_items.append(name_item)
+
+        # State label + roost icon (always visible)
         state_text = STATUS_LABELS.get(self.state, self.state)
         roost_icon = self._roost_status_icon()
         display = f"[{state_text}] {roost_icon}" if roost_icon else f"[{state_text}]"
@@ -827,7 +890,7 @@ class ProjectRoomWidget:
         x = int(round(owner.anchor["x"] * self.scale))
         y = int(round((owner.anchor["y"] - 116) * self.scale))
         margin = max(10, int(round(12 * self.scale)))
-        max_width = min(max(104, int(round(142 * self.scale))), max(80, canvas_width - margin * 2))
+        max_width = min(max(104, int(round(canvas_width * 0.8))), max(80, canvas_width - margin * 2))
         font_size = max(9, int(round(9.5 * self.scale)))
         text_item = self.canvas.create_text(
             x,
@@ -1212,10 +1275,16 @@ class ProjectRoomWidget:
             employees = self._team_state.get_employees()
             queue = self._team_state.get_roost_queue()
 
+            if self._team_room_popup is not None:
+                try:
+                    self._team_room_popup.destroy()
+                except tk.TclError:
+                    pass
             popup = tk.Toplevel(self.root)
             popup.title("Team Room")
             popup.resizable(False, False)
             popup.attributes("-topmost", True)
+            self._team_room_popup = popup
 
             frame = tk.Frame(padx=12, pady=8)
             frame.pack(fill="both", expand=True)
@@ -1280,7 +1349,7 @@ class ProjectRoomWidget:
             ry = self.root.winfo_rooty()
             popup.geometry(f"+{rx + 40}+{ry + 40}")
         except Exception:  # noqa: BLE001
-            logger.warning("Team Room popup failed")
+            self.show_toast("Team Room popup failed", level="error")
 
     def _resolve_approval(self, approval_id: str, approved: bool, popup: tk.Toplevel) -> None:
         if self._team_state is not None:
@@ -1308,7 +1377,7 @@ class ProjectRoomWidget:
             room_dir = self.kit_path.parent
             export_preset(room_dir, Path(out), self.project_id or "room")
         except Exception as e:
-            logger.warning("Export preset failed: %s", e)
+            self.show_toast(f"Export preset failed: {e}", level="error")
 
     def _import_preset_dialog(self) -> None:
         """Import a preset zip and reload the room."""
@@ -1326,12 +1395,16 @@ class ProjectRoomWidget:
             room_dir = self.kit_path.parent
             import_preset(Path(zf), room_dir, overwrite=True)
             self.kit = load_kit(self.kit_path)
+            # Reload layout from the imported layout.json
+            if self.layout_file and self.project_id:
+                self.layout = load_project_layout(self.layout_file, self.project_id)
             self.entities = scene_entities_from_kit(self.kit, self.layout)
             self.entities_by_id = {entity.id: entity for entity in self.entities}
             self.layer_assets = load_layer_assets(self.kit_dir, self.kit, self.warnings)
+            self.show_toast("Preset imported", level="info")
             self.redraw_scene()
         except Exception as e:
-            logger.warning("Import preset failed: %s", e)
+            self.show_toast(f"Import preset failed: {e}", level="error")
 
     def reset_layout(self) -> None:
         if not self.project_id or not self.layout_file:
