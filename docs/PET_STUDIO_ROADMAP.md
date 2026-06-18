@@ -34,40 +34,73 @@ Not yet built:
 
 **Theme**: Shared meeting space for Team Rooms. Fix all current Team Room UX issues.
 
-### Scope
+### Phase 1a: Team Room Quick Fixes (Toplevel 유지)
 
-| Feature | Description | Priority |
-|---|---|---|
-| **Project Hub** | Shared window where Team Rooms connect. Shows connected rooms, mission board, task cards. | P0 |
-| **Mission Input** | User types a goal. Hub auto-assigns to relevant Team Rooms based on their skills/roles. | P0 |
-| **Task Cards** | Visible work items (waiting/running/done). Not hidden in chat history. | P0 |
-| **Team Room UI Redesign** | Replace current Toplevel popup with proper panel. Fix all UX issues (see below). | P0 |
-| **Codex Packet Export** | Compact work packet prepared by Coordinator, ready for Codex execution. | P1 |
+1. **위치 계산 수정** — 팝업이 위젯 뒤에 가려짐 해결. topmost 제거, 위젯 우측 엣지에 앵커
+2. **접기/펴기 버튼** — 최소화 가능한 커스텀 프레임으로 변경
+3. **역할 뱃지 추가** — Staff 카드에 Scout/Coordinator/Lead 아이콘
+4. **큐 액션 버튼** — 각 큐 아이템에 할당/제거 버튼
 
-### Team Room UI — Issues to Fix
+**예상 시간**: 2-3h
 
-1. **Popup hidden behind widget** — topmost conflict + bad position calc. Fix: anchor to widget edge, no topmost on popup.
-2. **Window doesn't collapse/minimize** — Toplevel default frame. Fix: use custom frame or proper wm_attributes.
-3. **No role display** — Staff cards show name/status but not role (Scout/Coordinator/Lead). Fix: add role badge.
-4. **No visual design** — Plain tkinter widgets, no background/border/icons. Fix: styled cards, status colors, icons.
-5. **No interaction** — Can't click staff for details, can't drag queue items. Fix: clickable staff cards, queue actions.
-6. **Queue items lack actions** — Just text labels. Fix: add action buttons (assign, prioritize, remove).
+### Phase 1b: Team Room Canvas Panel (Phase 1a 완료 후)
+
+1. **Toplevel → Canvas 내장 패널** — slide-in 패널로 교체
+2. **시각 디자인** — 어두운 배경, 카드 구분선, 상태 색상
+3. **Staff 카드 인터랙션** — 클릭 → 상세 보기
+4. **큐 드래그** — 순서 변경
+
+**예상 시간**: 3-4h
+**리스크**: Canvas 패널 구현 난이도 높음 → Phase 1a 완료 후 필요성 재평가
+
+### Phase 2: Project Hub
+
+1. **Hub 창** — 일반 Toplevel (topmost 없음), 위젯과 별도 생명주기
+2. **트레이 메뉴** — "Open Project Hub" 추가
+3. **Mission Input** — 텍스트 입력 → 수동 할당 (자동 라우팅은 v0.8)
+4. **Task Cards** — Canvas 기반 카드, waiting/running/done 칼럼
+
+**예상 시간**: 5-7h
+
+### Phase 3: Codex Packet Export
+
+1. **Packet 구조** — mission, tasks, context, assigned_rooms
+2. **Export API** — `export_packet(team_state, project_id) → dict`
+3. **Save as JSON**
+
+**예상 시간**: 1-2h
+
+### Out of Scope for v0.7
+
+- 자동 라우팅 (v0.8로 이관)
+- Canvas 패널 고급 애니메이션
+- 다중 프로젝트 동시 Hub
 
 ### Definition of Done
 
-- [ ] Project Hub window opens from widget tray
-- [ ] Mission input accepts text and routes to Team Rooms
-- [ ] Task Cards show waiting/running/done states
-- [ ] Team Room panel replaces old popup (no more Toplevel)
-- [ ] Team Room panel is properly anchored to widget (not hidden behind)
-- [ ] Team Room panel can be collapsed/minimized
-- [ ] Staff cards show role badge (Scout/Coordinator/Lead)
-- [ ] Staff cards are clickable → detail view
-- [ ] Queue items have action buttons
-- [ ] Visual design applied (background, borders, status colors, icons)
-- [ ] Codex packet export produces a structured work packet
-- [ ] All existing tests pass + new features tested
+- [ ] 팝업 위치 계정 수정 (위젯 뒤에 가려짐 해결)
+- [ ] 팝업 접기/펴기 가능
+- [ ] Staff 카드에 역할 뱃지 (Scout/Coordinator/Lead)
+- [ ] 큐 아이템에 액션 버튼
+- [ ] (Phase 1b 진행 시) Canvas 패널로 교체
+- [ ] Project Hub 창 열기 (일반 창, topmost 없음)
+- [ ] Mission 입력 → 수동 할당
+- [ ] Task Cards 렌더링 (waiting/running/done)
+- [ ] Codex Packet Export (JSON)
+- [ ] 로직 단위 테스트 추가 (state, packet)
+- [ ] UI 수동 QA 완료
 - [ ] CI green (ruff check + format)
+
+### 예상 일정
+
+| Phase | 시간 |
+|---|---|
+| Phase 1a | 2-3h |
+| Phase 1b | 3-4h (조건부) |
+| Phase 2 | 5-7h |
+| Phase 3 | 1-2h |
+| 테스트 + QA | 2-3h |
+| **합계** | **13-19h (버퍼 20% 포함)** |
 
 ---
 
