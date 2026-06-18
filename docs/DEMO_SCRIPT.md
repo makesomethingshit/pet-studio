@@ -2,37 +2,27 @@
 
 Use this for a 10-15 second GitHub README GIF, release post, or X/Twitter clip.
 
-This is the current recommended demo path until a real GIF is checked into the README.
-
 ## Goal
 
 Show the idea in one sentence:
 
-> Every Codex project gets its own tiny desktop room.
+> Every project gets its own tiny desktop room with a pet team.
 
 ## 10-15 Second Shot List
 
 1. Start on the desktop with the Pet Studio widget closed.
 2. Run or double-click the launcher for the sample project room.
-3. The tiny room appears: background, desk props, main pet, and helper area.
-4. Trigger a Codex-style event: `Working...` or `Using shell...`.
+3. The tiny room appears: background, props, main pet, and speech bubble.
+4. Trigger a state change: `Working...` or `Using shell...`.
 5. The speech bubble changes while the room stays alive.
 6. Trigger `blocked`, `review`, or `done`.
-7. The room changes state and the helper pet appears for collaboration/problem-solving moments.
-8. End on the room with this caption:
+7. The room changes state; the helper pet appears for collaboration moments.
+8. Right-click → open Team Room Panel → show staff cards.
+9. End on the room with this caption:
 
 ```text
 Every project gets a room.
 ```
-
-## Release Capture Checklist
-
-- Use the included sample project room unless a cleaner generated room is available.
-- Keep private project names, paths, prompts, tokens, and chat content out of frame.
-- Capture a real state change, not only a static room.
-- Show one speech bubble update such as `Using shell...`.
-- Show one collaboration/problem-solving state such as `blocked` or `review`.
-- End on a readable final frame for at least two seconds.
 
 ## Suggested Commands
 
@@ -48,7 +38,7 @@ Cycle demo state changes from the widget context menu:
 Right-click the Pet Studio Widget → Cycle state
 ```
 
-The menu action runs the same 7-step demo cycle used by the CLI helper:
+The menu action runs the 7-step demo cycle:
 
 ```text
 idle
@@ -60,33 +50,19 @@ done / Done
 idle
 ```
 
-The CLI helper is still available for scripted capture:
+Scripted capture:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --delay-seconds 2
 ```
 
-The demo cycler reuses the normal state bridge and loops through:
-
-```text
-idle
-running / Working...
-waiting / Compacting context...
-blocked / Needs input
-review / Ready for review
-done / Done
-idle
-```
-
-For one pass during manual QA:
+Other options:
 
 ```powershell
+# One pass
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --once --delay-seconds 2
-```
 
-Preview the payloads without writing `project-room-state.json`:
-
-```powershell
+# Dry run (preview payloads)
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --dry-run
 ```
 
@@ -99,13 +75,14 @@ Real Codex `PreToolUse` hooks produce tool-specific wording such as `Using shell
 - Use one clear speech bubble at a time.
 - Keep the final frame on screen long enough to read.
 - If recording a terminal, keep it secondary. The room is the point.
+- Step 8 (Team Panel) is new in v0.6 — show staff cards if possible.
 
-## Optional Caption Copy
+## Optional Caption Text
 
 ```text
-Instead of watching logs, watch your Codex project room react.
+Instead of watching logs, watch your project room react.
 ```
 
 ```text
-Local-first agent dashboard. Tiny pet room energy.
+Local-first AI workroom. Tiny pet team energy.
 ```

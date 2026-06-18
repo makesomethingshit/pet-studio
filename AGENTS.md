@@ -20,6 +20,9 @@ claims. Those files have drifted before.
 | Install, launcher, widget behavior | `docs/INSTALL.md`, `pet-studio-widget/README.md` |
 | Codex hook or state bridge work | `docs/CODEX_INTEGRATION.md` |
 | Core/adapter boundary work | `docs/ARCHITECTURE.md`, `docs/ADAPTER_BOUNDARY.md` |
+| UX priorities and current state | `docs/UX_PRIORITIES.md` |
+| Demo / release capture | `docs/DEMO_SCRIPT.md` |
+| Long-term workroom vision | `docs/PET_STUDIO_WORKROOM_VISION.md` |
 | Room kit or asset work | `pet-studio-kit/SKILL.md` |
 
 Do not edit public docs from memory. Confirm against current files.
@@ -32,8 +35,10 @@ Do not edit public docs from memory. Confirm against current files.
   and widget imports.
 - Do not install Codex hooks unless the user explicitly asks.
 - Do not edit `.codex/config.toml` or `.codex/hooks.json` during ordinary work.
-- Do not add Team Room, Project Hub, hosted dashboard, cloud sync, or full
-  simulation behavior as current functionality.
+- Do not add Project Hub, hosted dashboard, cloud sync, or full simulation
+  behavior as current functionality.
+- Do not add real model backends (Ollama, llama.cpp, vLLM, remote API) without
+  a confirmed call site.
 - For orchestration work, Roost must work without an LLM. Script mode is the
   fallback; optional backends are adapters.
 
@@ -50,7 +55,9 @@ Do not edit public docs from memory. Confirm against current files.
 | `roost/state.py` | project queue and event state |
 | `roost/security.py` | per-project L0-L3 security checks |
 | `roost/preset.py` | room preset export/import |
-| `roost/backend/` | script and Hermes classifiers |
+| `roost/backend/__init__.py` | backend interface + registry |
+| `roost/backend/script.py` | deterministic script classifier |
+| `roost/backend/hermes.py` | optional Hermes subprocess adapter |
 
 ## Testing
 
@@ -58,8 +65,12 @@ Minimum checks after code or CLI changes:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id gakju-archive-demo --skip-hooks
-.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
-.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
+.\tools\pet_studio_python.cmd -m pytest roost/tests/ -q
+.\tools\pet_studio_python.cmd -m pytest pet-studio-widget/tests/ -q
+.\tools\pet_studio_python.cmd -m pytest pet-studio-kit/tests/ -q
+.\tools\pet_studio_python.cmd -m pytest pet_studio_core/tests/ -q
+ruff check roost/ pet-studio-widget/ pet-studio-kit/ tools/ pet_studio_core/
+ruff format --check roost/ pet-studio-widget/ pet-studio-kit/ tools/ pet_studio_core/
 git diff --check
 ```
 
