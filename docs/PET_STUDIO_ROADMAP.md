@@ -1,96 +1,176 @@
 # Pet Studio Roadmap
 
-Pet Studio should stay local-first and small: a desktop room that shows project
-state without becoming a hosted dashboard or a game.
+## Current State: v0.6.1
 
-## Current Product
-
-Shipped or present in the codebase:
+Shipped and working:
 
 - Windows desktop widget with layered room rendering
-- project registry, saved layout/window/session, and state bridge
-- workspace auto-detection, tray controls, status bar, project switching
+- Project registry, saved layout/window/session, state bridge
+- Workspace auto-detection, tray controls, status bar, project switching
 - Codex skill and optional Codex hook bridge
-- `pet_studio_core` for registry and state primitives
-- room creation, validation, previews, and QA packs
-- room preset export/import through `roost.preset`
-- Roost state manager with queues, event history, L0-L3 security levels
-- script and Hermes event classifiers
-- QA gate and CI checks
-- Team Room slide-in panel with approvals, staff status, and queue
-- approval queue with L2 ASK auto-enrollment
-- employee status tracking
+- `pet_studio_core` — registry and state primitives (Codex-independent)
+- Room creation, validation, previews, and QA packs
+- Room preset export/import (`roost.preset`)
+- Roost state manager — queues, event history, L0-L3 security
+- Script and Hermes event classifiers
+- Team Room slide-in panel with approvals, staff status, queue
+- Approval queue with L2 ASK auto-enrollment
+- Employee status tracking
+- QA gate and CI checks (ruff)
 
-Not current:
+Not yet built:
 
 - Project Hub UI
+- Mission input
 - Task Cards
-- endpoint registry UI
-- trust-score auto-approval
-- macOS/Linux widget hosts
-- hosted/cloud sync
-
-## Completed Line
-
-### 0.3.x - Boundary + Hygiene
-
-- split shared registry/state code into `pet_studio_core`
-- kept Core free of Codex, Tkinter, widget, launcher, and image-provider imports
-- preserved `project-room-*` compatibility
-- added installer, interactive room creator, auto project detection, QA gate, CI
-- cleaned stale debug and QA artifacts
-
-### 0.4.x - Widget App
-
-- room switching without manual `--project-id`
-- system tray and right-click project controls
-- status bar with current project/state
-- Codex skill install and optional hook bridge
-- removed speculative watcher/export/import/animation/helper-AI code until it had callers
-
-### 0.5.x - Roost Foundation
-
-- room preset export/import
-- script-only state manager with `team_state.json`
-- project queues and event logs
-- security levels L0 allow, L1 warn, L2 ask, L3 deny
-- context-aware script classification from event history
-- optional Hermes backend using the same `classify_event(event, context=None)` shape
-
-### 0.6 - Small Team Panel
-
-- compact Team Room panel opened on demand (right-click or `Ctrl+Shift+T`)
-- project queue counts and current staff status
-- approval queue view for security L2 actions with approve/reject buttons
-- employee status tracking (`get_employees`, `set_employee_status`)
-- L2 ASK actions auto-enqueue approval requests
-- manual/script routing first; LLM routing only after a real call site needs it
-
-## Next
-
-### 0.7 - Project Hub
-
-- Project Hub window
-- mission input
-- Task Cards with waiting/running/done states
-- Meeting Table summary
-- Codex packet draft/export
-
-### 0.8+ - Workroom Expansion
-
-- lightweight room editor
-- room theme packs
-- richer endpoint aliases
-- permission/trust review for imported skills
-- optional image provider integration
+- Endpoint registry UI
+- Trust-score auto-approval
+- Scout / Coordinator roles (only Lead exists)
 - macOS/Linux widget hosts
 
-## Non-Goals
+---
 
-- no top-down office simulation
-- no full game map, walking paths, or room navigation
-- no standalone hosted dashboard
-- no cloud sync or hosted team service
-- no private Codex pet runtime parity claims until behavior is confirmed
+## v0.7 — Project Hub + Team Room UI Redesign
 
-Longer-term concepts live in [PET_STUDIO_WORKROOM_VISION.md](PET_STUDIO_WORKROOM_VISION.md).
+**Theme**: Shared meeting space for Team Rooms. Fix all current Team Room UX issues.
+
+### Scope
+
+| Feature | Description | Priority |
+|---|---|---|
+| **Project Hub** | Shared window where Team Rooms connect. Shows connected rooms, mission board, task cards. | P0 |
+| **Mission Input** | User types a goal. Hub auto-assigns to relevant Team Rooms based on their skills/roles. | P0 |
+| **Task Cards** | Visible work items (waiting/running/done). Not hidden in chat history. | P0 |
+| **Team Room UI Redesign** | Replace current Toplevel popup with proper panel. Fix all UX issues (see below). | P0 |
+| **Codex Packet Export** | Compact work packet prepared by Coordinator, ready for Codex execution. | P1 |
+
+### Team Room UI — Issues to Fix
+
+1. **Popup hidden behind widget** — topmost conflict + bad position calc. Fix: anchor to widget edge, no topmost on popup.
+2. **Window doesn't collapse/minimize** — Toplevel default frame. Fix: use custom frame or proper wm_attributes.
+3. **No role display** — Staff cards show name/status but not role (Scout/Coordinator/Lead). Fix: add role badge.
+4. **No visual design** — Plain tkinter widgets, no background/border/icons. Fix: styled cards, status colors, icons.
+5. **No interaction** — Can't click staff for details, can't drag queue items. Fix: clickable staff cards, queue actions.
+6. **Queue items lack actions** — Just text labels. Fix: add action buttons (assign, prioritize, remove).
+
+### Definition of Done
+
+- [ ] Project Hub window opens from widget tray
+- [ ] Mission input accepts text and routes to Team Rooms
+- [ ] Task Cards show waiting/running/done states
+- [ ] Team Room panel replaces old popup (no more Toplevel)
+- [ ] Team Room panel is properly anchored to widget (not hidden behind)
+- [ ] Team Room panel can be collapsed/minimized
+- [ ] Staff cards show role badge (Scout/Coordinator/Lead)
+- [ ] Staff cards are clickable → detail view
+- [ ] Queue items have action buttons
+- [ ] Visual design applied (background, borders, status colors, icons)
+- [ ] Codex packet export produces a structured work packet
+- [ ] All existing tests pass + new features tested
+- [ ] CI green (ruff check + format)
+
+---
+
+## v0.8 — Token-Optimized Roles
+
+**Theme**: Scout/Coordinator roles to reduce token costs
+
+### Scope
+
+| Feature | Description | Priority |
+|---|---|---|
+| **Scout Role** | Low-cost worker for read-only tasks (file scan, log summary). Saves tokens. | P0 |
+| **Coordinator Role** | Mid-level worker that compresses Scout results and drafts packets. | P0 |
+| **Endpoint Registry UI** | Visual alias management (`local/fast`, `remote/sota`, `mock/scout`). | P1 |
+| **Trust Automation** | Auto-approve low-risk actions based on trust score. | P2 |
+
+### Definition of Done
+
+- [ ] Scout role handles read-only classification (replaces some Lead calls)
+- [ ] Coordinator role compresses and drafts (replaces some Lead calls)
+- [ ] Token usage reduced vs. Lead-only baseline (measurable)
+- [ ] Endpoint Registry UI shows aliases, allows add/remove
+- [ ] All existing tests pass + new features tested
+- [ ] CI green (ruff check + format)
+
+---
+
+## v0.9 — Integration & Polish
+
+**Theme**: Everything works together, docs caught up, performance measured
+
+### Scope
+
+- End-to-end integration testing (Hub → Mission → Task Cards → Roles → Codex Packet)
+- Token savings measured and documented (Scout/Coordinator vs. Lead-only baseline)
+- README, INSTALL, guides updated for all new features
+- Performance baseline established (startup time, memory, UI responsiveness)
+- Bug fixes and edge cases from v0.7 + v0.8
+
+### Definition of Done
+
+- [ ] All v0.7 and v0.8 features working together
+- [ ] End-to-end tests pass
+- [ ] Token savings measured and documented
+- [ ] README/INSTALL updated
+- [ ] Performance baseline recorded
+- [ ] CI green (ruff check + format)
+- [ ] No known critical bugs
+
+---
+
+## v1.0.0 — Stable Release
+
+**Theme**: Ship it. Public-ready.
+
+### Scope
+
+- All features from v0.7, v0.8, v0.9 integrated and stable
+- Documentation complete (README, INSTALL, VISION, ROADMAP, guides)
+- QA gate passed
+- Release notes written
+
+### Out of Scope for v1.0.0
+
+- Tool Broker / Permission Lease system
+- Room editor
+- Theme packs
+- macOS/Linux hosts
+- Cloud sync
+- Auto-execute from Codex by default
+- Separate Scout/Coordinator pets in UI (internal roles only)
+
+### Definition of Done
+
+- [ ] All features stable and tested
+- [ ] Documentation complete
+- [ ] QA gate passed
+- [ ] Release notes published
+- [ ] CI green (ruff check + format)
+
+---
+
+## Post-v1.0.0 (Concepts, Not Scheduled)
+
+- Tool Broker with Permission Leases
+- Room editor
+- Theme packs
+- macOS/Linux widget hosts
+- Community preset sharing
+- Trust-score auto-approval
+- Richer endpoint adapters (Ollama, llama.cpp, vLLM)
+
+---
+
+## Version History
+
+| Version | Focus |
+|---|---|
+| 0.3.x | Boundary + Hygiene — Core/Codex split, installers, QA gate |
+| 0.4.x | Widget App — room switching, tray, status bar, Codex skill |
+| 0.5.x | Roost Foundation — presets, state manager, security, backends |
+| 0.6.x | Team UI — Team Room panel, approvals, staff tracking, toast UX |
+| **0.7** | **Project Hub — Mission input, Task Cards, Codex packet export** |
+| **0.8** | **Token Roles — Scout, Coordinator, Endpoint Registry, trust** |
+| **0.9** | **Integration & Polish — e2e tests, token savings, docs** |
+| **1.0.0** | **Stable Release — all features integrated and tested** |

@@ -80,9 +80,11 @@ after a real call site needs them.
 
 | Version | Target |
 | --- | --- |
-| 0.6.0 | roost state, presets, security, script/Hermes classifiers, Team Room panel, approval queue |
+| 0.6.x | roost state, presets, security, script/Hermes classifiers, Team Room panel, approval queue *(shipped)* |
 | 0.7 | Project Hub, mission input, Task Cards, Codex packet export |
-| 0.8+ | richer endpoint aliases, trust automation, imported skill review |
+| 0.8 | Scout/Coordinator roles, Endpoint Registry UI, trust automation |
+| 0.9 | Integration testing, performance baseline, documentation polish |
+| 1.0.0 | Stable release — all features integrated, tested, and documented |
 
 ## Out Of Scope For Now
 

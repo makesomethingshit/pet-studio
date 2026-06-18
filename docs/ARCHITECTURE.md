@@ -1,67 +1,90 @@
 # Pet Studio Architecture
 
-Pet Studio is currently a local-first room kit generator plus a desktop widget host. The 0.3.0 architecture boundary keeps that behavior intact while making future Workroom features easier to add without turning Codex integration into the core product.
+Pet Studio is a local-first visual AI workroom: a desktop widget that shows AI team state at a glance, plus an orchestration layer that manages projects, tasks, and security.
 
 ## Layers
 
-### Pet Studio Core
+### pet_studio_core
 
-`pet_studio_core` owns shared, host-neutral primitives:
+Shared, host-neutral primitives:
 
-- project registry parsing and selection
-- workspace-to-project inference
-- widget state normalization
-- file-based state bridge payload writing
+- Project registry parsing and selection
+- Workspace-to-project inference
+- Widget state normalization
+- File-based state bridge payload writing
 
-Core must not import Codex hook code, Tkinter widget code, launcher scripts, image generation providers, or future Workroom orchestration.
+**Boundary**: Core must not import Codex hook code, Tkinter widget code, launcher scripts, image generation providers, or Workroom orchestration.
 
-### Widget Host
+### pet-studio-widget
 
-`pet-studio-widget` owns desktop runtime behavior:
+Desktop widget host:
 
 - Tkinter window lifecycle
-- canvas rendering and animation
-- saved layout, window, and session files
-- context menu and bubble presentation
+- Canvas rendering (room, pet, props, speech bubble)
+- Saved layout, window, and session files
+- Context menu and bubble presentation
+- Team Room slide-in panel (v0.6)
+- Toast notifications (v0.6)
+- Status bar (v0.6)
 
-Compatibility modules such as `project_room_registry.py` remain in this folder, but they should delegate shared behavior to `pet_studio_core`.
+### roost — Team Orchestration
+
+`roost/` is the orchestration layer:
+
+- `state.py` — TeamState: projects, queues, employees, approvals, event logs
+- `preset.py` — Room preset export/import (zip-based)
+- `security.py` — L0-L3 security levels per project
+- `backend/script.py` — Rule-based event classification (no LLM)
+- `backend/hermes.py` — Hermes subprocess adapter (optional LLM)
+
+**Boundary**: roost works without any LLM. Hermes backend is optional.
 
 ### Codex Adapter
 
-The Codex adapter owns Codex-specific event translation:
+Codex-specific event translation:
 
 - Codex hook payload fields
-- hook event to Pet Studio state mapping
-- hook logs
-- hook install and trust guidance
+- Hook event to Pet Studio state mapping
+- Hook install and trust guidance
 
-Codex is an adapter, not the core. Core should be usable by another adapter later without importing Codex-specific files.
+**Boundary**: Codex is an adapter, not the core. Core must be usable by another adapter without importing Codex-specific files.
 
-### Asset Forge
+### pet-studio-kit
 
-The current asset forge is the kit generator and guardrail toolchain in `pet-studio-kit/scripts`. In 0.3.0 this remains script-based. Future asset packs and prompt workflows should build on this boundary instead of moving image generation concerns into Core.
+Asset pipeline:
 
-### CLI Tools
+- Room creation scripts
+- Asset validation and guardrails
+- Preview and QA sheet generation
 
-`tools/` contains user-facing CLI commands for installation, room creation, QA, and Codex integration:
+### tools/
 
-- `tools/pet_studio_preflight.py` — preflight checks for a project room
-- `tools/pet_studio_create_room.py` — scripted room creation
-- `tools/create_room_interactive.py` — interactive room creation
-- `tools/pet_studio_codex_integration.py` — install Codex hooks
-- `tools/pet_studio_skill.py` — install Pet Studio skill
+User-facing CLI commands:
 
-**Boundary rule:** `tools/` scripts are thin wrappers. They must not contain core business logic — shared behavior belongs in `pet_studio_core/`. `tools/` may import from `pet_studio_core/` and `pet-studio-kit/scripts/` but not from `pet-studio-widget/` directly.
+- `pet_studio_preflight.py` — preflight checks
+- `pet_studio_create_room.py` — scripted room creation
+- `create_room_interactive.py` — interactive room creation
+- `install_pet_studio_codex_integration.py` — install Codex hooks
+- `install_pet_studio_skill.py` — install Pet Studio skill
 
-**Distinction from Asset Forge:** `pet-studio-kit/scripts/` generates and validates room art assets (PNGs, kits). `tools/` orchestrates user workflows (install, create, QA). Do not merge these concerns.
+**Boundary**: `tools/` scripts are thin wrappers. Shared behavior belongs in `pet_studio_core/` or `roost/`.
 
-### Future Workroom
+## Data Flow
 
-Team Room, Project Hub, endpoint registry, mission board, and orchestration concepts remain future layers. Team Room Panel (v0.6) is the first orchestration UI, implemented as a slide-in tkinter frame on the widget host. They should depend on Core contracts, not on Codex hook internals or the Tkinter widget host.
+```
+User Mission (text)
+    → Project Hub (v1.0.0)
+        → Task Cards (waiting/running/done)
+            → Team Rooms (assigned by role)
+                → Scout (read-only, cheap)
+                → Coordinator (compress, draft)
+                → Codex/Lead (final, expensive)
+                    → Codex Packet Export
+```
 
 ## Compatibility
 
-The v1 compatibility storage names stay unchanged:
+v1 storage names stay unchanged:
 
 - `project-room.json`
 - `project-room-projects.json`
@@ -70,5 +93,4 @@ The v1 compatibility storage names stay unchanged:
 - `project-room-layouts.json`
 - `project-room-window.json`
 - `project-room-session.json`
-
-Public commands also stay compatible. 0.3.0 is an internal boundary release, not a schema-breaking rename.
+- `team_state.json` (roost)

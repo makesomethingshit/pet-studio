@@ -1,14 +1,20 @@
-# Pet Studio Workroom Vision
-
-## Purpose
-
-Pet Studio started as a Codex-oriented hatch-pet desktop room widget. That foundation stays intact. The next direction is to gradually reframe it into a broader **local-first visual AI workroom**.
-
-Pet Studio should not become another coding agent. Its role is the **visual operating layer** around AI work.
+# Pet Studio Vision
 
 ## One-Line Vision
 
 > The user gives a goal. Pet teams organize the work, call each other when needed, use the right endpoints and skills, and prepare a compact packet for Codex.
+
+Pet Studio is a **local-first visual AI workroom** — not another coding agent, not a hosted dashboard. It is the visual operating layer around AI work.
+
+## Why Pet Studio Exists
+
+Too many AI tools, too many windows, too much context switching.
+
+- Model fatigue: GPT, Claude, Gemini, Codex, Hermes, OpenClaw, OpenCode...
+- Agent fatigue: terminal logs, chat diffs, code editors — all coder-centric
+- Token waste: running expensive models for simple tasks
+
+Pet Studio solves this by giving AI work a **visual room** — one window, one pet per team, status at a glance, no log reading required.
 
 ## Core Entities
 
@@ -21,47 +27,51 @@ Pet Studio should not become another coding agent. Its role is the **visual oper
 | **Task Card** | Decomposed unit of work, visible as a card, not hidden in chat. |
 | **Endpoint Registry** | Aliases (`local/fast`, `remote/sota`, `mock/scout`) hiding model details. |
 
-## Internal Roles
+## Internal Roles (Token Optimization)
 
-| Role | Intelligence | Responsibility |
+To avoid wasting tokens on expensive models for simple work:
+
+| Role | Cost | Responsibility |
 |---|---|---|
-| **Scout** | Low-cost (local/cheap model) | Read-only exploration, file scan, log summary. |
+| **Scout** | Low (local/cheap model) | Read-only exploration, file scan, log summary. |
 | **Coordinator** | Mid-level | Compress Scout results, draft packets, safe edits, synthesize. |
-| **Codex / Lead** | High-value (SOTA/Codex) | Final judgment, multi-file changes, implementation. |
+| **Codex / Lead** | High (SOTA/Codex) | Final judgment, multi-file changes, implementation. |
 
 Delegation flow: `Scout → Coordinator → Codex`, with reverse delegation allowed.
 
+This hierarchy exists to **save tokens**, not for architectural purity.
+
 ## Architecture Boundary
 
-See [`ARCHITECTURE.md`](ARCHITECTURE.md) for current layer structure.
+```
+pet_studio_core/       — shared primitives (registry, state, validation)
+pet-studio-widget/     — desktop widget host (Tkinter, canvas, rendering)
+roost/                 — team orchestration (state, security, presets, backends)
+pet-studio-kit/        — asset pipeline (room creation, validation, QA)
+tools/                 — CLI entry points (install, create, QA)
+```
 
 Key rule: **Core must not depend on Codex.** Codex is an adapter.
 
-See [`PET_STUDIO_ORCHESTRATION_PLAN.md`](PET_STUDIO_ORCHESTRATION_PLAN.md) for roost package design.
+## Security Model
 
-## Roadmap
+Per-project security levels:
 
-| Stage | Version | Focus |
-|---|---|---|
-| Foundation | 0.4.x | Widget app, state bridge, Core/Codex boundary split. |
-| Presets | 0.5.x | Local room preset export/import, script-only state manager. |
-| Team UI | 0.6 | Team Room panel, staff cards, task queue. *(current)* |
-| Workroom | 0.7 | Project Hub, Mission input, Task Cards, Codex packet export. |
-| Expansion | 0.8+ | Richer endpoints, room editor, multi-platform widget host. |
+| Level | Behavior |
+|---|---|
+| L0 Allow | Allow risky actions |
+| L1 Warn | Log risky actions, then allow (default) |
+| L2 Ask | Require user approval for risky actions |
+| L3 Deny | Block risky actions |
 
-## UX Priorities
+## What Pet Studio Is NOT
 
-See [`UX_PRIORITIES.md`](UX_PRIORITIES.md) for P0–P3 framework and current implementation.
+- Not a ChatGPT/Codex/Hermes replacement
+- Not a hosted dashboard or cloud service
+- Not a game or office simulation
+- Not a generic workflow graph
+- Not an image generator
 
-## Out of Scope (Early)
+## What Pet Studio IS
 
-- Full Hermes-like execution agent
-- Auto-execute from Codex by default
-- Separate Scout/Coordinator/Codex pets in UI
-- Generic node graph UI
-- External skills without trust review
-- Required image generation API
-
-## Final Definition
-
-> Pet Studio is a local-first visual AI workroom where reusable Team Rooms, each represented by a hatch-pet-derived pet and equipped with memory, skills, asset packs, endpoint preferences, and tool permissions, connect to Project Hubs, receive Missions, coordinate work through Scout / Coordinator / Codex roles, and produce compact Codex-ready work packets.
+> A local-first visual AI workroom where reusable Team Rooms, each represented by a hatch-pet-derived pet and equipped with memory, skills, asset packs, endpoint preferences, and tool permissions, connect to Project Hubs, receive Missions, coordinate work through Scout / Coordinator / Codex roles, and produce compact Codex-ready work packets.
