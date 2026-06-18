@@ -52,7 +52,16 @@ def show_team_room(widget) -> None:
         popup.attributes("-topmost", True)  # 위젯보다 위에 표시
         widget._team_room_panel = popup
 
-        frame = tk.Frame(padx=12, pady=8)
+        def close_team_room() -> None:
+            try:
+                popup.destroy()
+            finally:
+                if widget._team_room_panel is popup:
+                    widget._team_room_panel = None
+
+        popup.protocol("WM_DELETE_WINDOW", close_team_room)
+
+        frame = tk.Frame(popup, padx=12, pady=8)
         frame.pack(fill="both", expand=True)
 
         # --- Approvals ---
@@ -85,7 +94,7 @@ def show_team_room(widget) -> None:
         else:
             tk.Label(frame, text="  Queue empty", font=("Segoe UI", 8), fg="gray").pack(anchor="w")
 
-        tk.Button(frame, text="Close", command=popup.destroy).pack(pady=(6, 0))
+        tk.Button(frame, text="Close", command=close_team_room).pack(pady=(6, 0))
 
         # Position: anchor to widget right edge, keep on screen
         popup.update_idletasks()

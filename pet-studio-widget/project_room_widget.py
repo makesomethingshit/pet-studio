@@ -664,6 +664,7 @@ class ProjectRoomWidget:
         self._toast_job_id: int | None = None
         self._toast_message: str | None = None
         self._team_room_panel: tk.Toplevel | None = None
+        self._context_menu_open = False
 
         # Feedback when no project detected
         if not self.project_id:
@@ -1083,8 +1084,9 @@ class ProjectRoomWidget:
         self.root.after(self.state_refresh_ms, self.refresh_external_state)
 
     def refresh_topmost(self) -> None:
-        if self.topmost:
+        if self.topmost and not self._context_menu_open:
             apply_topmost(self.root, True)
+        if self.topmost:
             self.root.after(TOPMOST_REFRESH_MS, self.refresh_topmost)
 
     def show_context_menu(self, event: tk.Event) -> None:
@@ -1167,6 +1169,22 @@ class ProjectRoomWidget:
         menu.add_command(label="Hide bubble" if self.bubble_visible else "Show bubble", command=self.toggle_bubble)
         menu.add_separator()
         menu.add_command(label="Close", command=self.close)
+
+        def restore_topmost(_event: tk.Event | None = None) -> None:
+            if not self._context_menu_open:
+                return
+            self._context_menu_open = False
+            if self.topmost:
+                try:
+                    apply_topmost(self.root, True)
+                except tk.TclError:
+                    pass
+
+        if self.topmost:
+            self._context_menu_open = True
+            apply_topmost(self.root, False)
+            menu.bind("<Unmap>", restore_topmost)
+            menu.bind("<Destroy>", restore_topmost)
         try:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
