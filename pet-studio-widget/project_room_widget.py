@@ -77,6 +77,7 @@ from set_active_project import write_active_project  # noqa: E402
 
 # UI submodules
 from ui.preset_dialog import export_preset_dialog, import_preset_dialog  # noqa: E402
+from ui.project_hub import show_project_hub  # noqa: E402
 from ui.status_bar import draw_status_bar  # noqa: E402
 from ui.team_room_popup import add_team_room_menu  # noqa: E402
 
@@ -664,6 +665,7 @@ class ProjectRoomWidget:
         self._toast_job_id: int | None = None
         self._toast_message: str | None = None
         self._context_menu_open = False
+        self._hub_window: tk.Toplevel | None = None
 
         # Feedback when no project detected
         if not self.project_id:
@@ -1112,6 +1114,9 @@ class ProjectRoomWidget:
                     menu.add_cascade(label="Switch to", menu=switch_menu)
             except Exception:
                 pass
+
+        # Project Hub
+        menu.add_command(label="Project Hub", command=lambda: show_project_hub(self))
 
         add_team_room_menu(menu, self)
 
