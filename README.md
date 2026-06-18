@@ -3,7 +3,7 @@
 [Korean README](README.ko.md)
 
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![CI](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/codex-pet-studio-skill/actions/workflows/ci.yml)
+[![CI](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml)
 
 **Pet Studio** is a local Windows desktop widget that shows project status as a
 small pet room.
@@ -15,8 +15,8 @@ small pet room.
 Install and launch:
 
 ```powershell
-git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
-cd codex-pet-studio-skill
+git clone https://github.com/makesomethingshit/pet-studio.git
+cd pet-studio
 .\install.cmd
 ```
 
@@ -49,6 +49,8 @@ Create a room interactively:
 - Room creation, validation, preview sheets, and QA packs
 - Room preset export/import through `roost.preset`
 - Roost project queues, event logs, security levels, and script/Hermes classifiers
+- Team Room popup: approvals, staff status, queue
+- Error toast system: on-screen error/warn/info messages
 - Korean CLI repair hints via `--lang ko` or `PET_STUDIO_LANG=ko`
 
 Still experimental:
@@ -119,7 +121,7 @@ Security levels are per project: L0 allow, L1 warn, L2 ask, L3 deny.
 
 ### Team Room Panel
 
-Right-click the widget → "Team Room" or press `Ctrl+Shift+T` to open the slide-in panel.
+Right-click the widget → "Team Room" to open the popup.
 Shows pending approvals (with approve/reject buttons), staff status, and roost queue.
 
 ```python
