@@ -156,6 +156,32 @@ class TestPresetManager(unittest.TestCase):
         results = list_presets(Path(self.tmp))
         self.assertEqual(results, [])
 
+    def test_import_zip_slip_kit_blocked(self):
+        """Zip with path traversal inside kit/ should be rejected."""
+        out = self._preset_path()
+        export_preset(self.room_dir, out, "Legit")
+        import zipfile
+
+        malicious = Path(self.tmp) / "malicious.zip"
+        with zipfile.ZipFile(out, "r") as src, zipfile.ZipFile(malicious, "w") as dst:
+            for item in src.infolist():
+                dst.writestr(item, src.read(item.filename))
+            # kit/ prefix but traverses upward
+            dst.writestr("kit/../../etc/cron.d/evil", "* * * * * root pwned")
+        target = Path(self.tmp) / "zip-slip-target"
+        with self.assertRaises(PresetError) as ctx:
+            import_preset(malicious, target)
+        self.assertIn("Zip slip", str(ctx.exception))
+
+    def test_import_legit_kit_nested_subdir(self):
+        """Legitimate kit/ with nested subdirs should work fine."""
+        out = self._preset_path()
+        export_preset(self.room_dir, out, "Legit")
+        target = Path(self.tmp) / "legit-nested"
+        meta = import_preset(out, target)
+        self.assertEqual(meta["name"], "Legit")
+        self.assertTrue((target / "kit" / "project-room.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

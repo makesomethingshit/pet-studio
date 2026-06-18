@@ -222,8 +222,15 @@ class TeamState:
         requester: str = "system",
     ) -> str:
         """Add an approval request. Returns the approval ID."""
-        approval_id = str(uuid.uuid4())[:8]
         approvals = self._data.setdefault("approvals", [])
+        # Generate unique ID (check for collisions)
+        existing_ids = {a.get("id") for a in approvals}
+        for _ in range(10):
+            approval_id = str(uuid.uuid4())
+            if approval_id not in existing_ids:
+                break
+        else:
+            raise RuntimeError("Failed to generate unique approval ID after 10 attempts")
         approvals.append(
             {
                 "id": approval_id,

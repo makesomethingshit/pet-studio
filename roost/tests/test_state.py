@@ -147,6 +147,23 @@ class TestTeamState(unittest.TestCase):
         approvals = self.state._data["approvals"]
         self.assertEqual(len(approvals), 50)
 
+    def test_approval_id_is_full_uuid(self):
+        """Approval ID should be a full UUID (36 chars), not truncated."""
+        self.state.register_project("test-proj")
+        aid = self.state.add_approval_request("test-proj", "deploy")
+        self.assertEqual(len(aid), 36)
+        self.assertIn("-", aid)
+
+    def test_approval_ids_unique(self):
+        """Multiple approvals should never share the same ID."""
+        self.state.register_project("test-proj")
+        ids = set()
+        for i in range(20):
+            aid = self.state.add_approval_request("test-proj", f"action-{i}")
+            self.assertNotIn(aid, ids)
+            ids.add(aid)
+        self.assertEqual(len(ids), 20)
+
 
 if __name__ == "__main__":
     unittest.main()

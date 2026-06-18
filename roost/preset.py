@@ -129,10 +129,12 @@ def import_preset(
             # 2. Extract kit/
             for name in zf.namelist():
                 if name.startswith("kit/"):
-                    rel = name[len("kit/") :]
+                    rel = name[len("kit/"):]
                     if not rel:
                         continue
-                    dest = target_dir / "kit" / rel
+                    dest = (target_dir / "kit" / rel).resolve()
+                    if not dest.is_relative_to(target_dir.resolve()):
+                        raise PresetError(f"Zip slip detected: {name}")
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     if dest.exists() and not overwrite:
                         logger.debug("Skipping existing: %s", dest)
@@ -142,14 +144,18 @@ def import_preset(
 
             # 3. Extract layout.json
             if "layout.json" in zf.namelist():
-                dest = target_dir / "layout.json"
+                dest = (target_dir / "layout.json").resolve()
+                if not dest.is_relative_to(target_dir.resolve()):
+                    raise PresetError("Zip slip detected: layout.json")
                 if not dest.exists() or overwrite:
                     with zf.open("layout.json") as src, dest.open("wb") as dst:
                         shutil.copyfileobj(src, dst)
 
             # 4. Extract session.json
             if "session.json" in zf.namelist():
-                dest = target_dir / "session.json"
+                dest = (target_dir / "session.json").resolve()
+                if not dest.is_relative_to(target_dir.resolve()):
+                    raise PresetError("Zip slip detected: session.json")
                 if not dest.exists() or overwrite:
                     with zf.open("session.json") as src, dest.open("wb") as dst:
                         shutil.copyfileobj(src, dst)
