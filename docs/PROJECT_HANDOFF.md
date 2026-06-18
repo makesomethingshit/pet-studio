@@ -1,6 +1,6 @@
 # Pet Studio Maintainer Notes
 
-This repository is being prepared for the Pet Studio `v0.5.0` release.
+This repository is being prepared for the Pet Studio `v0.6.0` release.
 
 ## Public Positioning
 
@@ -55,13 +55,12 @@ Prefer the Pet Studio wrappers in docs and examples:
 Before pushing, run:
 
 ```powershell
-.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-kit\tests
-.\tools\pet_studio_python.cmd -m unittest discover -s pet-studio-widget\tests
-.\tools\pet_studio_python.cmd -m unittest discover -s pet_studio_core/tests
-.\tools\pet_studio_python.cmd -m unittest discover -s tools/tests -p "test_*.py"
-.\tools\pet_studio_python.cmd -m py_compile tools\pet_studio_create_room.py tools\pet_studio_preflight.py tools\pet_studio_create_qa_pack.py tools\install_pet_studio_skill.py tools\install_pet_studio_codex_integration.py pet-studio-kit\scripts\create_project_room_kit.py pet-studio-kit\scripts\validate_project_room_kit.py pet-studio-kit\scripts\bake_project_room_pet.py pet-studio-widget\pet_studio_widget.py pet-studio-widget\pet_studio_event_adapter.py pet-studio-widget\codex_pet_hook.py pet-studio-widget\project_room_scene.py
-.\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id gakju-archive-demo --skip-hooks
-.\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id gakju-archive-demo
+python -m pytest roost/tests/ -q
+python -m pytest pet-studio-widget/tests/ -q
+python -m pytest pet-studio-kit/tests/ -q
+python -m pytest pet_studio_core/tests/ -q
+ruff check roost/ pet-studio-widget/ pet-studio-kit/ tools/ pet_studio_core/
+ruff format --check roost/ pet-studio-widget/ pet-studio-kit/ tools/ pet_studio_core/
 git diff --check
 ```
 
