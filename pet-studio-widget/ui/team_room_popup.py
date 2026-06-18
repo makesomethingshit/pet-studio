@@ -40,9 +40,7 @@ def show_team_room_popup(widget) -> None:
                 row = tk.Frame(frame)
                 row.pack(fill="x", pady=1)
                 tk.Label(row, text=f"  {a['action']}", font=("Segoe UI", 8)).pack(side="left")
-                tk.Label(row, text=a["projectId"], font=("Segoe UI", 8), fg="gray").pack(
-                    side="left", padx=4
-                )
+                tk.Label(row, text=a["projectId"], font=("Segoe UI", 8), fg="gray").pack(side="left", padx=4)
                 tk.Button(
                     row,
                     text="Approve",
@@ -56,9 +54,7 @@ def show_team_room_popup(widget) -> None:
                     command=lambda aid=a["id"]: _resolve_approval(widget, aid, False, popup),
                 ).pack(side="right", padx=2)
         else:
-            tk.Label(frame, text="  No pending approvals", font=("Segoe UI", 8), fg="gray").pack(
-                anchor="w"
-            )
+            tk.Label(frame, text="  No pending approvals", font=("Segoe UI", 8), fg="gray").pack(anchor="w")
 
         tk.Frame(frame, height=1, bg="#ccc").pack(fill="x", pady=4)
 
@@ -71,25 +67,17 @@ def show_team_room_popup(widget) -> None:
                 row.pack(fill="x", pady=1)
                 color = status_colors.get(emp.get("status", "idle"), "#888")
                 tk.Label(row, text=f"  {emp['name']}", font=("Segoe UI", 8)).pack(side="left")
-                tk.Label(row, text=emp.get("status", "idle"), font=("Segoe UI", 8), fg=color).pack(
-                    side="right"
-                )
+                tk.Label(row, text=emp.get("status", "idle"), font=("Segoe UI", 8), fg=color).pack(side="right")
         else:
-            tk.Label(frame, text="  No staff assigned", font=("Segoe UI", 8), fg="gray").pack(
-                anchor="w"
-            )
+            tk.Label(frame, text="  No staff assigned", font=("Segoe UI", 8), fg="gray").pack(anchor="w")
 
         tk.Frame(frame, height=1, bg="#ccc").pack(fill="x", pady=4)
 
         # --- Queue ---
-        tk.Label(
-            frame, text=f"Queue ({len(queue)} items)", font=("Segoe UI", 9, "bold")
-        ).pack(anchor="w")
+        tk.Label(frame, text=f"Queue ({len(queue)} items)", font=("Segoe UI", 9, "bold")).pack(anchor="w")
         if queue:
             for item in queue[:3]:
-                tk.Label(
-                    frame, text=f"  {item.get('type', 'unknown')}", font=("Segoe UI", 8)
-                ).pack(anchor="w")
+                tk.Label(frame, text=f"  {item.get('type', 'unknown')}", font=("Segoe UI", 8)).pack(anchor="w")
             if len(queue) > 3:
                 tk.Label(
                     frame,

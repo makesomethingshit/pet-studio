@@ -51,9 +51,7 @@ def import_preset_dialog(widget) -> None:
     try:
         from roost.preset import import_preset
 
-        load_kit, load_layer_assets, load_project_layout, scene_entities_from_kit = (
-            _import_widget_helpers()
-        )
+        load_kit, load_layer_assets, load_project_layout, scene_entities_from_kit = _import_widget_helpers()
 
         presets_dir = Path.cwd() / "presets"
         zf = filedialog.askopenfilename(
