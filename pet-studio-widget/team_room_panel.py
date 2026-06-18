@@ -78,10 +78,10 @@ class TeamRoomPanel:
             pady=0,
         )
         self._panel.place(x=cw, y=2, width=PANEL_WIDTH, height=panel_height)
-        self._build_content()  # noqa: F841
+        self._build_content()
 
         # Animate
-        self._animate(cw, 0, True)
+        self._animate(cw, cw - PANEL_WIDTH, True)
 
     def _slide_out(self) -> None:
         if self._animating or self._panel is None:
@@ -146,7 +146,7 @@ class TeamRoomPanel:
             cursor="hand2",
         ).pack(side="right").bind("<Button-1>", lambda _e: self._slide_out())
 
-        sep(inner)
+        _sep(inner)
 
         # --- Approvals ---
         tk.Label(
@@ -172,7 +172,7 @@ class TeamRoomPanel:
                 bg="#1e1e2e",
             ).pack(anchor="w", pady=1)
 
-        sep(inner)
+        _sep(inner)
 
         # --- Staff ---
         tk.Label(
@@ -217,7 +217,7 @@ class TeamRoomPanel:
                 bg="#1e1e2e",
             ).pack(anchor="w", pady=1)
 
-        sep(inner)
+        _sep(inner)
 
         # --- Queue ---
         try:
@@ -280,7 +280,7 @@ class TeamRoomPanel:
             bg="#1e1e2e",
         ).pack(side="left", padx=2)
 
-        def resolve(apprv_id: str, approved: bool, r: row) -> None:  # noqa: ANN001
+        def resolve(apprv_id: str, approved: bool) -> None:
             try:
                 self._state.resolve_approval(apprv_id, approved)
             except Exception:  # noqa: BLE001
@@ -289,29 +289,29 @@ class TeamRoomPanel:
 
         tk.Button(
             row,
-            text="✓",
+            text="OK",
             font=("Segoe UI", 7),
             fg="#a6e3a1",
             bg="#313244",
             relief="flat",
             padx=2,
             pady=0,
-            command=lambda a=aid: resolve(a, True, row),
+            command=lambda a=aid: resolve(a, True),
         ).pack(side="right")
         tk.Button(
             row,
-            text="✗",
+            text="NO",
             font=("Segoe UI", 7),
             fg="#f38ba8",
             bg="#313244",
             relief="flat",
             padx=2,
             pady=0,
-            command=lambda a=aid: resolve(a, False, row),
+            command=lambda a=aid: resolve(a, False),
         ).pack(side="right", padx=1)
 
 
-def sep(parent: tk.Frame) -> tk.Frame:
+def _sep(parent: tk.Frame) -> tk.Frame:
     """Horizontal separator line."""
     line = tk.Frame(parent, height=1, bg="#313244")
     line.pack(fill="x", pady=3)

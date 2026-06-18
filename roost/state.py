@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -221,8 +222,6 @@ class TeamState:
         requester: str = "system",
     ) -> str:
         """Add an approval request. Returns the approval ID."""
-        import uuid
-
         approval_id = str(uuid.uuid4())[:8]
         approvals = self._data.setdefault("approvals", [])
         approvals.append(
