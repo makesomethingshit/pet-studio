@@ -78,7 +78,7 @@ from set_active_project import write_active_project  # noqa: E402
 # UI submodules
 from ui.preset_dialog import export_preset_dialog, import_preset_dialog  # noqa: E402
 from ui.status_bar import draw_status_bar  # noqa: E402
-from ui.team_room_popup import show_team_room_popup  # noqa: E402
+from ui.team_room_popup import show_team_room  # noqa: E402
 
 CHROMA = "#ff00ff"
 WINDOW_TITLE = "Pet Studio Widget"
@@ -663,7 +663,7 @@ class ProjectRoomWidget:
         self._toast_items: list[int] = []
         self._toast_job_id: int | None = None
         self._toast_message: str | None = None
-        self._team_room_popup: tk.Toplevel | None = None
+        self._team_room_panel: tk.Toplevel | None = None
 
         # Feedback when no project detected
         if not self.project_id:
@@ -1124,7 +1124,7 @@ class ProjectRoomWidget:
                     label += f" ({pending_count} approval{'s' if pending_count != 1 else ''} pending)"
                 elif queue_count:
                     label += f" ({queue_count} in queue)"
-                menu.add_command(label=label, command=self._show_team_room_popup)
+                menu.add_command(label=label, command=self._show_team_room)
                 menu.add_separator()
             except Exception:  # noqa: BLE001
                 pass
@@ -1172,14 +1172,26 @@ class ProjectRoomWidget:
         finally:
             menu.grab_release()
 
-    def _show_team_room_popup(self) -> None:
-        show_team_room_popup(self)
+    def _show_team_room(self) -> None:
+        show_team_room(self)
 
-    def _resolve_approval(self, approval_id: str, approved: bool, popup: tk.Toplevel) -> None:
+    def _on_close_team_room(self) -> None:
+        if self._team_room_panel is not None:
+            try:
+                self._team_room_panel.close()  # type: ignore[attr-defined]
+            except tk.TclError:
+                pass
+
+    def _resolve_approval(self, approval_id: str, approved: bool) -> None:
         if self._team_state is not None:
             self._team_state.resolve_approval(approval_id, approved)
-        popup.destroy()
-        show_team_room_popup(self)
+        if self._team_room_panel is not None:
+            try:
+                self._team_room_panel.destroy()
+            except tk.TclError:
+                pass
+            self._team_room_panel = None
+        show_team_room(self)
 
     def _export_preset_dialog(self) -> None:
         export_preset_dialog(self)
