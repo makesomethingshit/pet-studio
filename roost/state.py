@@ -53,12 +53,7 @@ class TeamState:
                 "context": {"history": [], "patterns": {}, "projectInsights": {}},
             },
             "projects": {},
-            "employees": {
-                "pool": [
-                    {"id": "emp-1", "name": "Codex", "status": "idle", "role": "worker"},
-                    {"id": "emp-2", "name": "Claude", "status": "idle", "role": "worker"},
-                ]
-            },
+            "employees": {"pool": []},
             "leads": {"pool": []},
             "trust": {},
             "approvals": [],
@@ -204,6 +199,20 @@ class TeamState:
     def get_employees(self) -> list[dict]:
         return self._data.get("employees", {}).get("pool", [])
 
+    def register_employee(
+        self,
+        employee_id: str,
+        name: str,
+        role: str = "worker",
+    ) -> bool:
+        """Register a new employee. Returns False if ID already exists."""
+        pool = self._data.setdefault("employees", {}).setdefault("pool", [])
+        if any(e.get("id") == employee_id for e in pool):
+            return False
+        pool.append({"id": employee_id, "name": name, "status": "idle", "role": role})
+        self.save()
+        return True
+
     def set_employee_status(self, employee_id: str, status: str) -> bool:
         pool = self._data.setdefault("employees", {}).setdefault("pool", [])
         for emp in pool:
@@ -222,15 +231,8 @@ class TeamState:
         requester: str = "system",
     ) -> str:
         """Add an approval request. Returns the approval ID."""
+        approval_id = str(uuid.uuid4())
         approvals = self._data.setdefault("approvals", [])
-        # Generate unique ID (check for collisions)
-        existing_ids = {a.get("id") for a in approvals}
-        for _ in range(10):
-            approval_id = str(uuid.uuid4())
-            if approval_id not in existing_ids:
-                break
-        else:
-            raise RuntimeError("Failed to generate unique approval ID after 10 attempts")
         approvals.append(
             {
                 "id": approval_id,

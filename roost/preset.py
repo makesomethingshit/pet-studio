@@ -129,7 +129,7 @@ def import_preset(
             # 2. Extract kit/
             for name in zf.namelist():
                 if name.startswith("kit/"):
-                    rel = name[len("kit/"):]
+                    rel = name[len("kit/") :]
                     if not rel:
                         continue
                     dest = (target_dir / "kit" / rel).resolve()

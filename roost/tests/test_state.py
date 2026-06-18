@@ -87,21 +87,33 @@ class TestTeamState(unittest.TestCase):
 
     # --- Employees ---
 
-    def test_default_employees(self):
+    def test_default_employees_empty(self):
         emps = self.state.get_employees()
-        self.assertEqual(len(emps), 2)
-        self.assertEqual(emps[0]["id"], "emp-1")
+        self.assertEqual(len(emps), 0)
+
+    def test_register_employee(self):
+        result = self.state.register_employee("emp-1", "Codex")
+        self.assertTrue(result)
+        emps = self.state.get_employees()
+        self.assertEqual(len(emps), 1)
         self.assertEqual(emps[0]["name"], "Codex")
+        self.assertEqual(emps[0]["status"], "idle")
+
+    def test_register_employee_duplicate(self):
+        self.state.register_employee("emp-1", "Codex")
+        result = self.state.register_employee("emp-1", "Duplicate")
+        self.assertFalse(result)
+        emps = self.state.get_employees()
+        self.assertEqual(len(emps), 1)
 
     def test_set_employee_status(self):
-        self.state.register_project("test-proj")
+        self.state.register_employee("emp-1", "Codex")
         result = self.state.set_employee_status("emp-1", "running")
         self.assertTrue(result)
         emps = self.state.get_employees()
         self.assertEqual(emps[0]["status"], "running")
 
     def test_set_employee_status_not_found(self):
-        self.state.register_project("test-proj")
         result = self.state.set_employee_status("emp-999", "running")
         self.assertFalse(result)
 

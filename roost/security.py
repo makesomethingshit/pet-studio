@@ -94,8 +94,11 @@ def check_security(
 
     # L2: risky actions (risk >= 2) require approval
     if level == SecurityLevel.ASK and risk >= 2:
-        # Auto-add to approval queue if TeamState supports it
-        _try_enqueue_approval(team_state, project_id, action)
+        # Auto-add to approval queue
+        try:
+            team_state.add_approval_request(project_id, action, requester="security")
+        except Exception:  # noqa: BLE001
+            logger.warning("Failed to enqueue approval for %s/%s", project_id, action)
         raise SecurityError(
             action=action,
             level=level,
@@ -110,18 +113,3 @@ def check_security(
         "level": level,
         "risk": risk,
     }
-
-
-def _try_enqueue_approval(team_state: Any, project_id: str, action: str) -> None:
-    """Attempt to add an approval request if TeamState supports it.
-
-    Gracefully no-ops if team_state is None or doesn't have add_approval_request.
-    """
-    if team_state is None:
-        return
-    try:
-        add_approval = getattr(team_state, "add_approval_request", None)
-        if add_approval:
-            add_approval(project_id, action, requester="security")
-    except Exception as e:  # noqa: BLE001
-        logger.warning("Failed to enqueue approval: %s", e)
