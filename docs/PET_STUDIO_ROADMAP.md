@@ -5,7 +5,7 @@ state without becoming a hosted dashboard or a game.
 
 ## Current Product
 
-Shipped or present in the current codebase:
+Shipped or present in the codebase:
 
 - Windows desktop widget with layered room rendering
 - project registry, saved layout/window/session, and state bridge
@@ -17,15 +17,16 @@ Shipped or present in the current codebase:
 - Roost state manager with queues, event history, L0-L3 security levels
 - script and Hermes event classifiers
 - QA gate and CI checks
+- Team Room slide-in panel with approvals, staff status, and queue
+- approval queue with L2 ASK auto-enrollment
+- employee status tracking
 
 Not current:
 
-- Team Room UI
 - Project Hub UI
 - Task Cards
 - endpoint registry UI
 - trust-score auto-approval
-- approval queue UI
 - macOS/Linux widget hosts
 - hosted/cloud sync
 
@@ -56,14 +57,16 @@ Not current:
 - context-aware script classification from event history
 - optional Hermes backend using the same `classify_event(event, context=None)` shape
 
-## Next
-
 ### 0.6 - Small Team Panel
 
-- compact Team Room panel opened on demand
+- compact Team Room panel opened on demand (right-click or `Ctrl+Shift+T`)
 - project queue counts and current staff status
-- approval queue view for security L2 actions
+- approval queue view for security L2 actions with approve/reject buttons
+- employee status tracking (`get_employees`, `set_employee_status`)
+- L2 ASK actions auto-enqueue approval requests
 - manual/script routing first; LLM routing only after a real call site needs it
+
+## Next
 
 ### 0.7 - Project Hub
 

@@ -34,3 +34,6 @@ Please include:
 - Codex integration is a local hook/file bridge, not an official Codex dashboard API.
 - Windows is the primary tested widget host.
 - Generated rooms and helper pets should be visually QA'd before publishing screenshots.
+- Preset imports are protected against Zip Slip attacks (path traversal blocked).
+- Approval queue uses full UUIDs to prevent ID collisions.
+- L2 ASK actions require explicit user approval through the Team Room panel.

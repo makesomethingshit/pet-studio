@@ -1,6 +1,6 @@
 # Pet Studio Orchestration Plan
 
-This is the near-term plan for turning the widget app plus Alba into a small
+This is the near-term plan for turning the widget app plus roost into a small
 local orchestration layer. It is a plan, not a promise that every item exists.
 
 ## Shape
@@ -8,21 +8,21 @@ local orchestration layer. It is a plan, not a promise that every item exists.
 ```text
 Pet Studio
   Project A
-    Alba shared state and local classifier
+    roost shared state and local classifier
     staff pool assignments
     selected lead endpoint
   Project B
-    same Alba instance
+    same roost instance
     different queue and assignments
 ```
 
-Alba is shared. Do not create one LLM or one state manager per project.
+roost is shared. Do not create one LLM or one state manager per project.
 
 ## Roles
 
 | Role | Instance | Backend | Job |
 | --- | --- | --- | --- |
-| Alba | shared | script first, optional local LLM/Hermes | queue, event, security, routing hints |
+| roost | shared | script first, optional local LLM/Hermes | queue, event, security, routing hints |
 | Staff | pooled | API or local adapter later | execute assigned project tasks |
 | Lead | per project | user-selected Codex/Claude/Cursor/etc. | final judgment and implementation |
 
@@ -80,8 +80,7 @@ after a real call site needs them.
 
 | Version | Target |
 | --- | --- |
-| 0.5.x | Alba state, presets, security, script/Hermes classifiers |
-| 0.6 | small Team panel, approval queue, staff status |
+| 0.6.0 | roost state, presets, security, script/Hermes classifiers, Team Room panel, approval queue |
 | 0.7 | Project Hub, mission input, Task Cards, Codex packet export |
 | 0.8+ | richer endpoint aliases, trust automation, imported skill review |
 

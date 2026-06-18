@@ -57,7 +57,7 @@ The current asset forge is the kit generator and guardrail toolchain in `pet-stu
 
 ### Future Workroom
 
-Team Room, Project Hub, endpoint registry, mission board, and orchestration concepts remain future layers. They should depend on Core contracts, not on Codex hook internals or the Tkinter widget host.
+Team Room, Project Hub, endpoint registry, mission board, and orchestration concepts remain future layers. Team Room Panel (v0.6) is the first orchestration UI, implemented as a slide-in tkinter frame on the widget host. They should depend on Core contracts, not on Codex hook internals or the Tkinter widget host.
 
 ## Compatibility
 

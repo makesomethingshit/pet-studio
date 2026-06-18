@@ -2,6 +2,30 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.6.0 - 2026-06-18
+
+### Added
+
+- Approval queue in `roost/state.py`: `add_approval_request()`, `resolve_approval()`, `get_pending_approvals()`.
+- Employee status tracking: `get_employees()`, `set_employee_status()`.
+- L2 ASK actions auto-enqueue approval requests via `_try_enqueue_approval()` in `roost/security.py`.
+- Team Room slide-in panel (`pet-studio-widget/team_room_panel.py`) with approvals, staff status, and queue.
+- `Ctrl+Shortcut+T` toggle for Team Room panel.
+- Default employee pool (Codex, Claude) in `team_state.json`.
+- Full UUID (36 chars) for approval IDs instead of truncated 8-char.
+- Zip Slip prevention in `import_preset()` — `is_relative_to()` check on all extracted paths.
+
+### Tests
+
+- 90 total tests: added `test_team_panel.py` (9 cases) + 3 new state tests.
+- Zip Slip blocking tests for kit/ paths.
+- UUID uniqueness and full-length tests.
+
+### Security
+
+- Zip Slip vulnerability fixed in preset import.
+- Approval IDs now use full UUID to prevent collisions.
+
 ## 0.5.0 - 2026-06-17
 
 ### Added

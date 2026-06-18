@@ -59,7 +59,7 @@ Still experimental:
 - Hermes classification requires Hermes Agent; script mode is the fallback.
 
 Not included: cloud sync, hosted dashboard, macOS/Linux widget host, full game
-simulation, Team Room UI, Project Hub UI, trust-score auto-approval.
+simulation, Project Hub UI, Task Cards, trust-score auto-approval.
 
 ## Create A Room
 
@@ -116,6 +116,21 @@ Backends:
 - `HermesBackend`: optional Hermes Agent subprocess
 
 Security levels are per project: L0 allow, L1 warn, L2 ask, L3 deny.
+
+### Team Room Panel
+
+Right-click the widget → "Team Room" or press `Ctrl+Shift+T` to open the slide-in panel.
+Shows pending approvals (with approve/reject buttons), staff status, and roost queue.
+
+```python
+from roost.state import TeamState
+
+state = TeamState()
+state.register_project("my-project", "My Project", security_level=2)
+# L2 actions auto-enqueue approval requests
+state.add_approval_request("my-project", "deploy")
+state.resolve_approval(approval_id, approved=True)
+```
 
 ## Demo State Cycler
 
