@@ -49,6 +49,7 @@ def show_team_room(widget) -> None:
         popup = tk.Toplevel(widget.root)
         popup.title("Team Room")
         popup.resizable(False, False)
+        popup.attributes("-topmost", True)  # 위젯보다 위에 표시
         widget._team_room_panel = popup
 
         frame = tk.Frame(padx=12, pady=8)
