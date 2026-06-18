@@ -24,6 +24,28 @@ STATUS_LABELS = {
     "done": "완료",
 }
 
+STATE_BG = {
+    "running": "#1a2e1a",
+    "done": "#1a2e1a",
+    "failed": "#2e1a1a",
+    "blocked": "#2e1a1a",
+    "review": "#2e2a1a",
+    "waiting": "#1a1e2e",
+    "handoff": "#1a1e2e",
+    "jumping": "#1a2e1a",
+}
+
+STATE_FG = {
+    "running": "#a6e3a1",
+    "done": "#a6e3a1",
+    "failed": "#f38ba8",
+    "blocked": "#f38ba8",
+    "review": "#f9e2af",
+    "waiting": "#89b4fa",
+    "handoff": "#89b4fa",
+    "jumping": "#a6e3a1",
+}
+
 TOAST_BG = {
     "error": "#4c1c24",
     "warn": "#4c4420",
@@ -57,6 +79,8 @@ def draw_status_bar(widget) -> None:
     bg = STATUS_BAR_BG
     if widget._toast_message and widget._toast_level:
         bg = TOAST_BG.get(widget._toast_level, STATUS_BAR_BG)
+    else:
+        bg = STATE_BG.get(widget.state, STATUS_BAR_BG)
     rect = widget.canvas.create_rectangle(0, room_h, cw, room_h + sb_h, fill=bg, outline="")
     widget._status_bar_items.append(rect)
 
@@ -68,11 +92,12 @@ def draw_status_bar(widget) -> None:
     if widget.project_id:
         name = widget._project_display_name or widget.project_id
         font_size = max(8, int(round(9 * widget.scale)))
+        fg = STATE_FG.get(widget.state, STATUS_BAR_FG)
         name_item = widget.canvas.create_text(
             6,
             room_h + sb_h // 2,
             text=name,
-            fill=STATUS_BAR_FG,
+            fill=fg,
             font=(STATUS_BAR_FONT, font_size, "bold"),
             anchor=tk.W,
             tags=("statusbar",),
@@ -84,11 +109,12 @@ def draw_status_bar(widget) -> None:
     roost_icon = _roost_status_icon(widget)
     display = f"[{state_text}] {roost_icon}" if roost_icon else f"[{state_text}]"
     font_size = max(8, int(round(9 * widget.scale)))
+    fg = STATE_FG.get(widget.state, STATUS_BAR_FG)
     state_item = widget.canvas.create_text(
         cw - 6,
         room_h + sb_h // 2,
         text=display,
-        fill=STATUS_BAR_FG,
+        fill=fg,
         font=(STATUS_BAR_FONT, font_size),
         anchor=tk.E,
         tags=("statusbar",),
