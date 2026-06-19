@@ -2,6 +2,32 @@
 
 All notable changes to Pet Studio are documented here.
 
+## 0.7.0 - 2026-06-19
+
+### Added
+
+- Project Hub Toplevel window (`ui/project_hub.py`) — project list, switching, mission input, task cards.
+- Task Cards tab — waiting/running/done columns with auto-sort from team_state queue.
+- Codex packet export (`roost/packet.py`) — team_state → codex packet v1 JSON with slug validation.
+- Mission input in Project Hub — per-project mission text saved to team_state.
+- State-aware status bar colors (green=running/done, red=failed/blocked, yellow=review, blue=waiting).
+- Toast/status bar separation — toast hides status bar text, restores on expiry.
+
+### Changed
+
+- Team Room panel — converted from slide-in Toplevel to right-click context menu submenu (`add_team_room_menu`).
+- `roost/state.py` — `list_projects()`, `set_project_mission()`, `get_project_mission()` added; `register_project()` now accepts `mission` field.
+
+### Fixed
+
+- Popup close reference leak (`_team_room_panel` not cleaned up) — replaced with menu-based approach.
+- Context menu topmost conflict — menu opens with topmost released, restores after close.
+- Export path escape vulnerability — `_safe_project_filename()` slug validation on project_id.
+
+### Tests
+
+- 201 total tests: 83 roost, 118 widget (unchanged, all green).
+
 ## 0.6.0 - 2026-06-18
 
 ### Added
