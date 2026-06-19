@@ -62,6 +62,13 @@ class TeamState:
                 "coordinator": "hermes",
                 "lead": "hermes",
             },
+            "skills": {
+                "file-scan": {"enabled": True, "endpoint": "local/fast"},
+                "log-summary": {"enabled": True, "endpoint": "local/fast"},
+                "draft-packet": {"enabled": True, "endpoint": "local/fast"},
+                "deploy": {"enabled": False, "endpoint": "remote/sota"},
+                "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
+            },
         }
 
     def save(self) -> None:
@@ -306,6 +313,49 @@ class TeamState:
         )
         role_backends[role] = backend
         self.save()
+
+    # --- Skills ---
+
+    _DEFAULT_SKILLS: dict[str, dict[str, Any]] = {
+        "file-scan": {"enabled": True, "endpoint": "local/fast"},
+        "log-summary": {"enabled": True, "endpoint": "local/fast"},
+        "draft-packet": {"enabled": True, "endpoint": "local/fast"},
+        "deploy": {"enabled": False, "endpoint": "remote/sota"},
+        "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
+    }
+
+    def _ensure_skills(self) -> dict[str, Any]:
+        """Ensure skills section exists with defaults."""
+        return self._data.setdefault("skills", dict(self._DEFAULT_SKILLS))
+
+    def list_skills(self) -> list[dict[str, Any]]:
+        """Return skills list with id, enabled, endpoint."""
+        skills = self._ensure_skills()
+        return [
+            {"id": sid, "enabled": s.get("enabled", False), "endpoint": s.get("endpoint", "")}
+            for sid, s in skills.items()
+        ]
+
+    def set_skill_enabled(self, skill_id: str, enabled: bool) -> None:
+        """Toggle skill on/off."""
+        skills = self._ensure_skills()
+        if skill_id in skills:
+            skills[skill_id]["enabled"] = enabled
+            self.save()
+
+    def get_skill_endpoint(self, skill_id: str) -> str:
+        """Get the endpoint assigned to a skill."""
+        skills = self._ensure_skills()
+        if skill_id in skills:
+            return skills[skill_id].get("endpoint", "")
+        return ""
+
+    def set_skill_endpoint(self, skill_id: str, endpoint: str) -> None:
+        """Assign endpoint to skill."""
+        skills = self._ensure_skills()
+        if skill_id in skills:
+            skills[skill_id]["endpoint"] = endpoint
+            self.save()
 
     # --- Approvals ---
 

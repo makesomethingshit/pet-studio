@@ -71,6 +71,10 @@ def show_project_hub(widget: Any) -> None:
     tasks_tab = tk.Frame(notebook, bg="#1e1e2e")
     notebook.add(tasks_tab, text="Tasks")
 
+    # Tab 3: Endpoints
+    endpoints_tab = tk.Frame(notebook, bg="#1e1e2e")
+    notebook.add(endpoints_tab, text="Endpoints")
+
     # --- Status bar ---
     status_frame = tk.Frame(hub, bg="#181825", height=28)
     status_frame.pack(fill=tk.X, side=tk.BOTTOM)
@@ -89,6 +93,9 @@ def show_project_hub(widget: Any) -> None:
 
     # ===== Tasks Tab =====
     _build_tasks_tab(tasks_tab, widget, status_label)
+
+    # ===== Endpoints Tab =====
+    _build_endpoints_tab(endpoints_tab, widget, hub, status_label)
 
     # --- Close handler ---
     def _on_close() -> None:
@@ -443,6 +450,205 @@ def _do_switch(widget: Any, project_id: str, hub: tk.Toplevel, status_label: tk.
         hub.after(500, lambda: _close_hub(widget, hub))
     except Exception as e:
         status_label.config(text=f"전환 실패: {e}")
+
+
+def _build_endpoints_tab(
+    tab: tk.Frame,
+    widget: Any,
+    hub: tk.Toplevel,
+    status_label: tk.Label,
+) -> None:
+    """Build the Endpoints tab with endpoint registry, role mapping, and skills."""
+    from roost.state import TeamState
+
+    team_state = widget._team_state if hasattr(widget, "_team_state") else TeamState()
+    endpoints_data = team_state._data.setdefault(
+        "endpoints",
+        {
+            "local/fast": {"backend": "script", "cost": "free"},
+            "remote/sota": {"backend": "hermes", "cost": "high"},
+        },
+    )
+
+    # --- Endpoint Registry ---
+    ep_label_frame = tk.LabelFrame(
+        tab,
+        text="Endpoint Registry",
+        fg="#cdd6f4",
+        bg="#1e1e2e",
+        font=("Segoe UI", 9, "bold"),
+    )
+    ep_label_frame.pack(fill=tk.X, padx=8, pady=(8, 4))
+
+    # Treeview for endpoints
+    columns = ("alias", "backend", "cost")
+    ep_tree = ttk.Treeview(ep_label_frame, columns=columns, show="headings", height=4)
+    ep_tree.heading("alias", text="Alias")
+    ep_tree.heading("backend", text="Backend")
+    ep_tree.heading("cost", text="Cost")
+    ep_tree.column("alias", width=140)
+    ep_tree.column("backend", width=100)
+    ep_tree.column("cost", width=60)
+    ep_tree.pack(fill=tk.X, padx=4, pady=4)
+
+    def _refresh_endpoints():
+        ep_tree.delete(*ep_tree.get_children())
+        for alias, info in endpoints_data.items():
+            ep_tree.insert("", tk.END, values=(alias, info.get("backend", ""), info.get("cost", "")))
+
+    _refresh_endpoints()
+
+    # Buttons
+    btn_frame = tk.Frame(ep_label_frame, bg="#1e1e2e")
+    btn_frame.pack(fill=tk.X, padx=4, pady=(0, 4))
+
+    def _test_endpoint():
+        sel = ep_tree.selection()
+        if not sel:
+            status_label.config(text="Endpoint를 선택하세요")
+            return
+        alias = ep_tree.item(sel[0])["values"][0]
+        backend_name = ep_tree.item(sel[0])["values"][1]
+        from roost.dispatcher import BackendRegistry
+
+        reg = BackendRegistry()
+        try:
+            cls = reg.get(backend_name)
+            inst = cls()
+            ok = inst.health_check()
+            status_label.config(text=f"[Test] {alias}: {'OK' if ok else 'FAIL'}")
+        except Exception as e:
+            status_label.config(text=f"[Test] {alias}: ERROR — {e}")
+
+    def _remove_endpoint():
+        sel = ep_tree.selection()
+        if not sel:
+            return
+        alias = ep_tree.item(sel[0])["values"][0]
+        if alias in endpoints_data:
+            del endpoints_data[alias]
+            team_state.save()
+            _refresh_endpoints()
+            status_label.config(text=f"삭제: {alias}")
+
+    tk.Button(btn_frame, text="+ Add", command=lambda: _add_endpoint_dialog()).pack(side=tk.LEFT, padx=(0, 4))
+    tk.Button(btn_frame, text="Test", command=_test_endpoint).pack(side=tk.LEFT, padx=(0, 4))
+    tk.Button(btn_frame, text="Remove", command=_remove_endpoint).pack(side=tk.LEFT)
+
+    def _add_endpoint_dialog():
+        dialog = tk.Toplevel(hub)
+        dialog.title("Add Endpoint")
+        dialog.geometry("300x160")
+        dialog.configure(bg="#1e1e2e")
+        dialog.resizable(False, False)
+
+        tk.Label(dialog, text="Alias:", fg="#cdd6f4", bg="#1e1e2e").pack(anchor=tk.W, padx=8, pady=(8, 0))
+        alias_entry = tk.Entry(dialog, bg="#313244", fg="#cdd6f4", insertbackground="#cdd6f4")
+        alias_entry.pack(fill=tk.X, padx=8, pady=4)
+
+        tk.Label(dialog, text="Backend:", fg="#cdd6f4", bg="#1e1e2e").pack(anchor=tk.W, padx=8)
+        backend_var = tk.StringVar(value="hermes")
+        backend_combo = ttk.Combobox(dialog, textvariable=backend_var, values=["script", "hermes"], state="readonly")
+        backend_combo.pack(fill=tk.X, padx=8, pady=4)
+
+        tk.Label(dialog, text="Cost:", fg="#cdd6f4", bg="#1e1e2e").pack(anchor=tk.W, padx=8)
+        cost_var = tk.StringVar(value="high")
+        cost_combo = ttk.Combobox(dialog, textvariable=cost_var, values=["free", "low", "high"], state="readonly")
+        cost_combo.pack(fill=tk.X, padx=8, pady=4)
+
+        def _save():
+            alias = alias_entry.get().strip()
+            if alias and alias not in endpoints_data:
+                endpoints_data[alias] = {"backend": backend_var.get(), "cost": cost_var.get()}
+                team_state.save()
+                _refresh_endpoints()
+                status_label.config(text=f"추가: {alias}")
+            dialog.destroy()
+
+        tk.Button(dialog, text="Save", command=_save).pack(pady=(4, 8))
+
+    # --- Role Mapping ---
+    role_frame = tk.LabelFrame(
+        tab,
+        text="Role Mapping",
+        fg="#cdd6f4",
+        bg="#1e1e2e",
+        font=("Segoe UI", 9, "bold"),
+    )
+    role_frame.pack(fill=tk.X, padx=8, pady=4)
+
+    role_backend_map = team_state._data.setdefault(
+        "role_backends",
+        {
+            "scout": "script",
+            "coordinator": "hermes",
+            "lead": "hermes",
+        },
+    )
+    all_ep_aliases = list(endpoints_data.keys())
+
+    for role_name, default_be in [("scout", "script"), ("coordinator", "hermes"), ("lead", "hermes")]:
+        row = tk.Frame(role_frame, bg="#1e1e2e")
+        row.pack(fill=tk.X, padx=4, pady=2)
+        tk.Label(row, text=f"{role_name.capitalize()}:", fg="#cdd6f4", bg="#1e1e2e", width=14, anchor=tk.W).pack(
+            side=tk.LEFT
+        )
+        var = tk.StringVar(value=role_backend_map.get(role_name, default_be))
+        cb = ttk.Combobox(row, textvariable=var, values=all_ep_aliases, state="readonly", width=20)
+        cb.pack(side=tk.LEFT, padx=(0, 4))
+
+        def _save_role(rn=role_name, v=var):
+            role_backend_map[rn] = v.get()
+            team_state.save()
+            status_label.config(text=f"Role 매핑 저장: {rn} → {v.get()}")
+
+        var.trace_add("write", lambda *a, f=_save_role: f())
+
+    # --- Skills ---
+    skills_frame = tk.LabelFrame(
+        tab,
+        text="Skills",
+        fg="#cdd6f4",
+        bg="#1e1e2e",
+        font=("Segoe UI", 9, "bold"),
+    )
+    skills_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
+
+    skills_data = team_state._data.setdefault(
+        "skills",
+        {
+            "file-scan": {"enabled": True, "endpoint": "local/fast"},
+            "log-summary": {"enabled": True, "endpoint": "local/fast"},
+            "draft-packet": {"enabled": True, "endpoint": "local/fast"},
+            "deploy": {"enabled": False, "endpoint": "remote/sota"},
+            "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
+        },
+    )
+
+    for skill_id, skill_info in skills_data.items():
+        row = tk.Frame(skills_frame, bg="#1e1e2e")
+        row.pack(fill=tk.X, padx=4, pady=1)
+        var = tk.BooleanVar(value=skill_info.get("enabled", False))
+
+        def _toggle(sid=skill_id, v=var):
+            skills_data[sid]["enabled"] = v.get()
+            team_state.save()
+            status_label.config(text=f"Skill {'ON' if v.get() else 'OFF'}: {sid}")
+
+        cb = tk.Checkbutton(
+            row,
+            text=skill_id,
+            variable=var,
+            command=_toggle,
+            fg="#cdd6f4",
+            bg="#1e1e2e",
+            selectcolor="#313244",
+            activeforeground="#cdd6f4",
+            activebackground="#1e1e2e",
+        )
+        cb.pack(side=tk.LEFT)
+        ep_str = skill_info.get("endpoint", "")
+        tk.Label(row, text=f"→ {ep_str}", fg="#6c7086", bg="#1e1e2e").pack(side=tk.RIGHT, padx=4)
 
 
 def _close_hub(widget: Any, hub: tk.Toplevel) -> None:
