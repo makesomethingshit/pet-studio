@@ -93,9 +93,9 @@ default_registry = BackendRegistry()
 
 # Default role → backend mapping
 _DEFAULT_ROLE_BACKENDS: dict[TaskRole, str] = {
-    TaskRole.SCOUT: "script",
-    TaskRole.COORDINATOR: "hermes",
-    TaskRole.LEAD: "hermes",
+    TaskRole.SCOUT: "local/fast",
+    TaskRole.COORDINATOR: "remote/sota",
+    TaskRole.LEAD: "remote/sota",
 }
 
 # Task type → security action mapping
@@ -120,8 +120,10 @@ def _resolve_backend_for_role(
 
     Reads from team_state.role_backends, falls back to defaults.
     """
-    role_backends: dict[str, str] = team_state._data.get("role_backends", {})
-    return role_backends.get(role.value, _DEFAULT_ROLE_BACKENDS[role])
+    role_target = team_state.get_role_backend(role.value)
+    if not role_target:
+        role_target = _DEFAULT_ROLE_BACKENDS[role]
+    return team_state.resolve_endpoint_backend(role_target)
 
 
 def dispatch(

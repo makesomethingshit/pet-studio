@@ -104,6 +104,19 @@ class TestDispatch(unittest.TestCase):
         self.assertIn("classification", result)
         self.assertEqual(result["classification"]["source"], "script")
 
+    def test_dispatch_resolves_endpoint_alias(self):
+        """Endpoint aliases should resolve before BackendRegistry lookup."""
+        self.state.set_role_backend("scout", "local/fast")
+        task = {"type": "scan", "project_id": "test-proj"}
+        result = dispatch(task, self.state, registry=self.registry)
+        self.assertEqual(result["classification"]["source"], "script")
+
+    def test_dispatch_unknown_endpoint_alias_raises(self):
+        self.state.set_role_backend("scout", "missing/alias")
+        task = {"type": "scan", "project_id": "test-proj"}
+        with self.assertRaises(ValueError):
+            dispatch(task, self.state, registry=self.registry)
+
     def test_dispatch_lead(self):
         """Lead task should use hermes backend (default)."""
         task = {"type": "implement", "project_id": "test-proj"}

@@ -1,10 +1,6 @@
 """Project Hub panel for Pet Studio Widget.
 
-Provides a Toplevel window with:
-- Project list + switching
-- Mission input
-- Task Cards (waiting/running/done columns)
-- Codex packet export
+Provides a Toplevel window with projects, tasks, team status, and endpoint settings.
 """
 
 from __future__ import annotations
@@ -31,9 +27,10 @@ def show_project_hub(widget: Any) -> None:
         else:
             return
 
+    is_workroom = bool(getattr(widget, "_workroom_mode", False))
     hub = tk.Toplevel(widget.root)
-    hub.title("Project Hub")
-    hub.geometry("560x480")
+    hub.title("Pet Studio Workroom" if is_workroom else "Project Hub")
+    hub.geometry("760x560" if is_workroom else "560x480")
     hub.resizable(True, True)
     hub.configure(bg="#1e1e2e")
 
@@ -45,7 +42,7 @@ def show_project_hub(widget: Any) -> None:
     header.pack_propagate(False)
     tk.Label(
         header,
-        text="Project Hub",
+        text="Pet Studio Workroom" if is_workroom else "Project Hub",
         fg="#cdd6f4",
         bg="#181825",
         font=("Segoe UI", 11, "bold"),
@@ -71,7 +68,11 @@ def show_project_hub(widget: Any) -> None:
     tasks_tab = tk.Frame(notebook, bg="#1e1e2e")
     notebook.add(tasks_tab, text="Tasks")
 
-    # Tab 3: Endpoints
+    # Tab 3: Team Room
+    team_tab = tk.Frame(notebook, bg="#1e1e2e")
+    notebook.add(team_tab, text="Team Room")
+
+    # Tab 4: Endpoints
     endpoints_tab = tk.Frame(notebook, bg="#1e1e2e")
     notebook.add(endpoints_tab, text="Endpoints")
 
@@ -94,6 +95,9 @@ def show_project_hub(widget: Any) -> None:
     # ===== Tasks Tab =====
     _build_tasks_tab(tasks_tab, widget, status_label)
 
+    # ===== Team Room Tab =====
+    _build_team_room_tab(team_tab, widget, status_label)
+
     # ===== Endpoints Tab =====
     _build_endpoints_tab(endpoints_tab, widget, hub, status_label)
 
@@ -101,6 +105,8 @@ def show_project_hub(widget: Any) -> None:
     def _on_close() -> None:
         widget._hub_window = None
         hub.destroy()
+        if is_workroom:
+            widget.root.destroy()
 
     hub.protocol("WM_DELETE_WINDOW", _on_close)
 
@@ -403,6 +409,110 @@ def _build_tasks_tab(
     parent.after(100, _refresh_tasks)
 
 
+def _build_team_room_tab(
+    parent: tk.Frame,
+    widget: Any,
+    status_label: tk.Label,
+) -> None:
+    toolbar = tk.Frame(parent, bg="#181825", height=28)
+    toolbar.pack(fill=tk.X, padx=4, pady=(4, 2))
+    toolbar.pack_propagate(False)
+
+    refresh_btn = tk.Label(
+        toolbar,
+        text="Refresh",
+        fg="#89b4fa",
+        bg="#181825",
+        font=("Segoe UI", 8, "underline"),
+        cursor="hand2",
+    )
+    refresh_btn.pack(side=tk.RIGHT, padx=8, pady=4)
+
+    columns_frame = tk.Frame(parent, bg="#1e1e2e")
+    columns_frame.pack(fill=tk.BOTH, expand=True, padx=4, pady=(2, 4))
+    for i in range(3):
+        columns_frame.columnconfigure(i, weight=1, uniform="team")
+    columns_frame.rowconfigure(0, weight=1)
+
+    panels: dict[str, tk.Listbox] = {}
+    for idx, title in enumerate(("Approvals", "Staff", "Queue")):
+        frame = tk.Frame(columns_frame, bg="#181825")
+        frame.grid(row=0, column=idx, sticky="nsew", padx=(0, 2))
+        tk.Label(
+            frame,
+            text=title,
+            fg="#cdd6f4",
+            bg="#181825",
+            font=("Segoe UI", 9, "bold"),
+        ).pack(anchor=tk.W, padx=8, pady=(4, 2))
+        box = tk.Listbox(
+            frame,
+            fg="#cdd6f4",
+            bg="#11111b",
+            selectbackground="#313244",
+            relief=tk.FLAT,
+            font=("Segoe UI", 8),
+            activestyle="none",
+        )
+        box.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
+        panels[title] = box
+
+    pending_ids: list[str] = []
+
+    def _refresh() -> None:
+        pending_ids.clear()
+        for box in panels.values():
+            box.delete(0, tk.END)
+        if widget._team_state is None:
+            status_label.config(text="TeamState unavailable")
+            return
+
+        pending = widget._team_state.get_pending_approvals()
+        employees = widget._team_state.get_employees()
+        queue = widget._team_state.get_roost_queue()
+
+        for item in pending[:20]:
+            pending_ids.append(item.get("id", ""))
+            project_id = item.get("projectId", "")
+            action = item.get("action", "?")
+            panels["Approvals"].insert(tk.END, f"{action} ({project_id})" if project_id else action)
+        if not pending:
+            panels["Approvals"].insert(tk.END, "No pending approvals")
+
+        for emp in employees:
+            name = emp.get("name", emp.get("id", "?"))
+            panels["Staff"].insert(tk.END, f"{name} [{emp.get('role', 'worker')}, {emp.get('status', 'idle')}]")
+        if not employees:
+            panels["Staff"].insert(tk.END, "No staff assigned")
+
+        for item in queue[:20]:
+            panels["Queue"].insert(tk.END, item.get("type", "unknown"))
+        if not queue:
+            panels["Queue"].insert(tk.END, "Queue empty")
+
+        status_label.config(text=f"Team Room loaded: {len(pending)} approvals")
+
+    def _resolve_selected(approved: bool) -> None:
+        if widget._team_state is None:
+            return
+        selection = panels["Approvals"].curselection()
+        if not selection:
+            return
+        idx = selection[0]
+        if idx >= len(pending_ids) or not pending_ids[idx]:
+            return
+        widget._team_state.resolve_approval(pending_ids[idx], approved)
+        _refresh()
+
+    buttons = tk.Frame(parent, bg="#1e1e2e")
+    buttons.pack(fill=tk.X, padx=4, pady=(0, 4))
+    tk.Button(buttons, text="Approve", command=lambda: _resolve_selected(True)).pack(side=tk.LEFT, padx=(0, 4))
+    tk.Button(buttons, text="Reject", command=lambda: _resolve_selected(False)).pack(side=tk.LEFT)
+
+    refresh_btn.bind("<Button-1>", lambda _event: _refresh())
+    parent.after(100, _refresh)
+
+
 def _get_projects(widget: Any) -> list[dict]:
     """Get project list from registry or team state."""
     projects: list[dict] = []
@@ -447,7 +557,8 @@ def _do_switch(widget: Any, project_id: str, hub: tk.Toplevel, status_label: tk.
     try:
         widget.switch_project(project_id)
         status_label.config(text=f"전환 완료: {project_id}")
-        hub.after(500, lambda: _close_hub(widget, hub))
+        if not getattr(widget, "_workroom_mode", False):
+            hub.after(500, lambda: _close_hub(widget, hub))
     except Exception as e:
         status_label.config(text=f"전환 실패: {e}")
 
@@ -461,14 +572,8 @@ def _build_endpoints_tab(
     """Build the Endpoints tab with endpoint registry, role mapping, and skills."""
     from roost.state import TeamState
 
-    team_state = widget._team_state if hasattr(widget, "_team_state") else TeamState()
-    endpoints_data = team_state._data.setdefault(
-        "endpoints",
-        {
-            "local/fast": {"backend": "script", "cost": "free"},
-            "remote/sota": {"backend": "hermes", "cost": "high"},
-        },
-    )
+    team_state = widget._team_state if getattr(widget, "_team_state", None) is not None else TeamState()
+    project_id = getattr(widget, "project_id", None)
 
     # --- Endpoint Registry ---
     ep_label_frame = tk.LabelFrame(
@@ -493,8 +598,8 @@ def _build_endpoints_tab(
 
     def _refresh_endpoints():
         ep_tree.delete(*ep_tree.get_children())
-        for alias, info in endpoints_data.items():
-            ep_tree.insert("", tk.END, values=(alias, info.get("backend", ""), info.get("cost", "")))
+        for info in team_state.list_endpoints():
+            ep_tree.insert("", tk.END, values=(info["alias"], info.get("backend", ""), info.get("cost", "")))
 
     _refresh_endpoints()
 
@@ -525,9 +630,12 @@ def _build_endpoints_tab(
         if not sel:
             return
         alias = ep_tree.item(sel[0])["values"][0]
-        if alias in endpoints_data:
-            del endpoints_data[alias]
-            team_state.save()
+        try:
+            removed = team_state.remove_endpoint(project_id, alias)
+        except Exception as e:
+            status_label.config(text=f"Endpoint 삭제 실패: {e}")
+            return
+        if removed:
             _refresh_endpoints()
             status_label.config(text=f"삭제: {alias}")
 
@@ -558,12 +666,14 @@ def _build_endpoints_tab(
 
         def _save():
             alias = alias_entry.get().strip()
-            if alias and alias not in endpoints_data:
-                endpoints_data[alias] = {"backend": backend_var.get(), "cost": cost_var.get()}
-                team_state.save()
-                _refresh_endpoints()
-                status_label.config(text=f"추가: {alias}")
-            dialog.destroy()
+            try:
+                if alias:
+                    team_state.set_endpoint(project_id, alias, backend_var.get(), cost_var.get())
+                    _refresh_endpoints()
+                    status_label.config(text=f"추가: {alias}")
+                dialog.destroy()
+            except Exception as e:
+                status_label.config(text=f"Endpoint 추가 실패: {e}")
 
         tk.Button(dialog, text="Save", command=_save).pack(pady=(4, 8))
 
@@ -577,30 +687,24 @@ def _build_endpoints_tab(
     )
     role_frame.pack(fill=tk.X, padx=8, pady=4)
 
-    role_backend_map = team_state._data.setdefault(
-        "role_backends",
-        {
-            "scout": "script",
-            "coordinator": "hermes",
-            "lead": "hermes",
-        },
-    )
-    all_ep_aliases = list(endpoints_data.keys())
+    all_ep_aliases = [info["alias"] for info in team_state.list_endpoints()]
 
-    for role_name, default_be in [("scout", "script"), ("coordinator", "hermes"), ("lead", "hermes")]:
+    for role_name, default_be in [("scout", "local/fast"), ("coordinator", "remote/sota"), ("lead", "remote/sota")]:
         row = tk.Frame(role_frame, bg="#1e1e2e")
         row.pack(fill=tk.X, padx=4, pady=2)
         tk.Label(row, text=f"{role_name.capitalize()}:", fg="#cdd6f4", bg="#1e1e2e", width=14, anchor=tk.W).pack(
             side=tk.LEFT
         )
-        var = tk.StringVar(value=role_backend_map.get(role_name, default_be))
+        var = tk.StringVar(value=team_state.get_role_backend(role_name) or default_be)
         cb = ttk.Combobox(row, textvariable=var, values=all_ep_aliases, state="readonly", width=20)
         cb.pack(side=tk.LEFT, padx=(0, 4))
 
         def _save_role(rn=role_name, v=var):
-            role_backend_map[rn] = v.get()
-            team_state.save()
-            status_label.config(text=f"Role 매핑 저장: {rn} → {v.get()}")
+            try:
+                team_state.set_role_backend(rn, v.get(), project_id=project_id)
+                status_label.config(text=f"Role 매핑 저장: {rn} → {v.get()}")
+            except Exception as e:
+                status_label.config(text=f"Role 저장 실패: {e}")
 
         var.trace_add("write", lambda *a, f=_save_role: f())
 
@@ -614,26 +718,18 @@ def _build_endpoints_tab(
     )
     skills_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=4)
 
-    skills_data = team_state._data.setdefault(
-        "skills",
-        {
-            "file-scan": {"enabled": True, "endpoint": "local/fast"},
-            "log-summary": {"enabled": True, "endpoint": "local/fast"},
-            "draft-packet": {"enabled": True, "endpoint": "local/fast"},
-            "deploy": {"enabled": False, "endpoint": "remote/sota"},
-            "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
-        },
-    )
-
-    for skill_id, skill_info in skills_data.items():
+    for skill_info in team_state.list_skills():
+        skill_id = skill_info["id"]
         row = tk.Frame(skills_frame, bg="#1e1e2e")
         row.pack(fill=tk.X, padx=4, pady=1)
         var = tk.BooleanVar(value=skill_info.get("enabled", False))
 
         def _toggle(sid=skill_id, v=var):
-            skills_data[sid]["enabled"] = v.get()
-            team_state.save()
-            status_label.config(text=f"Skill {'ON' if v.get() else 'OFF'}: {sid}")
+            try:
+                team_state.set_skill_enabled(sid, v.get(), project_id=project_id)
+                status_label.config(text=f"Skill {'ON' if v.get() else 'OFF'}: {sid}")
+            except Exception as e:
+                status_label.config(text=f"Skill 저장 실패: {e}")
 
         cb = tk.Checkbutton(
             row,

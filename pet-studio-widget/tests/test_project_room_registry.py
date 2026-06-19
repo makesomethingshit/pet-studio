@@ -777,7 +777,8 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("pet_studio_widget.py", text)
         self.assertIn("start-process", ps1_text)
         self.assertIn("-windowstyle hidden", ps1_text)
-        self.assertIn("focus-petstudiowidget", ps1_text)
+        self.assertIn("focus-petstudiowindow", ps1_text)
+        self.assertIn("pet studio workroom", ps1_text)
         self.assertIn("findwindow", ps1_text)
         self.assertIn("setforegroundwindow", ps1_text)
         self.assertIn("project-room-widget.log", ps1_text)
@@ -847,6 +848,18 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("stdout=log_handle", text)
         self.assertIn("stderr=log_handle", text)
         self.assertNotIn("stderr=subprocess.DEVNULL", text)
+        self.assertNotIn("Install Hook", text)
+        self.assertNotIn("install_pet_studio_codex_integration", text)
+        self.assertNotIn("add_team_room_menu", text)
+        self.assertIn('"--workroom"', text)
+        self.assertIn("WORKROOM_TITLE", text)
+
+    def test_project_hub_owns_team_room_view(self) -> None:
+        text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
+
+        self.assertIn('notebook.add(team_tab, text="Team Room")', text)
+        self.assertIn("def _build_team_room_tab(", text)
+        self.assertIn("Pet Studio Workroom", text)
 
     def test_entity_hit_testing_ignores_transparent_image_pixels(self) -> None:
         import project_room_widget

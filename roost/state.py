@@ -25,6 +25,23 @@ def utc_now() -> str:
 class TeamState:
     """Read/write team_state.json with validation."""
 
+    _DEFAULT_ENDPOINTS: dict[str, dict[str, str]] = {
+        "local/fast": {"backend": "script", "cost": "free"},
+        "remote/sota": {"backend": "hermes", "cost": "high"},
+    }
+    _DEFAULT_ROLE_BACKENDS: dict[str, str] = {
+        "scout": "local/fast",
+        "coordinator": "remote/sota",
+        "lead": "remote/sota",
+    }
+    _DEFAULT_SKILLS: dict[str, dict[str, Any]] = {
+        "file-scan": {"enabled": True, "endpoint": "local/fast"},
+        "log-summary": {"enabled": True, "endpoint": "local/fast"},
+        "draft-packet": {"enabled": True, "endpoint": "local/fast"},
+        "deploy": {"enabled": False, "endpoint": "remote/sota"},
+        "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
+    }
+
     def __init__(self, state_file: str | Path | None = None):
         self.state_file = Path(state_file) if state_file else DEFAULT_STATE_FILE
         self._data: dict[str, Any] = {}
@@ -57,24 +74,26 @@ class TeamState:
             "leads": {"pool": []},
             "trust": {},
             "approvals": [],
-            "role_backends": {
-                "scout": "script",
-                "coordinator": "hermes",
-                "lead": "hermes",
-            },
-            "skills": {
-                "file-scan": {"enabled": True, "endpoint": "local/fast"},
-                "log-summary": {"enabled": True, "endpoint": "local/fast"},
-                "draft-packet": {"enabled": True, "endpoint": "local/fast"},
-                "deploy": {"enabled": False, "endpoint": "remote/sota"},
-                "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
-            },
+            "endpoints": self._copy_default_map(self._DEFAULT_ENDPOINTS),
+            "role_backends": dict(self._DEFAULT_ROLE_BACKENDS),
+            "skills": self._copy_default_map(self._DEFAULT_SKILLS),
         }
 
     def save(self) -> None:
         self._data["updatedAt"] = utc_now()
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state_file.write_text(json.dumps(self._data, indent=2, ensure_ascii=False), encoding="utf-8")
+
+    @staticmethod
+    def _copy_default_map(defaults: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        return {key: dict(value) for key, value in defaults.items()}
+
+    def _check_reconfigure(self, project_id: str | None) -> None:
+        if not project_id:
+            return
+        from roost.security import check_security
+
+        check_security(project_id, "team.reconfigure", self)
 
     # --- Roost ---
 
@@ -275,6 +294,38 @@ class TeamState:
         pool = self._data.get("employees", {}).get("pool", [])
         return [e for e in pool if e.get("role") == role]
 
+    # --- Endpoints ---
+
+    def _ensure_endpoints(self) -> dict[str, dict[str, Any]]:
+        return self._data.setdefault("endpoints", self._copy_default_map(self._DEFAULT_ENDPOINTS))
+
+    def list_endpoints(self) -> list[dict[str, Any]]:
+        endpoints = self._ensure_endpoints()
+        return [
+            {"alias": alias, "backend": info.get("backend", ""), "cost": info.get("cost", "")}
+            for alias, info in endpoints.items()
+        ]
+
+    def set_endpoint(self, project_id: str | None, alias: str, backend: str, cost: str) -> None:
+        self._check_reconfigure(project_id)
+        self._ensure_endpoints()[alias] = {"backend": backend, "cost": cost}
+        self.save()
+
+    def remove_endpoint(self, project_id: str | None, alias: str) -> bool:
+        self._check_reconfigure(project_id)
+        endpoints = self._ensure_endpoints()
+        if alias not in endpoints:
+            return False
+        del endpoints[alias]
+        self.save()
+        return True
+
+    def resolve_endpoint_backend(self, alias_or_backend: str) -> str:
+        endpoints = self._ensure_endpoints()
+        if alias_or_backend in endpoints:
+            return endpoints[alias_or_backend].get("backend", alias_or_backend)
+        return alias_or_backend
+
     # --- Role Backends (chosen lead agent) ---
 
     def get_role_backend(self, role: str) -> str:
@@ -284,49 +335,29 @@ class TeamState:
             role: One of "scout", "coordinator", "lead".
 
         Returns:
-            Backend name string (e.g. "script", "hermes").
+            Endpoint alias or backend name string.
         """
-        role_backends = self._data.setdefault(
-            "role_backends",
-            {
-                "scout": "script",
-                "coordinator": "hermes",
-                "lead": "hermes",
-            },
-        )
-        return role_backends.get(role, "hermes")
+        role_backends = self._data.setdefault("role_backends", dict(self._DEFAULT_ROLE_BACKENDS))
+        return role_backends.get(role, self._DEFAULT_ROLE_BACKENDS.get(role, "remote/sota"))
 
-    def set_role_backend(self, role: str, backend: str) -> None:
+    def set_role_backend(self, role: str, backend: str, project_id: str | None = None) -> None:
         """Set the backend for a role (called by Phase 2 UI).
 
         Args:
             role: One of "scout", "coordinator", "lead".
-            backend: Backend name (e.g. "script", "hermes", "codex").
+            backend: Endpoint alias or backend name.
+            project_id: Optional project id for L0-L3 security checks.
         """
-        role_backends = self._data.setdefault(
-            "role_backends",
-            {
-                "scout": "script",
-                "coordinator": "hermes",
-                "lead": "hermes",
-            },
-        )
+        self._check_reconfigure(project_id)
+        role_backends = self._data.setdefault("role_backends", dict(self._DEFAULT_ROLE_BACKENDS))
         role_backends[role] = backend
         self.save()
 
     # --- Skills ---
 
-    _DEFAULT_SKILLS: dict[str, dict[str, Any]] = {
-        "file-scan": {"enabled": True, "endpoint": "local/fast"},
-        "log-summary": {"enabled": True, "endpoint": "local/fast"},
-        "draft-packet": {"enabled": True, "endpoint": "local/fast"},
-        "deploy": {"enabled": False, "endpoint": "remote/sota"},
-        "team-reconfigure": {"enabled": False, "endpoint": "remote/sota"},
-    }
-
     def _ensure_skills(self) -> dict[str, Any]:
         """Ensure skills section exists with defaults."""
-        return self._data.setdefault("skills", dict(self._DEFAULT_SKILLS))
+        return self._data.setdefault("skills", self._copy_default_map(self._DEFAULT_SKILLS))
 
     def list_skills(self) -> list[dict[str, Any]]:
         """Return skills list with id, enabled, endpoint."""
@@ -336,8 +367,9 @@ class TeamState:
             for sid, s in skills.items()
         ]
 
-    def set_skill_enabled(self, skill_id: str, enabled: bool) -> None:
+    def set_skill_enabled(self, skill_id: str, enabled: bool, project_id: str | None = None) -> None:
         """Toggle skill on/off."""
+        self._check_reconfigure(project_id)
         skills = self._ensure_skills()
         if skill_id in skills:
             skills[skill_id]["enabled"] = enabled
@@ -350,8 +382,9 @@ class TeamState:
             return skills[skill_id].get("endpoint", "")
         return ""
 
-    def set_skill_endpoint(self, skill_id: str, endpoint: str) -> None:
+    def set_skill_endpoint(self, skill_id: str, endpoint: str, project_id: str | None = None) -> None:
         """Assign endpoint to skill."""
+        self._check_reconfigure(project_id)
         skills = self._ensure_skills()
         if skill_id in skills:
             skills[skill_id]["endpoint"] = endpoint

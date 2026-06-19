@@ -180,23 +180,41 @@ class TestTeamState(unittest.TestCase):
 
     def test_default_role_backends(self):
         """Default role_backends should map scout→script, coordinator→hermes, lead→hermes."""
-        self.assertEqual(self.state.get_role_backend("scout"), "script")
-        self.assertEqual(self.state.get_role_backend("coordinator"), "hermes")
-        self.assertEqual(self.state.get_role_backend("lead"), "hermes")
+        self.assertEqual(self.state.get_role_backend("scout"), "local/fast")
+        self.assertEqual(self.state.get_role_backend("coordinator"), "remote/sota")
+        self.assertEqual(self.state.get_role_backend("lead"), "remote/sota")
 
     def test_set_role_backend(self):
         """set_role_backend should persist the change."""
         self.state.set_role_backend("lead", "codex")
         self.assertEqual(self.state.get_role_backend("lead"), "codex")
         # Other roles unchanged
-        self.assertEqual(self.state.get_role_backend("scout"), "script")
+        self.assertEqual(self.state.get_role_backend("scout"), "local/fast")
 
     def test_role_backends_in_default_state(self):
         """_default_state should include role_backends section."""
         data = self.state._default_state()
         self.assertIn("role_backends", data)
-        self.assertEqual(data["role_backends"]["scout"], "script")
-        self.assertEqual(data["role_backends"]["lead"], "hermes")
+        self.assertEqual(data["role_backends"]["scout"], "local/fast")
+        self.assertEqual(data["role_backends"]["lead"], "remote/sota")
+
+    def test_endpoint_alias_resolves_to_backend(self):
+        self.assertEqual(self.state.resolve_endpoint_backend("local/fast"), "script")
+        self.assertEqual(self.state.resolve_endpoint_backend("remote/sota"), "hermes")
+        self.assertEqual(self.state.resolve_endpoint_backend("script"), "script")
+
+    def test_l3_blocks_reconfigure_writes(self):
+        from roost.security import SecurityError
+
+        self.state.register_project("locked", security_level=3)
+        with self.assertRaises(SecurityError):
+            self.state.set_endpoint("locked", "custom/fast", "script", "low")
+        with self.assertRaises(SecurityError):
+            self.state.remove_endpoint("locked", "local/fast")
+        with self.assertRaises(SecurityError):
+            self.state.set_role_backend("lead", "local/fast", project_id="locked")
+        with self.assertRaises(SecurityError):
+            self.state.set_skill_enabled("deploy", True, project_id="locked")
 
     def test_get_employees_by_role(self):
         """get_employees_by_role should filter by role field."""

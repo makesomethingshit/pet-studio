@@ -41,14 +41,14 @@ class TestDeliverPacket(unittest.TestCase):
         with self.assertRaises(DeliveryError):
             deliver_packet("test-proj", self.state, agent="nonexistent")
 
-    def test_deliver_resolves_lead_from_state(self):
-        """When agent=None, should use team_state's lead backend."""
-        # Default lead is "hermes", but hermes subprocess will fail in test
-        # So set lead to "script" for testing
-        self.state.set_role_backend("lead", "script")
+    @patch("roost.delivery.subprocess.run")
+    def test_deliver_default_logs_without_subprocess(self, mock_run):
+        """When agent=None, delivery should log locally instead of launching Hermes."""
+        self.state.set_role_backend("lead", "remote/sota")
         result = deliver_packet("test-proj", self.state, agent=None)
         self.assertEqual(result["agent"], "script")
         self.assertEqual(result["status"], "logged")
+        mock_run.assert_not_called()
 
     def test_deliver_l3_deny_blocks(self):
         """L3 DENY project should raise SecurityError."""
@@ -66,6 +66,13 @@ class TestDeliverPacket(unittest.TestCase):
         self.assertEqual(result["agent"], "hermes")
         self.assertEqual(result["status"], "delivered")
         mock_run.assert_called_once()
+
+    @patch("roost.delivery.subprocess.run")
+    def test_deliver_resolves_agent_alias(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
+        result = deliver_packet("test-proj", self.state, agent="remote/sota")
+        self.assertEqual(result["agent"], "hermes")
+        self.assertEqual(result["status"], "delivered")
 
     @patch("roost.delivery.subprocess.run")
     def test_deliver_to_hermes_failure(self, mock_run):

@@ -5,14 +5,14 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml)
 
-**Pet Studio** is a local Windows desktop widget that shows project status as a
-small pet room.
+**Pet Studio** is a local-first Windows workroom for AI-assisted project work,
+with an optional tiny pet widget for at-a-glance status.
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
 ## Quick Start
 
-Install and launch:
+Install:
 
 ```powershell
 git clone https://github.com/makesomethingshit/pet-studio.git
@@ -20,16 +20,16 @@ cd pet-studio
 .\install.cmd
 ```
 
-Optional Codex adapter:
+Open the Workroom app:
 
 ```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+.\tools\pet_studio_workroom.cmd --project-id gakju-archive-demo
 ```
 
-Optional live hook bridge for Codex events:
+Open the companion pet widget:
 
 ```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
 Create a room interactively:
@@ -38,30 +38,38 @@ Create a room interactively:
 .\tools\pet_studio_python.cmd tools\create_room_interactive.py
 ```
 
+Optional Codex adapter:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
+```
+
 ## What Works
 
-- Layered desktop room widget: room, props, main pet, helper pets, speech bubbles
-- Project registry, saved layout/window/session, state file bridge
-- Manual states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
-- Workspace auto-detection and project switching
-- Tray icon, status bar, context menu controls
-- Optional Codex skill install and hook adapter
-- Room creation, validation, preview sheets, and QA packs
-- Room preset export/import through `roost.preset`
-- Roost project queues, event logs, security levels, and script/Hermes classifiers
-- Team Room popup: approvals, staff status, queue
-- Error toast system: on-screen error/warn/info messages
+- Workroom app window with Projects, Tasks, Team Room, and Endpoints tabs
+- Mission input and Task Cards split into waiting, running, and done columns
+- Team Room tab for approvals, staff status, and Roost queue
+- Endpoint registry with role mappings for Scout, Coordinator, and Lead
+- Companion desktop pet widget with layered room, props, pets, speech bubbles, status bar, and toast messages
+- Project registry, saved layout/window/session, workspace auto-detection, and project switching
+- File-based state bridge using the existing `project-room-*` compatibility files
+- Room creation, validation, preview sheets, QA packs, and preset export/import
+- Roost project queues, event logs, L0-L3 security levels, and script/Hermes classifiers
+- Optional Codex skill, hook bridge, and packet export/import path
 - Korean CLI repair hints via `--lang ko` or `PET_STUDIO_LANG=ko`
 
 Still experimental:
 
-- Visual quality depends on source art and manual QA.
-- Windows is the primary tested widget host.
-- Some runtime files still use `project-room-*` compatibility names.
+- Team Room is a Workroom tab, not a fully reusable room with its own memory and avatar yet.
+- Role dispatch is lightweight; full agent-to-agent delegation is not implemented.
 - Hermes classification requires Hermes Agent; script mode is the fallback.
+- Visual quality depends on source art and manual QA.
+- Windows is the primary tested host.
+- Some runtime files intentionally keep `project-room-*` names for compatibility.
 
 Not included: cloud sync, hosted dashboard, macOS/Linux widget host, full game
-simulation, Project Hub UI, Task Cards, trust-score auto-approval.
+simulation, model backend management, trust-score auto-approval.
 
 ## Create A Room
 
@@ -79,6 +87,7 @@ Then verify:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room
+.\tools\pet_studio_workroom.cmd --project-id my-room
 .\tools\pet_studio_widget.cmd --project-id my-room --scale 1.25
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
 ```
@@ -119,18 +128,17 @@ Backends:
 
 Security levels are per project: L0 allow, L1 warn, L2 ask, L3 deny.
 
-### Team Room Panel
+### Team Room
 
-Right-click the widget → "Team Room" to open the popup.
-Shows pending approvals (with approve/reject buttons), staff status, and roost queue.
+Open the Workroom and select the **Team Room** tab. It shows pending approvals,
+staff status, and the Roost queue.
 
 ```python
 from roost.state import TeamState
 
 state = TeamState()
 state.register_project("my-project", "My Project", security_level=2)
-# L2 actions auto-enqueue approval requests
-state.add_approval_request("my-project", "deploy")
+approval_id = state.add_approval_request("my-project", "deploy")
 state.resolve_approval(approval_id, approved=True)
 ```
 

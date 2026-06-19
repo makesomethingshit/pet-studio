@@ -79,15 +79,16 @@ from set_active_project import write_active_project  # noqa: E402
 from ui.preset_dialog import export_preset_dialog, import_preset_dialog  # noqa: E402
 from ui.project_hub import show_project_hub  # noqa: E402
 from ui.status_bar import draw_status_bar  # noqa: E402
-from ui.team_room_popup import add_team_room_menu  # noqa: E402
 
 CHROMA = "#ff00ff"
 WINDOW_TITLE = "Pet Studio Widget"
+WORKROOM_TITLE = "Pet Studio Workroom"
 DEFAULT_BUBBLE_FONT = "Segoe UI"
 TOPMOST_REFRESH_MS = 2000
 BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
 DEFAULT_WIDGET_LOG = ROOT / "pet-studio-widget" / "project-room-widget.log"
 DEFAULT_WIDGET_LOCK = ROOT / "pet-studio-widget" / "project-room-widget.lock"
+DEFAULT_WORKROOM_LOCK = ROOT / "pet-studio-widget" / "project-room-workroom.lock"
 HIT_TEST_ALPHA_THRESHOLD = 16
 DEFAULT_STATE_STALE_AFTER_MS = 300000
 DEFAULT_DEMO_CYCLE_DELAY_SECONDS = 2.0
@@ -1142,16 +1143,6 @@ class ProjectRoomWidget:
         # Project Hub
         menu.add_command(label="Project Hub", command=lambda: show_project_hub(self))
 
-        # Codex submenu
-        codex_menu = tk.Menu(menu, tearoff=False)
-        codex_menu.add_command(
-            label="Install Hook",
-            command=self._install_codex_hook_confirm,
-        )
-        menu.add_cascade(label="Codex", menu=codex_menu)
-
-        add_team_room_menu(menu, self)
-
         # Preset submenu
         if self.project_id:
             preset_menu = tk.Menu(menu, tearoff=False)
@@ -1334,48 +1325,6 @@ class ProjectRoomWidget:
         self._status_bar_items.clear()
         self.redraw_scene(crossfade=True)
 
-    def _install_codex_hook_confirm(self) -> None:
-        """Show confirmation dialog before installing Codex hook."""
-        import tkinter.messagebox as msgbox
-
-        result = msgbox.askyesno(
-            "Install Codex Hook",
-            "이 작업은 .codex/hooks.json에 Pet Studio 훅을 등록합니다.\n계속하시겠습니까?",
-            icon="warning",
-        )
-        if result:
-            self._install_codex_hook()
-
-    def _install_codex_hook(self) -> None:
-        """Run the Codex hook installer script and show result via toast."""
-        import subprocess
-
-        script = ROOT / "tools" / "install_pet_studio_codex_integration.py"
-        if not script.exists():
-            from ui.toast import show_toast
-
-            show_toast(self, "Hook installer not found", level="error")
-            return
-        try:
-            result = subprocess.run(
-                [sys.executable, str(script), "--project-id", self.project_id or ""],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            if result.returncode == 0:
-                from ui.toast import show_toast
-
-                show_toast(self, "Codex hook installed ✓", level="info")
-            else:
-                from ui.toast import show_toast
-
-                show_toast(self, f"Hook install failed: {result.stderr[:80]}", level="error")
-        except Exception as e:
-            from ui.toast import show_toast
-
-            show_toast(self, f"Hook install error: {e}", level="error")
-
     def close(self) -> None:
         self.cancel_demo_cycle()
         self.save_session(self.state_source)
@@ -1404,6 +1353,54 @@ class ProjectRoomWidget:
     def run(self) -> None:
         self.animate()
         self.root.mainloop()
+
+
+class WorkroomHost:
+    def __init__(
+        self,
+        root: tk.Tk,
+        registry_path: str,
+        project_id: str | None,
+        state: str,
+        state_file: Path | None,
+        display_name: str | None = None,
+    ) -> None:
+        self.root = root
+        self.project_id = project_id
+        self.state = normalize_state(state, "idle")
+        self._registry_path = registry_path
+        self._project_display_name = display_name
+        self._hub_window: tk.Toplevel | None = None
+        self._workroom_mode = True
+        self._team_state: Any = None
+        try:
+            from roost.state import TeamState
+
+            ts_path = state_file.parent / "team_state.json" if state_file else None
+            self._team_state = TeamState(ts_path) if ts_path else TeamState()
+        except Exception:  # noqa: BLE001
+            self._team_state = None
+
+    def switch_project(self, project_id: str) -> None:
+        project = select_project(self._registry_path, project_id)
+        self.project_id = project.project_id
+        self.state = normalize_state(project.default_state, "idle")
+        self._project_display_name = project.display_name
+
+
+def launch_workroom(
+    registry_path: str,
+    project_id: str | None,
+    state: str,
+    state_file: Path | None,
+    display_name: str | None = None,
+) -> None:
+    root = tk.Tk()
+    root.withdraw()
+    root.title(WORKROOM_TITLE)
+    host = WorkroomHost(root, registry_path, project_id, state, state_file, display_name)
+    show_project_hub(host)
+    root.mainloop()
 
 
 def main() -> None:
@@ -1444,6 +1441,7 @@ def main() -> None:
     parser.add_argument("--y", type=int)
     parser.add_argument("--no-topmost", action="store_true")
     parser.add_argument("--click-through", action="store_true")
+    parser.add_argument("--workroom", action="store_true", help="Open the Project Hub as a normal Workroom app window")
     parser.add_argument(
         "--foreground", action="store_true", help="Keep the widget attached to this console for debugging"
     )
@@ -1482,13 +1480,25 @@ def main() -> None:
         kit_path = project.kit_manifest
         project_id = project.project_id
         state = args.state or project.default_state
+    elif args.workroom:
+        try:
+            projects = list_projects(args.config)
+        except ProjectRegistryError as error:
+            parser.error(str(error))
+        if not projects:
+            parser.error("No projects are registered.")
+        selected_project = projects[0]
+        kit_path = selected_project.kit_manifest
+        project_id = selected_project.project_id
+        state = args.state or selected_project.default_state
     elif args.kit:
         kit_path = resolve_kit_path(args.kit)
     else:
         parser.error("Provide --kit or --project-id.")
 
     gui_launch = is_gui_launch(args)
-    if gui_launch and not args.foreground and focus_existing_widget_window():
+    launch_title = WORKROOM_TITLE if args.workroom else WINDOW_TITLE
+    if gui_launch and not args.foreground and focus_existing_widget_window(launch_title):
         return
 
     if should_relaunch_background(args) and relaunch_background(sys.argv[1:]):
@@ -1496,9 +1506,9 @@ def main() -> None:
 
     widget_lock = None
     if gui_launch and not args.foreground:
-        widget_lock = acquire_widget_lock()
+        widget_lock = acquire_widget_lock(DEFAULT_WORKROOM_LOCK if args.workroom else DEFAULT_WIDGET_LOCK)
         if widget_lock is None:
-            focus_existing_widget_window()
+            focus_existing_widget_window(launch_title)
             return
 
     render_once = args.render_project_once or args.render_once
@@ -1542,6 +1552,20 @@ def main() -> None:
     if project_id and selected_project is not None:
         workspace_path = selected_project.workspace_paths[0] if selected_project.workspace_paths else Path.cwd()
         write_active_project(DEFAULT_ACTIVE_PROJECT_FILE, project_id, workspace_path)
+
+    if args.workroom:
+        try:
+            launch_workroom(
+                args.config,
+                project_id,
+                state,
+                state_file,
+                selected_project.display_name if selected_project is not None else None,
+            )
+        finally:
+            if widget_lock is not None:
+                widget_lock.close()
+        return
 
     widget = ProjectRoomWidget(
         kit_path=kit_path,

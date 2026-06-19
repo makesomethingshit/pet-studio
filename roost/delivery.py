@@ -32,14 +32,14 @@ def deliver_packet(
     """Build and deliver a packet to the chosen lead agent.
 
     Flow:
-    1. Resolve lead agent (from team_state.role_backends or default "hermes")
+    1. Resolve agent (default "script" for local packet logging)
     2. Build codex packet from team_state
     3. Deliver via agent-specific method
 
     Args:
         project_id: Project identifier.
         team_state: TeamState instance.
-        agent: Override agent name. If None, uses team_state's lead backend.
+        agent: Override agent name. If None, logs locally through script.
 
     Returns:
         Dict with delivery result: {"agent": str, "status": str, "output": str}
@@ -55,7 +55,9 @@ def deliver_packet(
 
     # 1. Resolve agent
     if agent is None:
-        agent = team_state.get_role_backend("lead")
+        agent = "script"
+    else:
+        agent = team_state.resolve_endpoint_backend(agent)
     logger.info("Delivering packet: project=%s → agent=%s", project_id, agent)
 
     # 2. Build packet

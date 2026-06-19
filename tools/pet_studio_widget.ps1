@@ -12,6 +12,8 @@ $errFile = Join-Path $root "pet-studio-widget\project-room-widget.err.log"
 $candidates = @()
 
 $foreground = $false
+$workroom = $args -contains "--workroom"
+$windowTitle = if ($workroom) { "Pet Studio Workroom" } else { "Pet Studio Widget" }
 foreach ($name in @("--foreground", "--list-projects", "--render-once", "--render-project-once")) {
     if ($args -contains $name) {
         $foreground = $true
@@ -62,7 +64,8 @@ if (-not $python) {
     exit 1
 }
 
-function Focus-PetStudioWidget {
+function Focus-PetStudioWindow {
+    param([string]$Title)
     if (-not $IsWindows -and $PSVersionTable.PSEdition -eq "Core") {
         return $false
     }
@@ -81,7 +84,7 @@ public static class PetStudioWidgetWindow {
 }
 "@
     }
-    $handle = [PetStudioWidgetWindow]::FindWindow($null, "Pet Studio Widget")
+    $handle = [PetStudioWidgetWindow]::FindWindow($null, $Title)
     if ($handle -eq [IntPtr]::Zero) {
         return $false
     }
@@ -91,7 +94,7 @@ public static class PetStudioWidgetWindow {
 }
 
 if (-not $foreground) {
-    if (Focus-PetStudioWidget) {
+    if (Focus-PetStudioWindow $windowTitle) {
         exit 0
     }
 }
