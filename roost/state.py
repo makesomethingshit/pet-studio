@@ -134,6 +134,12 @@ class TeamState:
         ]
 
     def set_project_mission(self, project_id: str, mission: str) -> bool:
+        from roost.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
         project = self._data.setdefault("projects", {}).get(project_id)
         if project:
             project["mission"] = mission

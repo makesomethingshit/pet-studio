@@ -36,7 +36,6 @@ def show_project_hub(widget: Any) -> None:
     hub.geometry("560x480")
     hub.resizable(True, True)
     hub.configure(bg="#1e1e2e")
-    hub.attributes("-topmost", True)
 
     widget._hub_window = hub
 
@@ -51,6 +50,14 @@ def show_project_hub(widget: Any) -> None:
         bg="#181825",
         font=("Segoe UI", 11, "bold"),
     ).pack(side=tk.LEFT, padx=12, pady=8)
+
+    tk.Label(
+        header,
+        text="launcher",
+        fg="#6c7086",
+        bg="#181825",
+        font=("Segoe UI", 8),
+    ).pack(side=tk.LEFT, padx=0, pady=8)
 
     # --- Notebook (Projects / Tasks) ---
     notebook = ttk.Notebook(hub)
