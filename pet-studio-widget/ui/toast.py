@@ -36,6 +36,9 @@ def clear_toast(widget) -> None:
         widget._toast_job_id = None
     widget._toast_message = None
     widget._toast_level = None
+    # Restore status bar visibility
+    for item in widget._status_bar_items:
+        widget.canvas.itemconfigure(item, state=tk.NORMAL)
 
 
 def show_toast(widget, message: str, level: str = "error", duration_ms: int = 3000) -> None:
@@ -49,6 +52,9 @@ def show_toast(widget, message: str, level: str = "error", duration_ms: int = 30
     """
     widget._toast_message = message
     widget._toast_level = level
+    # Hide status bar text while toast is active
+    for item in widget._status_bar_items:
+        widget.canvas.itemconfigure(item, state=tk.HIDDEN)
     _render_toast(widget)
     if widget._toast_job_id is not None:
         try:
@@ -60,7 +66,10 @@ def show_toast(widget, message: str, level: str = "error", duration_ms: int = 30
 
 def _render_toast(widget) -> None:
     """Render the current toast message on the canvas."""
-    clear_toast(widget)
+    # Remove only toast items (not status bar)
+    for item in widget._toast_items:
+        widget.canvas.delete(item)
+    widget._toast_items.clear()
     if not widget._toast_message:
         return
     cw = int(widget.canvas.cget("width"))

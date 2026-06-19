@@ -20,13 +20,13 @@ cd pet-studio
 .\install.cmd
 ```
 
-Use it with Codex:
+Optional Codex adapter:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
 ```
 
-Optional live Codex hook bridge:
+Optional live hook bridge for Codex events:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
@@ -45,7 +45,7 @@ Create a room interactively:
 - Manual states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
 - Workspace auto-detection and project switching
 - Tray icon, status bar, context menu controls
-- Codex skill install and optional hook integration
+- Optional Codex skill install and hook adapter
 - Room creation, validation, preview sheets, and QA packs
 - Room preset export/import through `roost.preset`
 - Roost project queues, event logs, security levels, and script/Hermes classifiers

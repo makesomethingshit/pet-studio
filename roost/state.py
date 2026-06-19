@@ -103,6 +103,7 @@ class TeamState:
         project_id: str,
         display_name: str | None = None,
         security_level: int = 1,
+        mission: str = "",
     ) -> None:
         projects = self._data.setdefault("projects", {})
         projects[project_id] = {
@@ -112,10 +113,45 @@ class TeamState:
             "lead": None,
             "securityLevel": security_level,
             "queue": [],
+            "mission": mission,
+            "tasks": [],
             "lastEvent": None,
             "eventLog": [],
         }
         self.save()
+
+    def list_projects(self) -> list[dict[str, Any]]:
+        """Return list of registered projects with id, displayName, status, mission."""
+        projects = self._data.get("projects", {})
+        return [
+            {
+                "id": pid,
+                "displayName": p.get("displayName", pid),
+                "status": p.get("status", "idle"),
+                "mission": p.get("mission", ""),
+            }
+            for pid, p in projects.items()
+        ]
+
+    def set_project_mission(self, project_id: str, mission: str) -> bool:
+        from roost.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
+        project = self._data.setdefault("projects", {}).get(project_id)
+        if project:
+            project["mission"] = mission
+            self.save()
+            return True
+        return False
+
+    def get_project_mission(self, project_id: str) -> str:
+        project = self.get_project(project_id)
+        if project:
+            return project.get("mission", "")
+        return ""
 
     def get_project(self, project_id: str) -> dict[str, Any] | None:
         return self._data.get("projects", {}).get(project_id)

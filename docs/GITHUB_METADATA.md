@@ -5,13 +5,13 @@ Use this when setting the repository About section manually on GitHub. The short
 ## Recommended Description
 
 ```text
-Turn each Codex project into a tiny layered desktop room with pets, props, and live state bubbles.
+Turn each local project into a tiny layered desktop room with pets, props, and live state bubbles.
 ```
 
 ## Shorter Alternatives
 
 ```text
-A tiny desktop room for every Codex project.
+A tiny desktop room for every local project.
 ```
 
 ```text
@@ -19,13 +19,11 @@ A local-first agent dashboard disguised as a pet room.
 ```
 
 ```text
-Watch your Codex project room react instead of watching logs.
+Watch your project room react instead of watching logs.
 ```
 
 ## Recommended Topics
 
-- `codex`
-- `codex-skill`
 - `ai-agents`
 - `desktop-widget`
 - `python`
@@ -35,6 +33,8 @@ Watch your Codex project room react instead of watching logs.
 - `virtual-pet`
 - `hatch-pet`
 - `windows`
+- `codex`
+- `codex-skill`
 
 ## Suggested Website / Link
 

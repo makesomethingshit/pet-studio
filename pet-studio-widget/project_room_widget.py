@@ -77,8 +77,9 @@ from set_active_project import write_active_project  # noqa: E402
 
 # UI submodules
 from ui.preset_dialog import export_preset_dialog, import_preset_dialog  # noqa: E402
+from ui.project_hub import show_project_hub  # noqa: E402
 from ui.status_bar import draw_status_bar  # noqa: E402
-from ui.team_room_popup import show_team_room_popup  # noqa: E402
+from ui.team_room_popup import add_team_room_menu  # noqa: E402
 
 CHROMA = "#ff00ff"
 WINDOW_TITLE = "Pet Studio Widget"
@@ -663,7 +664,8 @@ class ProjectRoomWidget:
         self._toast_items: list[int] = []
         self._toast_job_id: int | None = None
         self._toast_message: str | None = None
-        self._team_room_popup: tk.Toplevel | None = None
+        self._context_menu_open = False
+        self._hub_window: tk.Toplevel | None = None
 
         # Feedback when no project detected
         if not self.project_id:
@@ -757,13 +759,12 @@ class ProjectRoomWidget:
         self.entity_items[entity.id] = item
         self.entity_images[entity.id] = image
 
-    def redraw_scene(self) -> None:
-        self.canvas.delete("entity")
-        self.canvas.delete("bubble")
-        self.entity_items.clear()
-        self.entity_images.clear()
-        self.entity_photos.clear()
-        self.bubble_items.clear()
+    def redraw_scene(self, crossfade: bool = False) -> None:
+        if not crossfade:
+            self._clear_scene()
+        else:
+            # Fade out old items before clearing
+            self._fade_out_scene()
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
             if entity.id not in self.layer_assets:
                 if entity.role == "mainPet":
@@ -772,6 +773,31 @@ class ProjectRoomWidget:
             self.draw_entity(entity, self.index)
         self.draw_bubble()
         draw_status_bar(self)
+
+    def _clear_scene(self) -> None:
+        self.canvas.delete("entity")
+        self.canvas.delete("bubble")
+        self.entity_items.clear()
+        self.entity_images.clear()
+        self.entity_photos.clear()
+        self.bubble_items.clear()
+
+    def _fade_out_scene(self) -> None:
+        """Quick fade-out by lowering opacity of existing items."""
+        for item_id in list(self.entity_items.values()):
+            try:
+                self.canvas.itemconfigure(item_id, state=tk.HIDDEN)
+            except tk.TclError:
+                pass
+        for item_id in list(self.bubble_items):
+            try:
+                self.canvas.itemconfigure(item_id, state=tk.HIDDEN)
+            except tk.TclError:
+                pass
+        self.entity_items.clear()
+        self.entity_images.clear()
+        self.entity_photos.clear()
+        self.bubble_items.clear()
 
     def _draw_status_bar(self) -> None:
         draw_status_bar(self)
@@ -1083,8 +1109,9 @@ class ProjectRoomWidget:
         self.root.after(self.state_refresh_ms, self.refresh_external_state)
 
     def refresh_topmost(self) -> None:
-        if self.topmost:
+        if self.topmost and not self._context_menu_open:
             apply_topmost(self.root, True)
+        if self.topmost:
             self.root.after(TOPMOST_REFRESH_MS, self.refresh_topmost)
 
     def show_context_menu(self, event: tk.Event) -> None:
@@ -1112,22 +1139,18 @@ class ProjectRoomWidget:
             except Exception:
                 pass
 
-        # Team Room
-        if self._team_state is not None:
-            try:
-                pending = self._team_state.get_pending_approvals()
-                queue = self._team_state.get_roost_queue()
-                pending_count = len(pending)
-                queue_count = len(queue)
-                label = "Team Room"
-                if pending_count:
-                    label += f" ({pending_count} approval{'s' if pending_count != 1 else ''} pending)"
-                elif queue_count:
-                    label += f" ({queue_count} in queue)"
-                menu.add_command(label=label, command=self._show_team_room_popup)
-                menu.add_separator()
-            except Exception:  # noqa: BLE001
-                pass
+        # Project Hub
+        menu.add_command(label="Project Hub", command=lambda: show_project_hub(self))
+
+        # Codex submenu
+        codex_menu = tk.Menu(menu, tearoff=False)
+        codex_menu.add_command(
+            label="Install Hook",
+            command=self._install_codex_hook_confirm,
+        )
+        menu.add_cascade(label="Codex", menu=codex_menu)
+
+        add_team_room_menu(menu, self)
 
         # Preset submenu
         if self.project_id:
@@ -1167,19 +1190,26 @@ class ProjectRoomWidget:
         menu.add_command(label="Hide bubble" if self.bubble_visible else "Show bubble", command=self.toggle_bubble)
         menu.add_separator()
         menu.add_command(label="Close", command=self.close)
+
+        def restore_topmost(_event: tk.Event | None = None) -> None:
+            if not self._context_menu_open:
+                return
+            self._context_menu_open = False
+            if self.topmost:
+                try:
+                    apply_topmost(self.root, True)
+                except tk.TclError:
+                    pass
+
+        if self.topmost:
+            self._context_menu_open = True
+            apply_topmost(self.root, False)
+            menu.bind("<Unmap>", restore_topmost)
+            menu.bind("<Destroy>", restore_topmost)
         try:
             menu.tk_popup(event.x_root, event.y_root)
         finally:
             menu.grab_release()
-
-    def _show_team_room_popup(self) -> None:
-        show_team_room_popup(self)
-
-    def _resolve_approval(self, approval_id: str, approved: bool, popup: tk.Toplevel) -> None:
-        if self._team_state is not None:
-            self._team_state.resolve_approval(approval_id, approved)
-        popup.destroy()
-        show_team_room_popup(self)
 
     def _export_preset_dialog(self) -> None:
         export_preset_dialog(self)
@@ -1302,7 +1332,49 @@ class ProjectRoomWidget:
         self.entity_photos.clear()
         self.bubble_items.clear()
         self._status_bar_items.clear()
-        self.redraw_scene()
+        self.redraw_scene(crossfade=True)
+
+    def _install_codex_hook_confirm(self) -> None:
+        """Show confirmation dialog before installing Codex hook."""
+        import tkinter.messagebox as msgbox
+
+        result = msgbox.askyesno(
+            "Install Codex Hook",
+            "이 작업은 .codex/hooks.json에 Pet Studio 훅을 등록합니다.\n계속하시겠습니까?",
+            icon="warning",
+        )
+        if result:
+            self._install_codex_hook()
+
+    def _install_codex_hook(self) -> None:
+        """Run the Codex hook installer script and show result via toast."""
+        import subprocess
+
+        script = ROOT / "tools" / "install_pet_studio_codex_integration.py"
+        if not script.exists():
+            from ui.toast import show_toast
+
+            show_toast(self, "Hook installer not found", level="error")
+            return
+        try:
+            result = subprocess.run(
+                [sys.executable, str(script), "--project-id", self.project_id or ""],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                from ui.toast import show_toast
+
+                show_toast(self, "Codex hook installed ✓", level="info")
+            else:
+                from ui.toast import show_toast
+
+                show_toast(self, f"Hook install failed: {result.stderr[:80]}", level="error")
+        except Exception as e:
+            from ui.toast import show_toast
+
+            show_toast(self, f"Hook install error: {e}", level="error")
 
     def close(self) -> None:
         self.cancel_demo_cycle()
