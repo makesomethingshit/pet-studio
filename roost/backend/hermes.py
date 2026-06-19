@@ -75,5 +75,30 @@ class HermesBackend:
                 return word
         return None
 
+    def deliver_packet(self, packet: dict[str, Any]) -> dict[str, Any]:
+        """Deliver a packet to Hermes subprocess.
+
+        Writes packet to temp file, then runs:
+            hermes -z "Execute this packet: <file_path>"
+        """
+        import json
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as f:
+            json.dump(packet, f, indent=2, ensure_ascii=False)
+            tmp_path = f.name
+
+        try:
+            result = self._run_hermes(f"Execute this packet: {tmp_path}")
+            return {
+                "status": "delivered" if result else "failed",
+                "output": result or "(no output)",
+            }
+        except (OSError, subprocess.TimeoutExpired) as e:
+            raise RuntimeError(f"Hermes delivery failed: {e}") from e
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
     def __repr__(self) -> str:
         return f"<HermesBackend name={self.name}>"

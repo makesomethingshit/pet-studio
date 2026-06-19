@@ -162,7 +162,16 @@ def dispatch(
 
     # 2. Classify
     role = classify_task(task)
-    logger.debug("Task classified: type=%s → role=%s", task.get("type"), role.value)
+
+    # 2b. Special case: deliver_packet → skip backend classification
+    if task.get("type", "").lower() == "deliver_packet":
+        from roost.delivery import deliver_packet
+
+        return deliver_packet(
+            project_id=project_id,
+            team_state=team_state,
+            agent=task.get("agent"),
+        )
 
     # 3. Resolve backend
     backend_name = _resolve_backend_for_role(role, team_state)

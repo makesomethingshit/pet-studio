@@ -1,6 +1,7 @@
 """Roost — Pet Studio team orchestration layer."""
 
 from roost.backend import HermesBackend, RoostBackend, ScriptBackend
+from roost.delivery import DeliveryError, deliver_packet
 from roost.dispatcher import BackendRegistry, TaskRole, classify_task, default_registry, dispatch
 from roost.preset import PresetError, export_preset, import_preset, list_presets
 from roost.security import SecurityError, SecurityLevel, check_security
@@ -23,4 +24,6 @@ __all__ = [
     "classify_task",
     "dispatch",
     "default_registry",
+    "deliver_packet",
+    "DeliveryError",
 ]
