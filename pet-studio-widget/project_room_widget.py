@@ -1118,6 +1118,9 @@ class ProjectRoomWidget:
         # Project Hub
         menu.add_command(label="Project Hub", command=lambda: show_project_hub(self))
 
+        # Codex Hook
+        menu.add_command(label="Install Codex Hook", command=self._install_codex_hook)
+
         add_team_room_menu(menu, self)
 
         # Preset submenu
@@ -1301,6 +1304,36 @@ class ProjectRoomWidget:
         self.bubble_items.clear()
         self._status_bar_items.clear()
         self.redraw_scene()
+
+    def _install_codex_hook(self) -> None:
+        """Run the Codex hook installer script and show result via toast."""
+        import subprocess
+
+        script = ROOT / "tools" / "install_pet_studio_codex_integration.py"
+        if not script.exists():
+            from ui.toast import show_toast
+
+            show_toast(self, "Hook installer not found", level="error")
+            return
+        try:
+            result = subprocess.run(
+                [sys.executable, str(script), "--project-id", self.project_id or ""],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode == 0:
+                from ui.toast import show_toast
+
+                show_toast(self, "Codex hook installed ✓", level="info")
+            else:
+                from ui.toast import show_toast
+
+                show_toast(self, f"Hook install failed: {result.stderr[:80]}", level="error")
+        except Exception as e:
+            from ui.toast import show_toast
+
+            show_toast(self, f"Hook install error: {e}", level="error")
 
     def close(self) -> None:
         self.cancel_demo_cycle()
