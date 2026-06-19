@@ -369,6 +369,20 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
             self.assertEqual(window, {"x": 120, "y": 340, "scale": 1.25})
 
+    def test_workroom_window_file_round_trips_geometry(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            window_file = Path(tmp) / "project-room-workroom.json"
+
+            project_room_widget.save_workroom_window(
+                window_file,
+                {"x": 100, "y": 200, "width": 900, "height": 640},
+            )
+            window = project_room_widget.load_workroom_window(window_file)
+
+            self.assertEqual(window, {"x": 100, "y": 200, "width": 900, "height": 640})
+
     def test_project_session_file_round_trips_widget_state(self) -> None:
         from project_room_scene import load_project_session, save_project_session
 
@@ -856,10 +870,12 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
     def test_project_hub_owns_team_room_view(self) -> None:
         text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
 
         self.assertIn('notebook.add(team_tab, text="Team Room")', text)
         self.assertIn("def _build_team_room_tab(", text)
         self.assertIn("Pet Studio Workroom", text)
+        self.assertIn("project-room-workroom.json", gitignore)
 
     def test_entity_hit_testing_ignores_transparent_image_pixels(self) -> None:
         import project_room_widget

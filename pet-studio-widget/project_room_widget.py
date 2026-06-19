@@ -89,6 +89,7 @@ BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
 DEFAULT_WIDGET_LOG = ROOT / "pet-studio-widget" / "project-room-widget.log"
 DEFAULT_WIDGET_LOCK = ROOT / "pet-studio-widget" / "project-room-widget.lock"
 DEFAULT_WORKROOM_LOCK = ROOT / "pet-studio-widget" / "project-room-workroom.lock"
+DEFAULT_WORKROOM_FILE = ROOT / "pet-studio-widget" / "project-room-workroom.json"
 HIT_TEST_ALPHA_THRESHOLD = 16
 DEFAULT_STATE_STALE_AFTER_MS = 300000
 DEFAULT_DEMO_CYCLE_DELAY_SECONDS = 2.0
@@ -437,6 +438,36 @@ def focus_existing_widget_window(title: str = WINDOW_TITLE, platform: str = sys.
     except (AttributeError, OSError):
         return False
     return True
+
+
+def load_workroom_window(path: Path = DEFAULT_WORKROOM_FILE) -> dict[str, int] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    window = data.get("window") if isinstance(data, dict) else None
+    if not isinstance(window, dict):
+        return None
+    result: dict[str, int] = {}
+    for key in ("x", "y", "width", "height"):
+        value = window.get(key)
+        if isinstance(value, int) and (key in ("x", "y") or value > 0):
+            result[key] = value
+    return result if {"width", "height"}.issubset(result) else None
+
+
+def save_workroom_window(path: Path, window: dict[str, int]) -> None:
+    data = {
+        "schemaVersion": 1,
+        "window": {
+            "x": int(window["x"]),
+            "y": int(window["y"]),
+            "width": int(window["width"]),
+            "height": int(window["height"]),
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def acquire_widget_lock(lock_file: Path = DEFAULT_WIDGET_LOCK, platform: str = sys.platform):
@@ -1363,6 +1394,8 @@ class WorkroomHost:
         project_id: str | None,
         state: str,
         state_file: Path | None,
+        workroom_file: Path,
+        workroom_window: dict[str, int] | None,
         display_name: str | None = None,
     ) -> None:
         self.root = root
@@ -1372,6 +1405,8 @@ class WorkroomHost:
         self._project_display_name = display_name
         self._hub_window: tk.Toplevel | None = None
         self._workroom_mode = True
+        self._workroom_file = workroom_file
+        self._workroom_window = workroom_window
         self._team_state: Any = None
         try:
             from roost.state import TeamState
@@ -1387,18 +1422,39 @@ class WorkroomHost:
         self.state = normalize_state(project.default_state, "idle")
         self._project_display_name = project.display_name
 
+    def save_workroom_window(self, hub: tk.Toplevel) -> None:
+        save_workroom_window(
+            self._workroom_file,
+            {
+                "x": hub.winfo_x(),
+                "y": hub.winfo_y(),
+                "width": hub.winfo_width(),
+                "height": hub.winfo_height(),
+            },
+        )
+
 
 def launch_workroom(
     registry_path: str,
     project_id: str | None,
     state: str,
     state_file: Path | None,
+    workroom_file: Path = DEFAULT_WORKROOM_FILE,
     display_name: str | None = None,
 ) -> None:
     root = tk.Tk()
     root.withdraw()
     root.title(WORKROOM_TITLE)
-    host = WorkroomHost(root, registry_path, project_id, state, state_file, display_name)
+    host = WorkroomHost(
+        root,
+        registry_path,
+        project_id,
+        state,
+        state_file,
+        workroom_file,
+        load_workroom_window(workroom_file),
+        display_name,
+    )
     show_project_hub(host)
     root.mainloop()
 

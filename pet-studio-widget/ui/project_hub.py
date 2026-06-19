@@ -12,6 +12,39 @@ from typing import Any
 from roost.packet import export_codex_packet
 
 
+def _workroom_geometry(saved: dict[str, int] | None) -> str:
+    width = saved.get("width", 900) if saved else 900
+    height = saved.get("height", 640) if saved else 640
+    geometry = f"{width}x{height}"
+    if saved and isinstance(saved.get("x"), int) and isinstance(saved.get("y"), int):
+        geometry += f"+{saved['x']}+{saved['y']}"
+    return geometry
+
+
+def _summary_lines(widget: Any) -> tuple[str, str]:
+    project_id = getattr(widget, "project_id", None)
+    display_name = getattr(widget, "_project_display_name", None) or project_id or "No project"
+    status = getattr(widget, "state", "idle") or "idle"
+    mission = "No mission"
+    security = "L1"
+    roles = "Scout local/fast | Coordinator remote/sota | Lead remote/sota"
+    team_state = getattr(widget, "_team_state", None)
+    if team_state is not None and project_id:
+        project = team_state.get_project(project_id) or {}
+        status = project.get("status", status)
+        mission = project.get("mission") or mission
+        security = f"L{project.get('securityLevel', 1)}"
+        role_parts = []
+        for role in ("scout", "coordinator", "lead"):
+            if hasattr(team_state, "auto_select_endpoint"):
+                endpoint = team_state.auto_select_endpoint(role)
+            else:
+                endpoint = team_state.get_role_backend(role)
+            role_parts.append(f"{role.capitalize()} {endpoint}")
+        roles = " | ".join(role_parts)
+    return f"{display_name} ({project_id or 'no-project'})", f"{mission} | {status} | {security} | {roles}"
+
+
 def show_project_hub(widget: Any) -> None:
     """Open the Project Hub Toplevel window.
 
@@ -30,31 +63,54 @@ def show_project_hub(widget: Any) -> None:
     is_workroom = bool(getattr(widget, "_workroom_mode", False))
     hub = tk.Toplevel(widget.root)
     hub.title("Pet Studio Workroom" if is_workroom else "Project Hub")
-    hub.geometry("760x560" if is_workroom else "560x480")
+    if is_workroom:
+        hub.geometry(_workroom_geometry(getattr(widget, "_workroom_window", None)))
+    else:
+        hub.geometry("560x480")
     hub.resizable(True, True)
     hub.configure(bg="#1e1e2e")
 
     widget._hub_window = hub
 
     # --- Header ---
-    header = tk.Frame(hub, bg="#181825", height=36)
+    header = tk.Frame(hub, bg="#181825", height=70 if is_workroom else 36)
     header.pack(fill=tk.X, padx=0, pady=0)
     header.pack_propagate(False)
+    header_text = tk.Frame(header, bg="#181825")
+    header_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=12, pady=6)
     tk.Label(
-        header,
+        header_text,
         text="Pet Studio Workroom" if is_workroom else "Project Hub",
         fg="#cdd6f4",
         bg="#181825",
         font=("Segoe UI", 11, "bold"),
-    ).pack(side=tk.LEFT, padx=12, pady=8)
+    ).pack(anchor=tk.W)
 
-    tk.Label(
-        header,
-        text="launcher",
+    summary_label = tk.Label(
+        header_text,
+        text="",
         fg="#6c7086",
         bg="#181825",
         font=("Segoe UI", 8),
-    ).pack(side=tk.LEFT, padx=0, pady=8)
+    )
+    meta_label = tk.Label(
+        header_text,
+        text="",
+        fg="#a6adc8",
+        bg="#181825",
+        font=("Segoe UI", 8),
+    )
+    if is_workroom:
+        summary_label.pack(anchor=tk.W)
+        meta_label.pack(anchor=tk.W)
+
+    def _refresh_summary() -> None:
+        summary, meta = _summary_lines(widget)
+        summary_label.config(text=summary)
+        meta_label.config(text=meta)
+
+    widget._refresh_project_hub_summary = _refresh_summary
+    _refresh_summary()
 
     # --- Notebook (Projects / Tasks) ---
     notebook = ttk.Notebook(hub)
@@ -104,6 +160,8 @@ def show_project_hub(widget: Any) -> None:
     # --- Close handler ---
     def _on_close() -> None:
         widget._hub_window = None
+        if is_workroom and hasattr(widget, "save_workroom_window"):
+            widget.save_workroom_window(hub)
         hub.destroy()
         if is_workroom:
             widget.root.destroy()
@@ -167,7 +225,7 @@ def _build_projects_tab(
 
     save_btn = tk.Label(
         mission_frame,
-        text="저장",
+        text="Save",
         fg="#89b4fa",
         bg="#181825",
         font=("Segoe UI", 8, "underline"),
@@ -181,13 +239,13 @@ def _build_projects_tab(
     project_map = {p["id"]: p for p in projects}
 
     STATUS_DISPLAY = {
-        "idle": "대기",
-        "running": "작업중",
-        "waiting": "대기중",
-        "review": "리뷰",
-        "failed": "실패",
-        "blocked": "차단됨",
-        "done": "완료",
+        "idle": "Idle",
+        "running": "Running",
+        "waiting": "Waiting",
+        "review": "Review",
+        "failed": "Failed",
+        "blocked": "Blocked",
+        "done": "Done",
     }
 
     for p in projects:
@@ -209,9 +267,9 @@ def _build_projects_tab(
         p = project_map.get(pid, {})
         mission_var.set(p.get("mission", ""))
         if pid == current_id:
-            status_label.config(text="현재 프로젝트")
+            status_label.config(text="Current project")
         else:
-            status_label.config(text="더블클릭하여 전환")
+            status_label.config(text="Double-click to switch")
 
     def _on_double_click(event: tk.Event) -> None:
         sel = tree.selection()
@@ -220,13 +278,13 @@ def _build_projects_tab(
         pid = sel[0]
         if pid == current_id:
             return
-        status_label.config(text=f"전환 중: {pid}...")
+        status_label.config(text=f"Switching: {pid}...")
         hub.after(100, lambda: _do_switch(widget, pid, hub, status_label))
 
     def _on_save() -> None:
         sel = tree.selection()
         if not sel:
-            status_label.config(text="프로젝트를 먼저 선택하세요")
+            status_label.config(text="Select a project first")
             return
         pid = sel[0]
         mission = mission_var.get().strip()
@@ -234,9 +292,12 @@ def _build_projects_tab(
             widget._team_state.set_project_mission(pid, mission)
             if pid in project_map:
                 project_map[pid]["mission"] = mission
-            status_label.config(text="미션 저장 완료")
+            refresh_summary = getattr(widget, "_refresh_project_hub_summary", None)
+            if callable(refresh_summary):
+                refresh_summary()
+            status_label.config(text="Mission saved")
         else:
-            status_label.config(text="TeamState 없음 — 저장 불가")
+            status_label.config(text="TeamState unavailable")
 
     tree.bind("<<TreeviewSelect>>", _on_select)
     tree.bind("<Double-1>", _on_double_click)
@@ -277,7 +338,7 @@ def _build_tasks_tab(
 
     refresh_btn = tk.Label(
         toolbar,
-        text="새로고침",
+        text="Refresh",
         fg="#6c7086",
         bg="#181825",
         font=("Segoe UI", 8),
@@ -299,7 +360,7 @@ def _build_tasks_tab(
         "running": ("#1a2e1a", "#a6e3a1"),
         "done": ("#1e1e2e", "#6c7086"),
     }
-    COL_HEADERS = {"waiting": "대기", "running": "작업중", "done": "완료"}
+    COL_HEADERS = {"waiting": "Waiting", "running": "Running", "done": "Done"}
 
     task_vars: dict[str, list] = {"waiting": [], "running": [], "done": []}
 
@@ -335,7 +396,7 @@ def _build_tasks_tab(
             lb.delete(0, tk.END)
 
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState 또는 프로젝트 없음")
+            status_label.config(text="TeamState or project unavailable")
             return
 
         try:
@@ -359,12 +420,12 @@ def _build_tasks_tab(
             lb = task_vars[target][0]
             lb.insert(tk.END, display)
 
-        status_label.config(text=f"태스크 {len(queue)}개 로드됨")
+        status_label.config(text=f"Loaded {len(queue)} tasks")
 
     def _on_export() -> None:
         """Export codex packet for current project."""
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState 또는 프로젝트 없음")
+            status_label.config(text="TeamState or project unavailable")
             return
         try:
             out_path = export_codex_packet(
@@ -372,9 +433,9 @@ def _build_tasks_tab(
                 team_state=widget._team_state,
                 state=widget.state,
             )
-            status_label.config(text=f"내보내기 완료: {out_path}")
+            status_label.config(text=f"Exported: {out_path}")
         except Exception as e:
-            status_label.config(text=f"내보내기 실패: {e}")
+            status_label.config(text=f"Export failed: {e}")
 
     def _on_import() -> None:
         """Import codex packet from file dialog."""
@@ -384,7 +445,7 @@ def _build_tasks_tab(
         from roost.packet import import_codex_packet
 
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState 또는 프로젝트 없음")
+            status_label.config(text="TeamState or project unavailable")
             return
         packet_dir = Path.cwd() / "codex-packets"
         file_path = filedialog.askopenfilename(
@@ -396,10 +457,10 @@ def _build_tasks_tab(
             return
         try:
             import_codex_packet(file_path, widget._team_state)
-            status_label.config(text=f"가져오기 완료: {Path(file_path).name}")
+            status_label.config(text=f"Imported: {Path(file_path).name}")
             _refresh_tasks()
         except Exception as e:
-            status_label.config(text=f"가져오기 실패: {e}")
+            status_label.config(text=f"Import failed: {e}")
 
     export_btn.bind("<Button-1>", lambda e: _on_export())
     import_btn.bind("<Button-1>", lambda e: _on_import())
@@ -556,11 +617,14 @@ def _get_projects(widget: Any) -> list[dict]:
 def _do_switch(widget: Any, project_id: str, hub: tk.Toplevel, status_label: tk.Label) -> None:
     try:
         widget.switch_project(project_id)
-        status_label.config(text=f"전환 완료: {project_id}")
+        refresh_summary = getattr(widget, "_refresh_project_hub_summary", None)
+        if callable(refresh_summary):
+            refresh_summary()
+        status_label.config(text=f"Switched: {project_id}")
         if not getattr(widget, "_workroom_mode", False):
             hub.after(500, lambda: _close_hub(widget, hub))
     except Exception as e:
-        status_label.config(text=f"전환 실패: {e}")
+        status_label.config(text=f"Switch failed: {e}")
 
 
 def _build_endpoints_tab(
@@ -569,16 +633,37 @@ def _build_endpoints_tab(
     hub: tk.Toplevel,
     status_label: tk.Label,
 ) -> None:
-    """Build the Endpoints tab with endpoint registry, role mapping, and skills."""
+    """Build the Endpoints tab — read-only dashboard + override.
+
+    Default: system auto-selects the right endpoint per role.
+    User can override per-role if needed.
+    """
     from roost.state import TeamState
 
     team_state = widget._team_state if getattr(widget, "_team_state", None) is not None else TeamState()
     project_id = getattr(widget, "project_id", None)
 
-    # --- Endpoint Registry ---
+    # --- Auto-select banner ---
+    auto_frame = tk.Frame(tab, bg="#181825", height=28)
+    auto_frame.pack(fill=tk.X, padx=8, pady=(8, 4))
+    auto_frame.pack_propagate(False)
+
+    auto_labels = {}
+    for role_name in ("scout", "coordinator", "lead"):
+        auto_alias = team_state.auto_select_endpoint(role_name)
+        auto_backend = team_state.resolve_endpoint_backend(auto_alias)
+        lbl = tk.Label(
+            auto_frame,
+            text=f"{role_name.capitalize()}: {auto_alias} -> {auto_backend}",
+            fg="#a6e3a1", bg="#181825", font=("Segoe UI", 8),
+        )
+        lbl.pack(side=tk.LEFT, padx=8, pady=4)
+        auto_labels[role_name] = lbl
+
+    # --- Endpoint Registry (read-only) ---
     ep_label_frame = tk.LabelFrame(
         tab,
-        text="Endpoint Registry",
+        text="Endpoint Registry (auto-managed)",
         fg="#cdd6f4",
         bg="#1e1e2e",
         font=("Segoe UI", 9, "bold"),
@@ -610,7 +695,7 @@ def _build_endpoints_tab(
     def _test_endpoint():
         sel = ep_tree.selection()
         if not sel:
-            status_label.config(text="Endpoint를 선택하세요")
+            status_label.config(text="Select an endpoint")
             return
         alias = ep_tree.item(sel[0])["values"][0]
         backend_name = ep_tree.item(sel[0])["values"][1]
@@ -623,7 +708,7 @@ def _build_endpoints_tab(
             ok = inst.health_check()
             status_label.config(text=f"[Test] {alias}: {'OK' if ok else 'FAIL'}")
         except Exception as e:
-            status_label.config(text=f"[Test] {alias}: ERROR — {e}")
+            status_label.config(text=f"[Test] {alias}: ERROR - {e}")
 
     def _remove_endpoint():
         sel = ep_tree.selection()
@@ -633,11 +718,11 @@ def _build_endpoints_tab(
         try:
             removed = team_state.remove_endpoint(project_id, alias)
         except Exception as e:
-            status_label.config(text=f"Endpoint 삭제 실패: {e}")
+            status_label.config(text=f"Endpoint remove failed: {e}")
             return
         if removed:
             _refresh_endpoints()
-            status_label.config(text=f"삭제: {alias}")
+            status_label.config(text=f"Removed: {alias}")
 
     tk.Button(btn_frame, text="+ Add", command=lambda: _add_endpoint_dialog()).pack(side=tk.LEFT, padx=(0, 4))
     tk.Button(btn_frame, text="Test", command=_test_endpoint).pack(side=tk.LEFT, padx=(0, 4))
@@ -670,10 +755,10 @@ def _build_endpoints_tab(
                 if alias:
                     team_state.set_endpoint(project_id, alias, backend_var.get(), cost_var.get())
                     _refresh_endpoints()
-                    status_label.config(text=f"추가: {alias}")
+                    status_label.config(text=f"Added: {alias}")
                 dialog.destroy()
             except Exception as e:
-                status_label.config(text=f"Endpoint 추가 실패: {e}")
+                status_label.config(text=f"Endpoint add failed: {e}")
 
         tk.Button(dialog, text="Save", command=_save).pack(pady=(4, 8))
 
@@ -702,9 +787,9 @@ def _build_endpoints_tab(
         def _save_role(rn=role_name, v=var):
             try:
                 team_state.set_role_backend(rn, v.get(), project_id=project_id)
-                status_label.config(text=f"Role 매핑 저장: {rn} → {v.get()}")
+                status_label.config(text=f"Role saved: {rn} -> {v.get()}")
             except Exception as e:
-                status_label.config(text=f"Role 저장 실패: {e}")
+                status_label.config(text=f"Role save failed: {e}")
 
         var.trace_add("write", lambda *a, f=_save_role: f())
 
@@ -729,7 +814,7 @@ def _build_endpoints_tab(
                 team_state.set_skill_enabled(sid, v.get(), project_id=project_id)
                 status_label.config(text=f"Skill {'ON' if v.get() else 'OFF'}: {sid}")
             except Exception as e:
-                status_label.config(text=f"Skill 저장 실패: {e}")
+                status_label.config(text=f"Skill save failed: {e}")
 
         cb = tk.Checkbutton(
             row,
@@ -744,7 +829,7 @@ def _build_endpoints_tab(
         )
         cb.pack(side=tk.LEFT)
         ep_str = skill_info.get("endpoint", "")
-        tk.Label(row, text=f"→ {ep_str}", fg="#6c7086", bg="#1e1e2e").pack(side=tk.RIGHT, padx=4)
+        tk.Label(row, text=f"-> {ep_str}", fg="#6c7086", bg="#1e1e2e").pack(side=tk.RIGHT, padx=4)
 
 
 def _close_hub(widget: Any, hub: tk.Toplevel) -> None:

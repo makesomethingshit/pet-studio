@@ -40,6 +40,8 @@ LOCAL_ONLY_PATHS = [
     "pet-studio-widget/project-room-hook-events.jsonl",
     "pet-studio-widget/project-room-layouts.json",
     "pet-studio-widget/project-room-widget.lock",
+    "pet-studio-widget/project-room-workroom.lock",
+    "pet-studio-widget/project-room-workroom.json",
     "pet-studio-widget/project-room-session.json",
     "pet-studio-widget/project-room-state.json",
     "pet-studio-widget/project-room-window.json",

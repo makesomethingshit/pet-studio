@@ -118,12 +118,18 @@ def _resolve_backend_for_role(
 ) -> str:
     """Resolve which backend to use for a role.
 
-    Reads from team_state.role_backends, falls back to defaults.
+    Priority:
+    1. User override in team_state.role_backends
+    2. Auto-select based on cost optimization
     """
+    # 1. Check user override
     role_target = team_state.get_role_backend(role.value)
-    if not role_target:
-        role_target = _DEFAULT_ROLE_BACKENDS[role]
-    return team_state.resolve_endpoint_backend(role_target)
+    if role_target and role_target != _DEFAULT_ROLE_BACKENDS.get(role):
+        # User has set a non-default override
+        return team_state.resolve_endpoint_backend(role_target)
+    # 2. Auto-select
+    auto_alias = team_state.auto_select_endpoint(role.value)
+    return team_state.resolve_endpoint_backend(auto_alias)
 
 
 def dispatch(

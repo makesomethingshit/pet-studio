@@ -353,6 +353,39 @@ class TeamState:
         role_backends[role] = backend
         self.save()
 
+    def auto_select_endpoint(self, role: str) -> str:
+        """Automatically select the best endpoint for a role.
+
+        Cost-optimized selection:
+        - Scout → cheapest available (free > low > high)
+        - Coordinator → mid-cost (low > free > high)
+        - Lead → user's chosen lead agent (default: remote/sota)
+
+        Returns:
+            Endpoint alias string.
+        """
+        endpoints = self._ensure_endpoints()
+        cost_order = {"free": 0, "low": 1, "high": 2}
+
+        def _sort_key(item):
+            alias, info = item
+            cost = info.get("cost", "high")
+            return cost_order.get(cost, 2)
+
+        sorted_eps = sorted(endpoints.items(), key=_sort_key)
+
+        if role == "scout":
+            # Cheapest
+            return sorted_eps[0][0] if sorted_eps else "local/fast"
+        if role == "coordinator":
+            # Mid-cost: prefer "low", otherwise keep the configured coordinator endpoint.
+            for alias, info in sorted_eps:
+                if info.get("cost") == "low":
+                    return alias
+            return self.get_role_backend(role)
+        # Lead: user's choice (stored in role_backends)
+        return self.get_role_backend(role)
+
     # --- Skills ---
 
     def _ensure_skills(self) -> dict[str, Any]:
