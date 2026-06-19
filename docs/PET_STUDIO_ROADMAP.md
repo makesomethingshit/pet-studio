@@ -7,8 +7,8 @@ Shipped and working:
 - Windows desktop widget with layered room rendering
 - Project registry, saved layout/window/session, state bridge
 - Workspace auto-detection, tray controls, status bar, project switching
-- Codex skill and optional Codex hook bridge
-- `pet_studio_core` — registry and state primitives (Codex-independent)
+- Optional Codex skill and hook adapter
+- `pet_studio_core` — registry and state primitives (adapter-independent)
 - Room creation, validation, previews, and QA packs
 - Room preset export/import (`roost.preset`)
 - Roost state manager — queues, event history, L0-L3 security
@@ -62,9 +62,9 @@ Not yet built:
 
 **예상 시간**: 5-7h
 
-### Phase 3: Codex Packet Export
+### Phase 3: Work Packet Export
 
-1. **Packet 구조** — mission, tasks, context, assigned_rooms
+1. **Packet 구조** — mission, tasks, context, assigned_rooms, target_agent
 2. **Export API** — `export_packet(team_state, project_id) → dict`
 3. **Save as JSON**
 
@@ -86,7 +86,7 @@ Not yet built:
 - [ ] Project Hub 창 열기 (일반 창, topmost 없음)
 - [ ] Mission 입력 → 수동 할당
 - [ ] Task Cards 렌더링 (waiting/running/done)
-- [ ] Codex Packet Export (JSON)
+- [ ] Work Packet Export (JSON)
 - [ ] 로직 단위 테스트 추가 (state, packet)
 - [ ] UI 수동 QA 완료
 - [ ] CI green (ruff check + format)
@@ -134,7 +134,7 @@ Not yet built:
 
 ### Scope
 
-- End-to-end integration testing (Hub → Mission → Task Cards → Roles → Codex Packet)
+- End-to-end integration testing (Hub → Mission → Task Cards → Roles → Work Packet)
 - Token savings measured and documented (Scout/Coordinator vs. Lead-only baseline)
 - README, INSTALL, guides updated for all new features
 - Performance baseline established (startup time, memory, UI responsiveness)
@@ -170,7 +170,7 @@ Not yet built:
 - Theme packs
 - macOS/Linux hosts
 - Cloud sync
-- Auto-execute from Codex by default
+- Auto-execute from any adapter by default
 - Separate Scout/Coordinator pets in UI (internal roles only)
 
 ### Definition of Done
@@ -199,11 +199,11 @@ Not yet built:
 
 | Version | Focus |
 |---|---|
-| 0.3.x | Boundary + Hygiene — Core/Codex split, installers, QA gate |
-| 0.4.x | Widget App — room switching, tray, status bar, Codex skill |
+| 0.3.x | Boundary + Hygiene — Core/adapter split, installers, QA gate |
+| 0.4.x | Widget App — room switching, tray, status bar, optional Codex adapter |
 | 0.5.x | Roost Foundation — presets, state manager, security, backends |
 | 0.6.x | Team UI — Team Room panel, approvals, staff tracking, toast UX |
-| **0.7** | **Project Hub — Mission input, Task Cards, Codex packet export** |
+| **0.7** | **Project Hub — Mission input, Task Cards, Work Packet export** |
 | **0.8** | **Token Roles — Scout, Coordinator, Endpoint Registry, trust** |
 | **0.9** | **Integration & Polish — e2e tests, token savings, docs** |
 | **1.0.0** | **Stable Release — all features integrated and tested** |

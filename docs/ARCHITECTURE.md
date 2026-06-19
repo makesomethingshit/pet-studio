@@ -78,8 +78,8 @@ User Mission (text)
             → Team Rooms (assigned by role)
                 → Scout (read-only, cheap)
                 → Coordinator (compress, draft)
-                → Codex/Lead (final, expensive)
-                    → Codex Packet Export
+                → Lead (final, expensive, user-selected)
+                    → Work Packet Export
 ```
 
 ## Compatibility

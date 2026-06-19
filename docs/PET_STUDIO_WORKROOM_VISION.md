@@ -2,7 +2,7 @@
 
 ## One-Line Vision
 
-> The user gives a goal. Pet teams organize the work, call each other when needed, use the right endpoints and skills, and prepare a compact packet for Codex.
+> The user gives a goal. Pet teams organize the work, call each other when needed, use the right endpoints and skills, and prepare a compact packet for the chosen lead agent.
 
 Pet Studio is a **local-first visual AI workroom** — not another coding agent, not a hosted dashboard. It is the visual operating layer around AI work.
 
@@ -35,9 +35,9 @@ To avoid wasting tokens on expensive models for simple work:
 |---|---|---|
 | **Scout** | Low (local/cheap model) | Read-only exploration, file scan, log summary. |
 | **Coordinator** | Mid-level | Compress Scout results, draft packets, safe edits, synthesize. |
-| **Codex / Lead** | High (SOTA/Codex) | Final judgment, multi-file changes, implementation. |
+| **Lead** | High (SOTA or user-selected agent) | Final judgment, multi-file changes, implementation. |
 
-Delegation flow: `Scout → Coordinator → Codex`, with reverse delegation allowed.
+Delegation flow: `Scout -> Coordinator -> Lead`, with reverse delegation allowed.
 
 This hierarchy exists to **save tokens**, not for architectural purity.
 
@@ -51,7 +51,7 @@ pet-studio-kit/        — asset pipeline (room creation, validation, QA)
 tools/                 — CLI entry points (install, create, QA)
 ```
 
-Key rule: **Core must not depend on Codex.** Codex is an adapter.
+Key rule: **Core must not depend on Codex.** Codex is one adapter, not the product center.
 
 ## Security Model
 
@@ -74,4 +74,4 @@ Per-project security levels:
 
 ## What Pet Studio IS
 
-> A local-first visual AI workroom where reusable Team Rooms, each represented by a hatch-pet-derived pet and equipped with memory, skills, asset packs, endpoint preferences, and tool permissions, connect to Project Hubs, receive Missions, coordinate work through Scout / Coordinator / Codex roles, and produce compact Codex-ready work packets.
+> A local-first visual AI workroom where reusable Team Rooms, each represented by a hatch-pet-derived pet and equipped with memory, skills, asset packs, endpoint preferences, and tool permissions, connect to Project Hubs, receive Missions, coordinate work through Scout / Coordinator / Lead roles, and produce compact work packets for the selected agent.

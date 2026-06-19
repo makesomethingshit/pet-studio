@@ -66,7 +66,7 @@ Other options:
 .\tools\pet_studio_python.cmd tools\pet_studio_demo_states.py --project-id gakju-archive-demo --dry-run
 ```
 
-Real Codex `PreToolUse` hooks produce tool-specific wording such as `Using shell...` after the local hook bridge is installed and trusted.
+If the optional Codex adapter is installed and trusted, real `PreToolUse` hooks can produce tool-specific wording such as `Using shell...`.
 
 ## Visual Direction
 

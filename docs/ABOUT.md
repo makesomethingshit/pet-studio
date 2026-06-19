@@ -5,13 +5,13 @@ Use this copy for the GitHub repository sidebar before launch or a release post.
 ## Description
 
 ```text
-A desktop status widget that turns each Codex project into a tiny layered room with pets, props, and live state bubbles.
+A desktop status widget that turns each local project into a tiny layered room with pets, props, and live state bubbles.
 ```
 
 ## Short Description Alternatives
 
 ```text
-A tiny desktop room for every Codex project.
+A tiny desktop room for every local project.
 ```
 
 ```text
@@ -19,11 +19,11 @@ A local-first agent dashboard disguised as a pet room.
 ```
 
 ```text
-Watch your Codex project room react instead of watching logs.
+Watch your project room react instead of watching logs.
 ```
 
 ```text
-Turn Codex project state into a tiny local desktop room.
+Turn local project state into a tiny desktop room.
 ```
 
 ## Website
@@ -33,8 +33,6 @@ Leave blank for now unless a real demo page or docs site exists. The README scre
 ## Topics
 
 ```text
-codex
-codex-skill
 ai-agents
 desktop-widget
 python
@@ -44,6 +42,8 @@ project-dashboard
 virtual-pet
 hatch-pet
 windows
+codex
+codex-skill
 ```
 
 ## Social Preview
