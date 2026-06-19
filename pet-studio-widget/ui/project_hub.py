@@ -9,13 +9,11 @@ Provides a Toplevel window with:
 
 from __future__ import annotations
 
-import json
 import tkinter as tk
-from pathlib import Path
 from tkinter import ttk
 from typing import Any
 
-from roost.packet import build_codex_packet
+from roost.packet import export_codex_packet
 
 
 def show_project_hub(widget: Any) -> None:
@@ -339,13 +337,10 @@ def _build_tasks_tab(
             status_label.config(text="TeamState 또는 프로젝트 없음")
             return
         try:
-            packet = _build_codex_packet(widget)
-            out_dir = Path.cwd() / "codex-packets"
-            out_dir.mkdir(exist_ok=True)
-            out_path = out_dir / f"{widget.project_id}-codex-packet.json"
-            out_path.write_text(
-                json.dumps(packet, indent=2, ensure_ascii=False),
-                encoding="utf-8",
+            out_path = export_codex_packet(
+                project_id=widget.project_id,
+                team_state=widget._team_state,
+                state=widget.state,
             )
             status_label.config(text=f"내보내기 완료: {out_path}")
         except Exception as e:
@@ -356,15 +351,6 @@ def _build_tasks_tab(
 
     # Initial load
     parent.after(100, _refresh_tasks)
-
-
-def _build_codex_packet(widget: Any) -> dict[str, Any]:
-    """Build a codex packet from current team state."""
-    return build_codex_packet(
-        project_id=widget.project_id or "unknown",
-        team_state=widget._team_state,
-        state=widget.state,
-    )
 
 
 def _get_projects(widget: Any) -> list[dict]:
