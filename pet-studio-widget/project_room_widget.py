@@ -759,13 +759,12 @@ class ProjectRoomWidget:
         self.entity_items[entity.id] = item
         self.entity_images[entity.id] = image
 
-    def redraw_scene(self) -> None:
-        self.canvas.delete("entity")
-        self.canvas.delete("bubble")
-        self.entity_items.clear()
-        self.entity_images.clear()
-        self.entity_photos.clear()
-        self.bubble_items.clear()
+    def redraw_scene(self, crossfade: bool = False) -> None:
+        if not crossfade:
+            self._clear_scene()
+        else:
+            # Fade out old items before clearing
+            self._fade_out_scene()
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
             if entity.id not in self.layer_assets:
                 if entity.role == "mainPet":
@@ -774,6 +773,31 @@ class ProjectRoomWidget:
             self.draw_entity(entity, self.index)
         self.draw_bubble()
         draw_status_bar(self)
+
+    def _clear_scene(self) -> None:
+        self.canvas.delete("entity")
+        self.canvas.delete("bubble")
+        self.entity_items.clear()
+        self.entity_images.clear()
+        self.entity_photos.clear()
+        self.bubble_items.clear()
+
+    def _fade_out_scene(self) -> None:
+        """Quick fade-out by lowering opacity of existing items."""
+        for item_id in list(self.entity_items.values()):
+            try:
+                self.canvas.itemconfigure(item_id, state=tk.HIDDEN)
+            except tk.TclError:
+                pass
+        for item_id in list(self.bubble_items):
+            try:
+                self.canvas.itemconfigure(item_id, state=tk.HIDDEN)
+            except tk.TclError:
+                pass
+        self.entity_items.clear()
+        self.entity_images.clear()
+        self.entity_photos.clear()
+        self.bubble_items.clear()
 
     def _draw_status_bar(self) -> None:
         draw_status_bar(self)
@@ -1308,7 +1332,7 @@ class ProjectRoomWidget:
         self.entity_photos.clear()
         self.bubble_items.clear()
         self._status_bar_items.clear()
-        self.redraw_scene()
+        self.redraw_scene(crossfade=True)
 
     def _install_codex_hook_confirm(self) -> None:
         """Show confirmation dialog before installing Codex hook."""

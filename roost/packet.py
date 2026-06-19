@@ -103,3 +103,81 @@ def export_codex_packet(
         encoding="utf-8",
     )
     return file_path
+
+
+def import_codex_packet(
+    packet_file: str | Path,
+    team_state: Any,
+) -> dict[str, Any]:
+    """Import a codex packet JSON file into team state.
+
+    Reads a codex packet and updates the project's mission and tasks
+    in team_state. Does NOT modify widget state — caller must refresh.
+
+    Args:
+        packet_file: Path to the codex packet JSON file.
+        team_state: TeamState instance.
+
+    Returns:
+        The parsed packet dict.
+
+    Raises:
+        FileNotFoundError: If packet_file does not exist.
+        ValueError: If packet format is invalid.
+    """
+    path = Path(packet_file)
+    if not path.exists():
+        raise FileNotFoundError(f"Codex packet not found: {path}")
+    try:
+        packet = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as e:
+        raise ValueError(f"Invalid codex packet JSON: {e}") from e
+
+    if not isinstance(packet, dict) or packet.get("codex_packet") != "v1":
+        raise ValueError("Unsupported codex packet format (expected v1)")
+
+    project = packet.get("project", {})
+    project_id = project.get("id", "")
+    if not project_id:
+        raise ValueError("Codex packet missing project.id")
+
+    # Ensure project exists
+    existing = team_state.get_project(project_id) if team_state else None
+    if team_state and existing is None:
+        team_state.register_project(
+            project_id,
+            display_name=project.get("name", project_id),
+        )
+
+    # Update mission
+    mission = packet.get("mission", "")
+    if mission and team_state:
+        team_state.set_project_mission(project_id, mission)
+
+    # Merge tasks into project queue
+    tasks = packet.get("tasks", [])
+    if team_state and tasks:
+        existing_queue = team_state.get_project_queue(project_id)
+        existing_ids = {t.get("id") for t in existing_queue if t.get("id")}
+        for task in tasks:
+            task_id = task.get("id", "")
+            if task_id and task_id in existing_ids:
+                # Update existing task status
+                for q_item in existing_queue:
+                    if q_item.get("id") == task_id:
+                        q_item["status"] = task.get("status", q_item.get("status", "waiting"))
+                        break
+            else:
+                # Enqueue new task
+                team_state.enqueue_project(
+                    project_id,
+                    {
+                        "id": task_id or None,
+                        "type": task.get("type", "unknown"),
+                        "status": task.get("status", "waiting"),
+                        "enqueued_at": task.get("enqueued_at", ""),
+                        **task.get("payload", {}),
+                    },
+                )
+
+    return packet

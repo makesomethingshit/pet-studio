@@ -252,6 +252,16 @@ def _build_tasks_tab(
     )
     export_btn.pack(side=tk.RIGHT, padx=8, pady=4)
 
+    import_btn = tk.Label(
+        toolbar,
+        text="Import Packet",
+        fg="#89b4fa",
+        bg="#181825",
+        font=("Segoe UI", 8, "underline"),
+        cursor="hand2",
+    )
+    import_btn.pack(side=tk.RIGHT, padx=4, pady=4)
+
     refresh_btn = tk.Label(
         toolbar,
         text="새로고침",
@@ -353,7 +363,33 @@ def _build_tasks_tab(
         except Exception as e:
             status_label.config(text=f"내보내기 실패: {e}")
 
+    def _on_import() -> None:
+        """Import codex packet from file dialog."""
+        from pathlib import Path
+        from tkinter import filedialog
+
+        from roost.packet import import_codex_packet
+
+        if widget._team_state is None or not widget.project_id:
+            status_label.config(text="TeamState 또는 프로젝트 없음")
+            return
+        packet_dir = Path.cwd() / "codex-packets"
+        file_path = filedialog.askopenfilename(
+            title="Import Codex Packet",
+            initialdir=str(packet_dir) if packet_dir.exists() else str(Path.cwd()),
+            filetypes=[("Codex Packet", "*.json")],
+        )
+        if not file_path:
+            return
+        try:
+            import_codex_packet(file_path, widget._team_state)
+            status_label.config(text=f"가져오기 완료: {Path(file_path).name}")
+            _refresh_tasks()
+        except Exception as e:
+            status_label.config(text=f"가져오기 실패: {e}")
+
     export_btn.bind("<Button-1>", lambda e: _on_export())
+    import_btn.bind("<Button-1>", lambda e: _on_import())
     refresh_btn.bind("<Button-1>", lambda e: _refresh_tasks())
 
     # Initial load
