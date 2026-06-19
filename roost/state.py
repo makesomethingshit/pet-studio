@@ -57,6 +57,11 @@ class TeamState:
             "leads": {"pool": []},
             "trust": {},
             "approvals": [],
+            "role_backends": {
+                "scout": "script",
+                "coordinator": "hermes",
+                "lead": "hermes",
+            },
         }
 
     def save(self) -> None:
@@ -257,6 +262,50 @@ class TeamState:
                 self.save()
                 return True
         return False
+
+    def get_employees_by_role(self, role: str) -> list[dict]:
+        """Filter employees by role (scout, coordinator, lead)."""
+        pool = self._data.get("employees", {}).get("pool", [])
+        return [e for e in pool if e.get("role") == role]
+
+    # --- Role Backends (chosen lead agent) ---
+
+    def get_role_backend(self, role: str) -> str:
+        """Get the backend assigned to a role.
+
+        Args:
+            role: One of "scout", "coordinator", "lead".
+
+        Returns:
+            Backend name string (e.g. "script", "hermes").
+        """
+        role_backends = self._data.setdefault(
+            "role_backends",
+            {
+                "scout": "script",
+                "coordinator": "hermes",
+                "lead": "hermes",
+            },
+        )
+        return role_backends.get(role, "hermes")
+
+    def set_role_backend(self, role: str, backend: str) -> None:
+        """Set the backend for a role (called by Phase 2 UI).
+
+        Args:
+            role: One of "scout", "coordinator", "lead".
+            backend: Backend name (e.g. "script", "hermes", "codex").
+        """
+        role_backends = self._data.setdefault(
+            "role_backends",
+            {
+                "scout": "script",
+                "coordinator": "hermes",
+                "lead": "hermes",
+            },
+        )
+        role_backends[role] = backend
+        self.save()
 
     # --- Approvals ---
 

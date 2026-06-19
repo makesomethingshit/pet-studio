@@ -176,6 +176,39 @@ class TestTeamState(unittest.TestCase):
             ids.add(aid)
         self.assertEqual(len(ids), 20)
 
+    # --- Role backends ---
+
+    def test_default_role_backends(self):
+        """Default role_backends should map scout→script, coordinator→hermes, lead→hermes."""
+        self.assertEqual(self.state.get_role_backend("scout"), "script")
+        self.assertEqual(self.state.get_role_backend("coordinator"), "hermes")
+        self.assertEqual(self.state.get_role_backend("lead"), "hermes")
+
+    def test_set_role_backend(self):
+        """set_role_backend should persist the change."""
+        self.state.set_role_backend("lead", "codex")
+        self.assertEqual(self.state.get_role_backend("lead"), "codex")
+        # Other roles unchanged
+        self.assertEqual(self.state.get_role_backend("scout"), "script")
+
+    def test_role_backends_in_default_state(self):
+        """_default_state should include role_backends section."""
+        data = self.state._default_state()
+        self.assertIn("role_backends", data)
+        self.assertEqual(data["role_backends"]["scout"], "script")
+        self.assertEqual(data["role_backends"]["lead"], "hermes")
+
+    def test_get_employees_by_role(self):
+        """get_employees_by_role should filter by role field."""
+        self.state.register_employee("e1", "Alice", role="scout")
+        self.state.register_employee("e2", "Bob", role="lead")
+        self.state.register_employee("e3", "Charlie", role="scout")
+        scouts = self.state.get_employees_by_role("scout")
+        leads = self.state.get_employees_by_role("lead")
+        self.assertEqual(len(scouts), 2)
+        self.assertEqual(len(leads), 1)
+        self.assertEqual(leads[0]["name"], "Bob")
+
 
 if __name__ == "__main__":
     unittest.main()
