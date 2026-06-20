@@ -94,4 +94,4 @@ Per-project security levels:
 
 ## What Pet Studio IS
 
-> A local-first visual AI workroom where reusable Team Rooms, each represented by a hatch-pet-derived pet and equipped with memory, skills, asset packs, endpoint preferences, and tool permissions, connect to Project Hubs, receive Missions, coordinate work through Scout / Coordinator / Lead roles, and produce compact work packets for the selected agent.
+> A local-first visual AI workroom. You see who's working, what role they have, and which model they use — then hand off a compact packet to the lead agent. No log reading required.
