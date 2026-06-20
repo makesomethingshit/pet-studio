@@ -2,7 +2,7 @@
 
 ## One-Line Vision
 
-> The user gives a goal. Pet teams organize the work, call each other when needed, use the right endpoints and skills, and prepare a compact packet for the chosen lead agent.
+> AI work, visible at a glance. Pet Studio is the visual operating layer around AI work — one window, role-aware model routing, compact packets for the lead agent. No log reading required.
 
 Pet Studio is a **local-first visual AI workroom** - not another coding agent, not a hosted dashboard. It is the visual operating layer around AI work.
 
@@ -20,7 +20,7 @@ Pet Studio solves this by giving AI work a **visual room** — one window, one p
 
 | Entity | Description |
 |---|---|
-| **Pet** | Visible team identity. One pet = one Team Room. |
+| **Pet** | Visible team identity. One pet = one Team Room. Currently rendered as the widget canvas avatar; future: independent scene entity. |
 | **Team Room** | Reusable unit with its own avatar, memory, skills, endpoint prefs. |
 | **Project Hub** | Shared meeting space where Team Rooms connect and work. |
 | **Mission** | User-given goal, auto-assigned to relevant rooms. |
@@ -46,7 +46,7 @@ Model choices should be shown in this user-facing order:
 | **Coordinator** | Mid-level | Compress Scout results, draft packets, safe edits, synthesize. |
 | **Lead** | High (SOTA or user-selected agent) | Final judgment, multi-file changes, implementation. |
 
-Delegation flow: `Scout -> Coordinator -> Lead`, with reverse delegation allowed.
+Delegation flow: `Scout -> Coordinator -> Lead`, with reverse delegation allowed (future: agents call each other when blocked).
 
 This hierarchy exists to **save tokens**, not for architectural purity.
 
@@ -61,18 +61,6 @@ The Workroom should let the user switch that whole plan at once. Presets such
 as `save-credits`, `all-local`, `all-value`, and `lead-sota` exist so model
 changes are team-level operations instead of repeated per-role edits.
 
-## Architecture Boundary
-
-```
-pet_studio_core/       -> shared primitives (registry, state, validation)
-pet-studio-widget/     -> desktop widget host (Tkinter, canvas, rendering)
-roost/                 -> team orchestration (state, security, presets, backends)
-pet-studio-kit/        -> asset pipeline (room creation, validation, QA)
-tools/                 -> CLI entry points (install, create, QA)
-```
-
-Key rule: **Core must not depend on Codex.** Codex is one adapter, not the product center.
-
 ## Security Model
 
 Per-project security levels:
@@ -83,6 +71,17 @@ Per-project security levels:
 | L1 Warn | Log risky actions, then allow (default) |
 | L2 Ask | Require user approval for risky actions |
 | L3 Deny | Block risky actions |
+
+## Architecture Boundary
+
+```
+roost/                 -> team orchestration (state, security, presets, backends)
+pet-studio-widget/     -> desktop widget host (Tkinter, canvas, rendering)
+pet-studio-kit/        -> asset pipeline (room creation, validation, QA)
+tools/                 -> CLI entry points (install, create, QA)
+```
+
+Key rule: **Roost must not depend on any single adapter.** Codex, Hermes, OpenCode — all are adapters, not the product center.
 
 ## What Pet Studio Is NOT
 
