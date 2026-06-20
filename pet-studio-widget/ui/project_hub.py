@@ -801,7 +801,8 @@ def _build_team_room_tab(
     columns_frame.rowconfigure(0, weight=1)
 
     panels: dict[str, tk.Listbox] = {}
-    for idx, title in enumerate(("Approvals", "Staff", "Queue")):
+    # Approvals and Queue stay as single panels
+    for idx, title in enumerate(("Approvals", "Queue")):
         frame = tk.Frame(columns_frame, bg="#181825")
         frame.grid(row=0, column=idx, sticky="nsew", padx=(0, 2))
         tk.Label(
@@ -822,6 +823,51 @@ def _build_team_room_tab(
         )
         box.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
         panels[title] = box
+
+    # Staff panel: 3 role groups (Scout / Coordinator / Lead)
+    staff_col = tk.Frame(columns_frame, bg="#181825")
+    staff_col.grid(row=0, column=1, sticky="nsew", padx=(0, 2))
+    tk.Label(
+        staff_col,
+        text="Staff",
+        fg="#cdd6f4",
+        bg="#181825",
+        font=("Segoe UI", 9, "bold"),
+    ).pack(anchor=tk.W, padx=8, pady=(4, 2))
+
+    staff_inner = tk.Frame(staff_col, bg="#181825")
+    staff_inner.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
+
+    ROLE_ORDER = ("scout", "coordinator", "lead")
+    ROLE_LABELS = {"scout": "Scout", "coordinator": "Coordinator", "lead": "Lead"}
+    ROLE_COLORS = {"scout": "#89b4fa", "coordinator": "#f9e2af", "lead": "#a6e3a1"}
+    role_boxes: dict[str, tk.Listbox] = {}
+    for role in ROLE_ORDER:
+        inner_h = 66
+        role_frame = tk.Frame(staff_inner, bg="#181825", height=inner_h)
+        role_frame.pack(fill=tk.X, pady=(2, 0))
+        role_frame.pack_propagate(False)
+        role_frame.grid_propagate(False)
+        tk.Label(
+            role_frame,
+            text=ROLE_LABELS[role],
+            fg=ROLE_COLORS[role],
+            bg="#181825",
+            font=("Segoe UI", 8, "bold"),
+        ).pack(anchor=tk.W, padx=4, pady=(2, 0))
+        rb = tk.Listbox(
+            role_frame,
+            fg="#cdd6f4",
+            bg="#11111b",
+            selectbackground="#313244",
+            relief=tk.FLAT,
+            font=("Segoe UI", 8),
+            activestyle="none",
+            height=2,
+        )
+        rb.pack(fill=tk.BOTH, expand=True, padx=2, pady=(0, 2))
+        role_boxes[role] = rb
+        panels[f"staff_{role}"] = rb
 
     pending_ids: list[str] = []
     queue_indexes: list[int] = []
@@ -847,11 +893,21 @@ def _build_team_room_tab(
         if not pending:
             panels["Approvals"].insert(tk.END, "No pending approvals")
 
+        # Staff: group by role
+        for role in ROLE_ORDER:
+            box = panels[f"staff_{role}"]
+            box.delete(0, tk.END)
         for emp in employees:
             name = emp.get("name", emp.get("id", "?"))
-            panels["Staff"].insert(tk.END, f"{name} [{emp.get('role', 'worker')}, {emp.get('status', 'idle')}]")
-        if not employees:
-            panels["Staff"].insert(tk.END, "No staff assigned")
+            role = emp.get("role", "worker")
+            status = emp.get("status", "idle")
+            box_key = f"staff_{role}"
+            if box_key in panels:
+                panels[box_key].insert(tk.END, f"{name} ({status})")
+        for role in ROLE_ORDER:
+            box = panels[f"staff_{role}"]
+            if box.size() == 0:
+                box.insert(tk.END, "—")
 
         for idx, item in enumerate(queue[:20]):
             queue_indexes.append(idx)
