@@ -2,85 +2,50 @@
 
 ## One-Line Vision
 
-> Multi-agent orchestration with a visual command center. Pet Studio connects your AI tools into a team — each with a role, a model, and a task — and hands off compact work packets to the lead agent.
+> AI를 모르는 사람도 AI팀을 부릴 수 있다.
 
-## Why Pet Studio Exists
+Pet Studio는 **비전공자를 위한 AI 팀 운영 도구**입니다. 복잡한 설정 없이 미션을 입력하면, 역할에 맞는 AI가 알아서 일하고, 결과를 하나의 창에서 확인할 수 있습니다.
 
-Too many AI tools, too many windows — and you still can't see what any of them are actually doing.
+## 핵심 가치
 
-- **Model sprawl**: GPT, Claude, Gemini, Codex, Hermes, OpenCode... each in its own tab, its own log, its own mental model. You switch contexts just to check status.
-- **Agent opacity**: terminal logs, chat diffs, code editors — all coder-centric. You read output to understand what happened. There's no single place where the work is visible at a glance.
-- **Token waste**: expensive models doing simple scans, cheap models sitting idle while the SOTA burns credits on formatting. No role-aware routing by default.
+### 1. 설정 없이 시작
+- 모델 선택, 엔드포인트 설정, 토큰 관리 — 이런 걸 몰라도 됩니다.
+- 기본 설정으로 바로 사용 시작. 필요할 때만 바꾸면 됩니다.
 
-Pet Studio solves this by giving AI work a **command center** — one window, role-aware model routing, compact packets for the lead agent, and a visual layer that makes the work visible without reading logs.
+### 2. 역할 자동 분배
+- 미션을 입력하면 읽기/정리/구현 역할이 자동으로 나뉩니다.
+- 비싼 AI는 중요한 일에만, 저렴한 AI는 단순 일에만 사용됩니다.
+- 사용자는 "누가 뭘 하는지" 안 보고도 됩니다.
 
-## What Pet Studio IS
+### 3. 한눈에 보이는 상태
+- 어떤 AI가 무슨 일을 하는지, 어떤 모델을 쓰는지 — 하나의 창에서 바로 보입니다.
+- 로그를 뒤져서 확인할 필요 없습니다.
 
-A local-first multi-agent orchestration layer with a visual command center.
+### 4. 안전한 실행
+- 위험한 작업(배포, 삭제 등)은 사용자 확인 후에만 실행됩니다.
+- 프로젝트별로 보안 레벨을 다르게 설정할 수 있습니다.
 
-You define projects and missions. Pet Studio routes tasks through Scout, Coordinator, and Lead roles — each using the right model for the job. Staff are tracked, approvals are queued, and work packets are compressed and delivered to the lead agent. All visible in one window.
+## 타겟 유저
 
-## Core Entities
+- AI 도구를 쓰고 싶지만 어떤 모델을 골라야 할지 모르는 사람
+- 여러 AI를 쓰는데 각각 따로 관리하기 귀찮은 사람
+- 코딩을 못 하지만 AI에게 일을 시키고 싶은 사람
+- 전문가는 아니지만 AI를 잘 활용하고 싶은 사람
 
-| Entity | Description |
-|---|---|
-| **Project** | A unit of work with a mission, task queue, and security level. |
-| **Team State** | Shared state: projects, staff, approvals, queue, endpoints, model profiles. Persisted as `team_state.json`. |
-| **Staff** | Team members with roles (Scout, Coordinator, Lead) and statuses (idle, busy, etc.). |
-| **Task** | A unit of work with a type, status, and optional role/staff assignment. |
-| **Work Packet** | Compressed context export: mission, tasks, staff, model profile, role env. Delivered to the lead agent. |
-| **Model Profile** | User-facing model choice: closed, open-SOTA, local, value, free. |
-| **Endpoint Registry** | Aliases (`local/fast`, `remote/sota`) hiding backend details. |
+## Pet Studio가 아닌 것
 
-## Internal Roles (Token Optimization)
+- AI 모델 자체가 아닙니다 (GPT, Claude 등을 대체하지 않습니다)
+- 코딩 에이전트가 아닙니다 (코드를 직접 작성하지 않습니다)
+- 호스팅 서비스가 아닙니다 (로컬에서 동작합니다)
+- 게임이나 시뮬레이션이 아닙니다
 
-To avoid wasting tokens on expensive models for simple work:
-
-| Role | Cost | Responsibility |
-|---|---|---|
-| **Scout** | Low (local/cheap model) | Read-only exploration, file scan, log summary. |
-| **Coordinator** | Mid-level | Compress Scout results, draft packets, safe edits, synthesize. |
-| **Lead** | High (SOTA or user-selected agent) | Final judgment, multi-file changes, implementation. |
-
-Delegation flow: `Scout -> Coordinator -> Lead`, with reverse delegation allowed (future: agents call each other when blocked).
-
-This hierarchy exists to **save tokens**, not for architectural purity.
-
-The default role model plan is credit-aware:
-
-- **Scout** starts on `local/default` or another free/local route.
-- **Coordinator** starts on a value route such as `openrouter/fast`.
-- **Lead** follows the active model profile, because this is where user-selected GPT, Claude, OpenRouter SOTA, or Codex-level judgment belongs.
-
-Presets (`save-credits`, `all-local`, `all-value`, `lead-sota`) let the user switch the whole plan at once instead of editing per-role.
-
-## Security Model
-
-Per-project security levels:
-
-| Level | Behavior |
-|---|---|
-| L0 Allow | Allow risky actions |
-| L1 Warn | Log risky actions, then allow (default) |
-| L2 Ask | Require user approval for risky actions |
-| L3 Deny | Block risky actions |
-
-## Architecture Boundary
+## 아키텍처
 
 ```
-roost/                 -> team orchestration (state, security, presets, backends)
-pet-studio-widget/     -> desktop widget host (Tkinter, canvas, rendering)
-pet-studio-kit/        -> asset pipeline (room creation, validation, QA)
-tools/                 -> CLI entry points (install, create, QA)
+roost/                 -> 팀 오케스트레이션 (상태, 보안, 프리셋, 백엔드)
+pet-studio-widget/     -> 데스크탑 위젯 (Tkinter, 캔버스, 렌더링)
+pet-studio-kit/        -> 에셋 파이프라인 (방 생성, 검증, QA)
+tools/                 -> CLI 진입점 (설치, 생성, QA)
 ```
 
-Key rule: **Roost must not depend on any single adapter.** Codex, Hermes, OpenCode — all are adapters, not the product center.
-
-## What Pet Studio Is NOT
-
-- Not a ChatGPT/Codex/Hermes replacement
-- Not a hosted dashboard or cloud service
-- Not a game or office simulation
-- Not a generic workflow graph
-- Not an image generator
-- Not a coding agent — it orchestrates agents, it doesn't replace them
+핵심 원칙: **Roost는 특정 어댑터에 의존하지 않습니다.** Codex, Hermes, OpenCode 등은 모두 교체 가능한 어댑터입니다.
