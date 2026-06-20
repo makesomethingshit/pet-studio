@@ -2,43 +2,39 @@
 
 ## One-Line Vision
 
-> AI work, visible at a glance. Pet Studio is the visual operating layer around AI work — one window, role-aware model routing, compact packets for the lead agent. No log reading required.
-
-Pet Studio is a **local-first visual AI workroom** - not another coding agent, not a hosted dashboard. It is the visual operating layer around AI work.
+> Multi-agent orchestration with a visual command center. Pet Studio connects your AI tools into a team — each with a role, a model, and a task — and hands off compact work packets to the lead agent.
 
 ## Why Pet Studio Exists
 
 Too many AI tools, too many windows — and you still can't see what any of them are actually doing.
 
 - **Model sprawl**: GPT, Claude, Gemini, Codex, Hermes, OpenCode... each in its own tab, its own log, its own mental model. You switch contexts just to check status.
-- **Agent opacity**: terminal logs, chat diffs, code editors — all coder-centric. You read output to understand what happened. There's no visual room where the work is visible at a glance.
+- **Agent opacity**: terminal logs, chat diffs, code editors — all coder-centric. You read output to understand what happened. There's no single place where the work is visible at a glance.
 - **Token waste**: expensive models doing simple scans, cheap models sitting idle while the SOTA burns credits on formatting. No role-aware routing by default.
 
-Pet Studio solves this by giving AI work a **visual room** — one window, one pet per team, status visible without log reading, role-aware model routing that saves tokens by default.
+Pet Studio solves this by giving AI work a **command center** — one window, role-aware model routing, compact packets for the lead agent, and a visual layer that makes the work visible without reading logs.
+
+## What Pet Studio IS
+
+A local-first multi-agent orchestration layer with a visual command center.
+
+You define projects and missions. Pet Studio routes tasks through Scout, Coordinator, and Lead roles — each using the right model for the job. Staff are tracked, approvals are queued, and work packets are compressed and delivered to the lead agent. All visible in one window.
 
 ## Core Entities
 
 | Entity | Description |
 |---|---|
-| **Pet** | Visible team identity. One pet = one Team Room. Currently rendered as the widget canvas avatar; future: independent scene entity. |
-| **Team Room** | Reusable unit with its own avatar, memory, skills, endpoint prefs. |
-| **Project Hub** | Shared meeting space where Team Rooms connect and work. |
-| **Mission** | User-given goal, auto-assigned to relevant rooms. |
-| **Task Card** | Decomposed unit of work, visible as a card, not hidden in chat. |
-| **Endpoint Registry** | Aliases (`local/fast`, `remote/sota`, `mock/scout`) hiding model details. |
-| **Model Profile** | User-facing model choice ordered as closed models, open-model SOTA, local model routes, value models, then free models. |
+| **Project** | A unit of work with a mission, task queue, and security level. |
+| **Team State** | Shared state: projects, staff, approvals, queue, endpoints, model profiles. Persisted as `team_state.json`. |
+| **Staff** | Team members with roles (Scout, Coordinator, Lead) and statuses (idle, busy, etc.). |
+| **Task** | A unit of work with a type, status, and optional role/staff assignment. |
+| **Work Packet** | Compressed context export: mission, tasks, staff, model profile, role env. Delivered to the lead agent. |
+| **Model Profile** | User-facing model choice: closed, open-SOTA, local, value, free. |
+| **Endpoint Registry** | Aliases (`local/fast`, `remote/sota`) hiding backend details. |
 
 ## Internal Roles (Token Optimization)
 
 To avoid wasting tokens on expensive models for simple work:
-
-Model choices should be shown in this user-facing order:
-
-1. **Closed models**: GPT, Claude, and similar hosted frontier models.
-2. **Open-model SOTA**: strongest available open model route.
-3. **Local model routes**: local-first adapters or script fallback when no local LLM adapter is configured.
-4. **Value models**: good enough for routine work at lower cost.
-5. **Free models**: fallback or no-cost routes.
 
 | Role | Cost | Responsibility |
 |---|---|---|
@@ -50,16 +46,13 @@ Delegation flow: `Scout -> Coordinator -> Lead`, with reverse delegation allowed
 
 This hierarchy exists to **save tokens**, not for architectural purity.
 
-The default role model plan should be credit-aware:
+The default role model plan is credit-aware:
 
 - **Scout** starts on `local/default` or another free/local route.
 - **Coordinator** starts on a value route such as `openrouter/fast`.
-- **Lead** follows the active model profile, because this is where user-selected
-  GPT, Claude, OpenRouter SOTA, or Codex-level judgment belongs.
+- **Lead** follows the active model profile, because this is where user-selected GPT, Claude, OpenRouter SOTA, or Codex-level judgment belongs.
 
-The Workroom should let the user switch that whole plan at once. Presets such
-as `save-credits`, `all-local`, `all-value`, and `lead-sota` exist so model
-changes are team-level operations instead of repeated per-role edits.
+Presets (`save-credits`, `all-local`, `all-value`, `lead-sota`) let the user switch the whole plan at once instead of editing per-role.
 
 ## Security Model
 
@@ -90,7 +83,4 @@ Key rule: **Roost must not depend on any single adapter.** Codex, Hermes, OpenCo
 - Not a game or office simulation
 - Not a generic workflow graph
 - Not an image generator
-
-## What Pet Studio IS
-
-> A local-first visual AI workroom. You see who's working, what role they have, and which model they use — then hand off a compact packet to the lead agent. No log reading required.
+- Not a coding agent — it orchestrates agents, it doesn't replace them
