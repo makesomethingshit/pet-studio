@@ -1,9 +1,9 @@
 """Role-based task dispatcher for Pet Studio.
 
 Routes tasks to the right backend based on role:
-- Scout (read-only) → script backend (free)
-- Coordinator (compress/draft) → hermes backend (mid-cost)
-- Lead (implement/deploy) → chosen lead agent (high-cost, configurable)
+- Scout (read-only) -> script backend (free)
+- Coordinator (compress/draft) -> hermes backend (mid-cost)
+- Lead (implement/deploy) -> chosen lead agent (high-cost, configurable)
 
 Hermes is the default lead agent. Other agents (Codex, OpenCode, etc.)
 can be registered via BackendRegistry.register().
@@ -33,6 +33,12 @@ class TaskRole(enum.Enum):
 # Task type keywords mapped to roles
 _SCOUT_TYPES = {"scan", "read", "summarize_files", "log_summary", "file_scan"}
 _COORDINATOR_TYPES = {"compress", "summarize", "draft_packet", "synthesize"}
+_ROLE_BY_VALUE = {role.value: role for role in TaskRole}
+
+
+def _explicit_task_role(task: dict[str, Any]) -> TaskRole | None:
+    role_value = str(task.get("assignedRole") or task.get("assigned_role") or "").strip().lower()
+    return _ROLE_BY_VALUE.get(role_value)
 
 
 def classify_task(task: dict[str, Any]) -> TaskRole:
@@ -44,6 +50,9 @@ def classify_task(task: dict[str, Any]) -> TaskRole:
     Returns:
         TaskRole enum value.
     """
+    explicit_role = _explicit_task_role(task)
+    if explicit_role:
+        return explicit_role
     task_type = task.get("type", "").lower()
     if task_type in _SCOUT_TYPES:
         return TaskRole.SCOUT
@@ -53,7 +62,7 @@ def classify_task(task: dict[str, Any]) -> TaskRole:
 
 
 class BackendRegistry:
-    """Extensible backend registry — instance-based for test isolation.
+    """Extensible backend registry - instance-based for test isolation.
 
     Default backends: script (free), hermes (subprocess).
     New backends (Codex, OpenCode, etc.) can be registered via register().
@@ -68,7 +77,7 @@ class BackendRegistry:
     def register(self, name: str, cls: type[RoostBackend]) -> None:
         """Register a new backend (e.g. Codex, OpenCode)."""
         self._backends[name] = cls
-        logger.info("Backend registered: %s → %s", name, cls.__name__)
+        logger.info("Backend registered: %s -> %s", name, cls.__name__)
 
     def get(self, name: str) -> type[RoostBackend]:
         """Get backend class by name."""
@@ -91,14 +100,14 @@ class BackendRegistry:
 # Global default instance
 default_registry = BackendRegistry()
 
-# Default role → backend mapping
+# Default role -> backend mapping
 _DEFAULT_ROLE_BACKENDS: dict[TaskRole, str] = {
     TaskRole.SCOUT: "local/fast",
     TaskRole.COORDINATOR: "remote/sota",
     TaskRole.LEAD: "remote/sota",
 }
 
-# Task type → security action mapping
+# Task type -> security action mapping
 _TASK_ACTION_MAP: dict[str, str] = {
     "deploy": "deploy",
     "project.delete": "project.delete",
@@ -114,7 +123,7 @@ def _task_action(task: dict[str, Any]) -> str:
 
 def _resolve_backend_for_role(
     role: TaskRole,
-    team_state: Any,  # TeamState — avoid circular import
+    team_state: Any,  # TeamState - avoid circular import
 ) -> str:
     """Resolve which backend to use for a role.
 
@@ -122,6 +131,9 @@ def _resolve_backend_for_role(
     1. User override in team_state.role_backends
     2. Auto-select based on cost optimization
     """
+    if hasattr(team_state, "resolve_role_backend"):
+        return team_state.resolve_role_backend(role.value)
+
     # 1. Check user override
     role_target = team_state.get_role_backend(role.value)
     if role_target and role_target != _DEFAULT_ROLE_BACKENDS.get(role):
@@ -141,7 +153,7 @@ def dispatch(
 
     Flow:
     1. Security check (project-level)
-    2. Classify task → role
+    2. Classify task -> role
     3. Resolve backend for role (from team_state or default)
     4. Execute via backend.classify_event()
 
@@ -171,7 +183,7 @@ def dispatch(
     # 2. Classify
     role = classify_task(task)
 
-    # 2b. Special case: deliver_packet → skip backend classification
+    # 2b. Special case: deliver_packet -> skip backend classification
     if task.get("type", "").lower() == "deliver_packet":
         from roost.delivery import deliver_packet
 
@@ -179,14 +191,20 @@ def dispatch(
             project_id=project_id,
             team_state=team_state,
             agent=task.get("agent"),
+            role=role.value,
         )
 
     # 3. Resolve backend
     backend_name = _resolve_backend_for_role(role, team_state)
-    logger.debug("Backend resolved: role=%s → backend=%s", role.value, backend_name)
+    logger.debug("Backend resolved: role=%s -> backend=%s", role.value, backend_name)
 
     # 4. Execute
     backend_cls = registry.get(backend_name)
     backend = backend_cls()
+    if hasattr(backend, "set_model_profile"):
+        if hasattr(team_state, "get_role_model_profile"):
+            backend.set_model_profile(team_state.get_role_model_profile(role.value))
+        elif hasattr(team_state, "get_active_model_profile"):
+            backend.set_model_profile(team_state.get_active_model_profile())
     context = team_state.get_context_history()
     return backend.classify_event(task, context)
