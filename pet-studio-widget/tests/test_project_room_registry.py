@@ -23,6 +23,8 @@ TOOLS_DIR = ROOT / "tools"
 PREFLIGHT_SCRIPT = TOOLS_DIR / "pet_studio_preflight.py"
 PYTHON_CMD_WRAPPER = TOOLS_DIR / "pet_studio_python.cmd"
 WIDGET_CMD_WRAPPER = TOOLS_DIR / "pet_studio_widget.cmd"
+MODEL_CMD_WRAPPER = TOOLS_DIR / "pet_studio_model.cmd"
+WORK_CMD_WRAPPER = TOOLS_DIR / "pet_studio_work.cmd"
 DEMO_KIT = ROOT / "runs" / "gakju-imagegen-room-v1" / "kit" / "project-room.json"
 README_SCREENSHOT = ROOT / "docs" / "images" / "gakju-widget-bubble-example.png"
 if str(WIDGET_DIR) not in sys.path:
@@ -777,6 +779,21 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("py -3 --version", text)
         self.assertIn("python --version", text)
         self.assertIn("no working python 3 runtime was found", text)
+        self.assertIn("call exit /b %%errorlevel%%", text)
+        self.assertNotIn("exit /b %errorlevel%", text)
+
+    @unittest.skipIf(os.name != "nt", "Windows .cmd wrapper regression")
+    def test_cmd_python_wrapper_propagates_python_failure(self) -> None:
+        result = subprocess.run(
+            [str(PYTHON_CMD_WRAPPER), "-m", "definitely_missing_pet_studio_module"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("no module named definitely_missing_pet_studio_module", result.stderr.lower())
 
     def test_widget_cmd_wrapper_launches_widget_without_console_python(self) -> None:
         text = WIDGET_CMD_WRAPPER.read_text(encoding="utf-8").lower()
@@ -799,6 +816,109 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("project-room-widget.err.log", ps1_text)
         self.assertIn("python.exe", ps1_text)
         self.assertIn("& $python $script @args", ps1_text)
+        self.assertIn("call exit /b %%errorlevel%%", text)
+        self.assertNotIn("exit /b %errorlevel%", text)
+
+    def test_model_cmd_wrapper_uses_widget_model_cli(self) -> None:
+        text = MODEL_CMD_WRAPPER.read_text(encoding="utf-8").lower()
+
+        self.assertIn("pet_studio_python.cmd", text)
+        self.assertIn("pet_studio_widget.py", text)
+        self.assertIn("%*", text)
+        self.assertIn("rest", text)
+        self.assertNotIn("\"%*\"", text)
+        self.assertNotIn("%2 %3 %4 %5 %6 %7 %8 %9", text)
+        self.assertIn("plan", text)
+        self.assertIn("team", text)
+        self.assertIn("save-credits", text)
+        self.assertIn("all-local", text)
+        self.assertIn("all-value", text)
+        self.assertIn("lead-sota", text)
+        self.assertIn("--team-model-preset", text)
+        self.assertIn("reset-role", text)
+        self.assertIn("clear-role", text)
+        self.assertIn("--clear-role-model", text)
+        self.assertIn("--print-team-model-env", text)
+        self.assertIn("--print-role-model-env", text)
+        self.assertIn("--set-role-model scout", text)
+        self.assertIn("--set-role-model coordinator", text)
+        self.assertIn("--set-role-model lead", text)
+        self.assertIn("rest2", text)
+        self.assertIn("call exit /b %%errorlevel%%", text)
+        self.assertNotIn("exit /b %errorlevel%", text)
+
+    @unittest.skipIf(os.name != "nt", "Windows .cmd wrapper regression")
+    def test_model_cmd_wrapper_propagates_cli_failure(self) -> None:
+        result = subprocess.run(
+            [str(MODEL_CMD_WRAPPER), "--definitely-invalid-option"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("definitely-invalid-option", result.stderr.lower())
+
+    @unittest.skipIf(os.name != "nt", "Windows .cmd wrapper regression")
+    def test_model_cmd_env_team_preserves_options_after_subcommand(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            saved = subprocess.run(
+                [str(MODEL_CMD_WRAPPER), "coordinator", "local", "--state-file", str(state_file)],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            self.assertEqual(saved.returncode, 0, saved.stderr + saved.stdout)
+
+            env_plan = subprocess.run(
+                [str(MODEL_CMD_WRAPPER), "env", "team", "--state-file", str(state_file)],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            role_env = subprocess.run(
+                [str(MODEL_CMD_WRAPPER), "env", "coordinator", "--state-file", str(state_file)],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+        self.assertEqual(env_plan.returncode, 0, env_plan.stderr + env_plan.stdout)
+        self.assertIn("# coordinator: local/default", env_plan.stdout)
+        self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", env_plan.stdout)
+        self.assertEqual(role_env.returncode, 0, role_env.stderr + role_env.stdout)
+        self.assertIn("$env:PET_STUDIO_MODEL_PROFILE = 'local/default'", role_env.stdout)
+        self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", role_env.stdout)
+
+    def test_work_cmd_wrapper_uses_widget_work_cli(self) -> None:
+        text = WORK_CMD_WRAPPER.read_text(encoding="utf-8").lower()
+
+        self.assertIn("pet_studio_python.cmd", text)
+        self.assertIn("pet_studio_widget.py", text)
+        self.assertIn("rest", text)
+        self.assertIn("--goal", text)
+        self.assertIn("--mission", text)
+        self.assertIn("--add-task", text)
+        self.assertIn("--add-staff", text)
+        self.assertIn("--assign-task", text)
+        self.assertIn("--assign-staff", text)
+        self.assertIn("--task-start", text)
+        self.assertIn("--task-done", text)
+        self.assertIn("--work-status", text)
+        self.assertIn("pet_studio_workroom.cmd", text)
+        self.assertIn('if /i "%cmd%"=="staff"', text)
+        self.assertIn('if /i "%cmd%"=="assign-role"', text)
+        self.assertIn('if /i "%cmd%"=="assign-staff"', text)
+        self.assertIn('if /i "%cmd%"=="start"', text)
+        self.assertIn('if /i "%cmd%"=="done"', text)
+        self.assertNotIn("%2 %3 %4 %5 %6 %7 %8 %9", text)
+        self.assertIn("call exit /b %%errorlevel%%", text)
+        self.assertNotIn("exit /b %errorlevel%", text)
 
     def test_widget_script_relaunches_gui_runs_on_windows_python_exe(self) -> None:
         import argparse
@@ -867,15 +987,165 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertNotIn("add_team_room_menu", text)
         self.assertIn('"--workroom"', text)
         self.assertIn("WORKROOM_TITLE", text)
+        self.assertIn("display_name=selected_project.display_name", text)
+        self.assertIn("--test-model-profile", text)
+        self.assertIn("--set-role-model", text)
+        self.assertIn("--clear-role-model", text)
+        self.assertIn("--team-model-preset", text)
+        self.assertIn("--print-team-model-env", text)
+        self.assertIn("--print-role-model-env", text)
+        self.assertIn("roleModelPlan", text)
+        self.assertIn("roleModelEnv", text)
+        self.assertIn("roleModelEnvClear", text)
+        self.assertIn("teamModelPreset", text)
+        self.assertIn("teamModelSavings", text)
+        self.assertIn("teamModelPresets", text)
 
     def test_project_hub_owns_team_room_view(self) -> None:
         text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
         gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        preflight = PREFLIGHT_SCRIPT.read_text(encoding="utf-8")
 
         self.assertIn('notebook.add(team_tab, text="Team Room")', text)
         self.assertIn("def _build_team_room_tab(", text)
         self.assertIn("Pet Studio Workroom", text)
+        self.assertIn("Active model", text)
+        self.assertIn("Team mode", text)
+        self.assertIn("task_indexes", text)
+        self.assertIn("update_project_queue_item", text)
+        self.assertIn('text="Assign staff"', text)
+        self.assertIn('text="Scout"', text)
+        self.assertIn('text="Coordinator"', text)
+        self.assertIn('text="Lead"', text)
+        self.assertIn('text="Start"', text)
+        self.assertIn('text="Done"', text)
+        self.assertIn("Model Profiles (closed -> open-sota -> local -> value -> free)", text)
+        self.assertIn("Credit Plan", text)
+        self.assertIn("estimate_team_model_savings", text)
+        self.assertIn("Lead-only estimate", text)
+        self.assertIn("queue_indexes", text)
+        self.assertIn("dequeue_roost", text)
+        self.assertIn("remove_roost_queue_item", text)
+        self.assertIn("route_roost_queue_item_to_project", text)
+        self.assertIn("register_employee", text)
+        self.assertIn('text="+ Staff"', text)
+        self.assertIn('dialog.title("Add staff")', text)
+        self.assertIn('text="Route to tasks"', text)
+        self.assertIn('text="Dequeue next"', text)
+        self.assertIn('text="Drop selected"', text)
+        self.assertIn('text="Route"', text)
+        self.assertIn("role_model_combos", text)
+        self.assertIn("list_role_model_plan", text)
+        self.assertIn("set_role_model_profile", text)
+        self.assertIn("clear_role_model_profile", text)
+        self.assertIn("Role model reset", text)
+        self.assertIn("apply_team_model_preset", text)
+        self.assertIn("get_team_model_preset_id", text)
+        self.assertIn("프리셋이 적용되었습니다", text)
+        self.assertIn("_save_team_model_preset", text)
+        self.assertIn("_refresh_project_hub_credit_plan", text)
+        self.assertIn("Preset: custom", text)
+        self.assertIn("Save credits", text)
+        self.assertIn("All local", text)
+        self.assertIn("All value", text)
+        self.assertIn("Lead SOTA", text)
+        self.assertIn("역할이 저장되었습니다", text)
+        self.assertIn("_select_model_tier", text)
+        self.assertIn("Open SOTA", text)
+        self.assertIn("Local", text)
+        self.assertIn("Value", text)
+        self.assertIn("Free", text)
+        self.assertIn('"tier"', text)
+        self.assertIn('text="Tier"', text)
+        self.assertIn("closed", text)
+        self.assertIn("open-sota", text)
+        self.assertIn("list_model_profiles", text)
+        self.assertIn("set_active_model_profile", text)
+        self.assertIn("set_model_profile", text)
+        self.assertIn("remove_model_profile", text)
+        self.assertIn("model_profile_powershell_env_lines", text)
+        self.assertIn("role_model_plan_powershell_env_lines", text)
+        self.assertIn("Copy env", text)
+        self.assertIn("Copy selected env", text)
+        self.assertIn("Copy team env plan", text)
+        self.assertIn("_powershell_env_lines_for_profile", text)
+        self.assertIn("_powershell_env_lines_for_role_plan", text)
+        self.assertIn("Test model", text)
+        self.assertIn("_test_model_profile", text)
+        self.assertIn("Export Work Packet", text)
+        self.assertIn("Import Work Packet", text)
+        self.assertIn("export_work_packet", text)
+        self.assertIn("import_work_packet", text)
+        self.assertIn("work-packets", text)
+        self.assertIn("codex-packets", text)
         self.assertIn("project-room-workroom.json", gitignore)
+        self.assertIn("pet-studio-widget/team_state.json", gitignore)
+        self.assertIn("work-packets/", gitignore)
+        self.assertIn("codex-packets/", gitignore)
+        self.assertIn("pet-studio-widget/team_state.json", preflight)
+        self.assertIn("work-packets/probe.json", preflight)
+        self.assertIn("codex-packets/probe.json", preflight)
+
+    def test_workroom_summary_includes_team_model_preset(self) -> None:
+        from ui.project_hub import _summary_lines
+
+        from roost.state import TeamState
+
+        class Widget:
+            project_id = "demo"
+            _project_display_name = "Demo"
+            state = "idle"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state = TeamState(Path(tmp) / "team_state.json")
+            state.register_project("demo", "Demo", security_level=1, mission="Ship the room")
+            widget = Widget()
+            widget._team_state = state
+
+            _summary, meta = _summary_lines(widget)
+
+        self.assertIn("idle", meta)
+        self.assertIn("open-sota openrouter/sota", meta)
+
+    def test_project_hub_formats_profile_env_for_powershell(self) -> None:
+        from ui.project_hub import _powershell_env_lines_for_profile, _powershell_env_lines_for_role_plan
+
+        lines = _powershell_env_lines_for_profile(
+            {
+                "id": "openrouter/test",
+                "provider": "openrouter",
+                "model": "vendor/model's-fast",
+            }
+        )
+
+        self.assertIn("$env:HERMES_MODEL = 'vendor/model''s-fast'", lines)
+        self.assertIn("$env:OPENROUTER_MODEL = 'vendor/model''s-fast'", lines)
+        self.assertIn("$env:PET_STUDIO_MODEL_PROFILE = 'openrouter/test'", lines)
+        self.assertIn("Remove-Item Env:CODEX_MODEL -ErrorAction SilentlyContinue", lines)
+
+        local_lines = _powershell_env_lines_for_profile(
+            {
+                "id": "local/default",
+                "provider": "local",
+                "model": "local",
+            }
+        )
+
+        self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", local_lines)
+        self.assertIn("Remove-Item Env:CODEX_MODEL -ErrorAction SilentlyContinue", local_lines)
+
+        team_lines = _powershell_env_lines_for_role_plan(
+            [
+                {"role": "scout", "profile": {"id": "local/default", "provider": "local", "model": "local"}},
+                {"role": "coordinator", "profile": {"id": "openrouter/fast", "provider": "openrouter", "model": "fast"}},
+            ]
+        )
+
+        self.assertIn("# scout: local/default", team_lines)
+        self.assertIn("# Copy one role section at a time; later sections reuse the same env variable names.", team_lines)
+        self.assertIn("# coordinator: openrouter/fast", team_lines)
+        self.assertIn("$env:OPENROUTER_MODEL = 'fast'", team_lines)
+        self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", team_lines)
 
     def test_entity_hit_testing_ignores_transparent_image_pixels(self) -> None:
         import project_room_widget
@@ -1136,6 +1406,791 @@ class ProjectRoomRegistryTests(unittest.TestCase):
             )
             self.assertEqual(rendered_done.returncode, 0, rendered_done.stderr + rendered_done.stdout)
             self.assertIn('"state": "jumping"', rendered_done.stdout)
+
+    def test_widget_cli_manages_model_profiles_without_gui(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            state_file = work / "project-room-state.json"
+
+            listed = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--list-model-profiles",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(listed.returncode, 0, listed.stderr + listed.stdout)
+            listed_payload = json.loads(listed.stdout)
+            self.assertEqual(listed_payload["activeModelProfile"], "openrouter/sota")
+            self.assertEqual(
+                [profile["tier"] for profile in listed_payload["profiles"][:5]],
+                ["closed", "closed", "open-sota", "local", "value"],
+            )
+            self.assertIn("closed/claude", [profile["id"] for profile in listed_payload["profiles"]])
+
+            saved = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--set-model-profile",
+                    "openrouter/test",
+                    "--model-provider",
+                    "openrouter",
+                    "--model-name",
+                    "test/model",
+                    "--model-cost",
+                    "low",
+                    "--use-model-profile",
+                    "openrouter/test",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(saved.returncode, 0, saved.stderr + saved.stdout)
+            saved_payload = json.loads(saved.stdout)
+            self.assertEqual(saved_payload["activeModelProfile"], "openrouter/test")
+            self.assertTrue((work / "team_state.json").exists())
+
+            env_print = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--print-model-env",
+                    "openrouter/test",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(env_print.returncode, 0, env_print.stderr + env_print.stdout)
+            self.assertIn("$env:OPENROUTER_MODEL = 'test/model'", env_print.stdout)
+            self.assertIn("$env:PET_STUDIO_MODEL_PROFILE = 'openrouter/test'", env_print.stdout)
+
+            codex_alias = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model",
+                    "codex",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(codex_alias.returncode, 0, codex_alias.stderr + codex_alias.stdout)
+            codex_payload = json.loads(codex_alias.stdout)
+            self.assertEqual(codex_payload["activeModelProfile"], "codex/default")
+
+            fast_alias = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model",
+                    "fast",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(fast_alias.returncode, 0, fast_alias.stderr + fast_alias.stdout)
+            fast_payload = json.loads(fast_alias.stdout)
+            self.assertEqual(fast_payload["activeModelProfile"], "openrouter/fast")
+
+            value_alias = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model",
+                    "value",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(value_alias.returncode, 0, value_alias.stderr + value_alias.stdout)
+            value_payload = json.loads(value_alias.stdout)
+            self.assertEqual(value_payload["activeModelProfile"], "openrouter/fast")
+
+            free_alias = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model",
+                    "free",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(free_alias.returncode, 0, free_alias.stderr + free_alias.stdout)
+            free_payload = json.loads(free_alias.stdout)
+            self.assertEqual(free_payload["activeModelProfile"], "openrouter/cheap")
+
+            claude_alias = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model",
+                    "claude",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(claude_alias.returncode, 0, claude_alias.stderr + claude_alias.stdout)
+            claude_payload = json.loads(claude_alias.stdout)
+            self.assertEqual(claude_payload["activeModelProfile"], "closed/claude")
+
+            local_alias = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model",
+                    "local",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(local_alias.returncode, 0, local_alias.stderr + local_alias.stdout)
+            local_payload = json.loads(local_alias.stdout)
+            self.assertEqual(local_payload["activeModelProfile"], "local/default")
+
+            wrapped_codex = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "codex",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped_codex.returncode, 0, wrapped_codex.stderr + wrapped_codex.stdout)
+            wrapped_codex_payload = json.loads(wrapped_codex.stdout)
+            self.assertEqual(wrapped_codex_payload["activeModelProfile"], "codex/default")
+
+            tested = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--set-model-profile",
+                    "local/script-profile",
+                    "--model-backend",
+                    "script",
+                    "--model-provider",
+                    "local",
+                    "--model-name",
+                    "script",
+                    "--use-model-profile",
+                    "local/script-profile",
+                    "--test-model-profile",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(tested.returncode, 0, tested.stderr + tested.stdout)
+            tested_payload = json.loads(tested.stdout)
+            self.assertTrue(tested_payload["ok"])
+            self.assertEqual(tested_payload["profile"]["id"], "local/script-profile")
+            self.assertEqual(tested_payload["diagnostics"]["env"]["PET_STUDIO_MODEL"], "script")
+            self.assertIn("OPENROUTER_API_KEY", tested_payload["diagnostics"]["secrets"])
+
+            status = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--model-status",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(status.returncode, 0, status.stderr + status.stdout)
+            status_payload = json.loads(status.stdout)
+            self.assertEqual(status_payload["activeModelProfile"], "local/script-profile")
+            self.assertEqual(status_payload["teamModelPreset"], "save-credits")
+            self.assertIn("teamModelSavings", status_payload)
+            self.assertEqual(status_payload["roleModelEnv"]["coordinator"]["OPENROUTER_MODEL"], "fast")
+            self.assertEqual(status_payload["roleModelEnvClear"]["scout"], ["OPENROUTER_MODEL", "CODEX_MODEL"])
+            self.assertEqual(status_payload["roleModelEnvClear"]["coordinator"], ["CODEX_MODEL"])
+            self.assertTrue(status_payload["test"]["ok"])
+            role_plan = {item["role"]: item["profile"]["id"] for item in status_payload["roleModelPlan"]}
+            self.assertEqual(role_plan["scout"], "local/default")
+            self.assertEqual(role_plan["coordinator"], "openrouter/fast")
+            self.assertEqual(role_plan["lead"], "local/script-profile")
+
+            coordinator_env = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--print-role-model-env",
+                    "coordinator",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(coordinator_env.returncode, 0, coordinator_env.stderr + coordinator_env.stdout)
+            self.assertIn("$env:PET_STUDIO_MODEL_PROFILE = 'openrouter/fast'", coordinator_env.stdout)
+            self.assertIn("$env:OPENROUTER_MODEL = 'fast'", coordinator_env.stdout)
+
+            wrapped_lead_env = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "env",
+                    "lead",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped_lead_env.returncode, 0, wrapped_lead_env.stderr + wrapped_lead_env.stdout)
+            self.assertIn("$env:PET_STUDIO_MODEL_PROFILE = 'local/script-profile'", wrapped_lead_env.stdout)
+            self.assertIn("$env:HERMES_MODEL = 'script'", wrapped_lead_env.stdout)
+            self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", wrapped_lead_env.stdout)
+            self.assertIn("Remove-Item Env:CODEX_MODEL -ErrorAction SilentlyContinue", wrapped_lead_env.stdout)
+
+            wrapped_team_env = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "env",
+                    "team",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped_team_env.returncode, 0, wrapped_team_env.stderr + wrapped_team_env.stdout)
+            self.assertIn("# scout: local/default", wrapped_team_env.stdout)
+            self.assertIn("# Copy one role section at a time", wrapped_team_env.stdout)
+            self.assertIn("# coordinator: openrouter/fast", wrapped_team_env.stdout)
+            self.assertIn("# lead: local/script-profile", wrapped_team_env.stdout)
+            self.assertIn("$env:OPENROUTER_MODEL = 'fast'", wrapped_team_env.stdout)
+            self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", wrapped_team_env.stdout)
+            self.assertIn("Remove-Item Env:CODEX_MODEL -ErrorAction SilentlyContinue", wrapped_team_env.stdout)
+
+            set_role = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--set-role-model",
+                    "coordinator",
+                    "local",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(set_role.returncode, 0, set_role.stderr + set_role.stdout)
+            set_role_payload = json.loads(set_role.stdout)
+            role_plan = {item["role"]: item["profile"]["id"] for item in set_role_payload["roleModelPlan"]}
+            self.assertEqual(role_plan["coordinator"], "local/default")
+
+            clear_role = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--state-file",
+                    str(state_file),
+                    "--clear-role-model",
+                    "coordinator",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(clear_role.returncode, 0, clear_role.stderr + clear_role.stdout)
+            clear_role_payload = json.loads(clear_role.stdout)
+            role_plan = {item["role"]: item["profile"]["id"] for item in clear_role_payload["roleModelPlan"]}
+            self.assertEqual(role_plan["coordinator"], "openrouter/fast")
+
+            wrapped_role = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "scout",
+                    "free",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped_role.returncode, 0, wrapped_role.stderr + wrapped_role.stdout)
+            wrapped_role_payload = json.loads(wrapped_role.stdout)
+            self.assertEqual(wrapped_role_payload["teamModelPreset"], "custom")
+            role_plan = {item["role"]: item["profile"]["id"] for item in wrapped_role_payload["roleModelPlan"]}
+            self.assertEqual(role_plan["scout"], "openrouter/cheap")
+
+            wrapped_reset = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "reset-role",
+                    "scout",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped_reset.returncode, 0, wrapped_reset.stderr + wrapped_reset.stdout)
+            wrapped_reset_payload = json.loads(wrapped_reset.stdout)
+            role_plan = {item["role"]: item["profile"]["id"] for item in wrapped_reset_payload["roleModelPlan"]}
+            self.assertEqual(role_plan["scout"], "local/default")
+
+            wrapped_preset = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "all-local",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped_preset.returncode, 0, wrapped_preset.stderr + wrapped_preset.stdout)
+            wrapped_preset_payload = json.loads(wrapped_preset.stdout)
+            self.assertEqual(wrapped_preset_payload["teamModelPreset"], "all-local")
+            role_plan = {item["role"]: item["profile"]["id"] for item in wrapped_preset_payload["roleModelPlan"]}
+            self.assertEqual(role_plan["scout"], "local/default")
+            self.assertEqual(role_plan["coordinator"], "local/default")
+            self.assertEqual(role_plan["lead"], "local/default")
+
+            wrapped = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "--state-file",
+                    str(state_file),
+                    "--test-model-profile",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(wrapped.returncode, 0, wrapped.stderr + wrapped.stdout)
+            wrapped_payload = json.loads(wrapped.stdout)
+            self.assertTrue(wrapped_payload["ok"])
+            self.assertEqual(wrapped_payload["profile"]["id"], "local/script-profile")
+            self.assertEqual(wrapped_payload["diagnostics"]["env"]["PET_STUDIO_MODEL_PROFILE"], "local/script-profile")
+
+    def test_widget_cli_team_state_path_follows_state_bridge_path(self) -> None:
+        import project_room_widget
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "nested" / "project-room-state.json"
+
+            self.assertEqual(project_room_widget.team_state_path_for_cli(str(state_file)), state_file.parent / "team_state.json")
+            self.assertEqual(project_room_widget.team_state_path_for_cli(None), WIDGET_DIR / "team_state.json")
+
+    def test_model_profile_failure_explains_broken_hermes_launcher(self) -> None:
+        import project_room_widget
+
+        diagnostics = {}
+        reason = project_room_widget._explain_backend_version_failure(
+            "hermes",
+            101,
+            (
+                'Unable to create process using "C:\\Users\\USER\\AppData\\Roaming\\uv\\python\\'
+                'cpython-3.11.11-windows-x86_64-none\\python.exe" '
+                '"C:\\Users\\USER\\AppData\\Local\\hermes\\hermes-agent\\venv\\Scripts\\hermes.exe" --version'
+            ),
+            diagnostics,
+        )
+
+        self.assertEqual(reason, "hermes launcher could not start its Python runtime")
+        self.assertEqual(
+            diagnostics["pythonRuntimePath"],
+            "C:\\Users\\USER\\AppData\\Roaming\\uv\\python\\cpython-3.11.11-windows-x86_64-none\\python.exe",
+        )
+        self.assertIn("repairHint", diagnostics)
+        self.assertNotIn("missing", reason)
+
+    def test_model_profile_failure_explains_hermes_python_access_denied(self) -> None:
+        import project_room_widget
+
+        diagnostics = {}
+        reason = project_room_widget._explain_backend_version_failure(
+            "hermes",
+            -1,
+            (
+                "[WinError 5] Access is denied: "
+                "'C:\\Users\\USER\\AppData\\Roaming\\uv\\python\\"
+                "cpython-3.11.11-windows-x86_64-none\\python.exe'"
+            ),
+            diagnostics,
+        )
+
+        self.assertEqual(reason, "hermes launcher could not start its Python runtime")
+        self.assertEqual(
+            diagnostics["pythonRuntimePath"],
+            "C:\\Users\\USER\\AppData\\Roaming\\uv\\python\\cpython-3.11.11-windows-x86_64-none\\python.exe",
+        )
+        self.assertIn("repairHint", diagnostics)
+
+    def test_widget_cli_manages_goal_and_task_cards_without_gui(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            state_file = work / "project-room-state.json"
+
+            goal = subprocess.run(
+                [
+                    sys.executable,
+                    str(WIDGET_SCRIPT),
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                    "--goal",
+                    "Ship a usable workroom",
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(goal.returncode, 0, goal.stderr + goal.stdout)
+            goal_payload = json.loads(goal.stdout)
+            self.assertEqual(goal_payload["projectId"], "gakju-archive-demo")
+            self.assertEqual(goal_payload["mission"], "Ship a usable workroom")
+            self.assertEqual(goal_payload["tasks"][0]["task"], "Ship a usable workroom")
+            self.assertEqual(goal_payload["tasks"][0]["source"], "goal")
+            self.assertTrue((work / "team_state.json").exists())
+
+            task = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "task",
+                    "Review (model) workflow",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(task.returncode, 0, task.stderr + task.stdout)
+            task_payload = json.loads(task.stdout)
+            self.assertEqual(len(task_payload["tasks"]), 2)
+            self.assertEqual(task_payload["tasks"][1]["task"], "Review (model) workflow")
+
+            staff = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "staff",
+                    "scout-1",
+                    "Scout One",
+                    "--staff-role",
+                    "scout",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(staff.returncode, 0, staff.stderr + staff.stdout)
+            staff_payload = json.loads(staff.stdout)
+            self.assertEqual(staff_payload["employees"][0]["id"], "scout-1")
+            self.assertEqual(staff_payload["employees"][0]["role"], "scout")
+
+            assigned_role = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "assign-role",
+                    "1",
+                    "coordinator",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(assigned_role.returncode, 0, assigned_role.stderr + assigned_role.stdout)
+            assigned_role_payload = json.loads(assigned_role.stdout)
+            self.assertEqual(assigned_role_payload["tasks"][1]["assignedRole"], "coordinator")
+
+            assigned_staff = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "assign-staff",
+                    "1",
+                    "scout-1",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(assigned_staff.returncode, 0, assigned_staff.stderr + assigned_staff.stdout)
+            assigned_staff_payload = json.loads(assigned_staff.stdout)
+            self.assertEqual(assigned_staff_payload["tasks"][1]["assignedEmployee"], "scout-1")
+            self.assertEqual(assigned_staff_payload["tasks"][1]["assignedRole"], "scout")
+
+            started = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "start",
+                    "1",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(started.returncode, 0, started.stderr + started.stdout)
+            started_payload = json.loads(started.stdout)
+            self.assertEqual(started_payload["tasks"][1]["status"], "running")
+
+            done = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "done",
+                    "1",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(done.returncode, 0, done.stderr + done.stdout)
+            done_payload = json.loads(done.stdout)
+            self.assertEqual(done_payload["tasks"][1]["status"], "done")
+
+            status = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "status",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(status.returncode, 0, status.stderr + status.stdout)
+            status_payload = json.loads(status.stdout)
+            self.assertEqual(status_payload["mission"], "Ship a usable workroom")
+            self.assertEqual(status_payload["teamModelPreset"], "save-credits")
+            self.assertEqual(status_payload["roleModelEnv"]["coordinator"]["OPENROUTER_MODEL"], "fast")
+            self.assertEqual(status_payload["roleModelEnvClear"]["scout"], ["OPENROUTER_MODEL", "CODEX_MODEL"])
+            self.assertEqual(status_payload["teamModelSavings"]["savedUnits"], 5)
+            self.assertEqual([item["task"] for item in status_payload["tasks"]], [
+                "Ship a usable workroom",
+                "Review (model) workflow",
+            ])
+
+            cleared = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "clear",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(cleared.returncode, 0, cleared.stderr + cleared.stdout)
+            cleared_payload = json.loads(cleared.stdout)
+            self.assertEqual(cleared_payload["clearedTasks"], 2)
+            self.assertEqual(cleared_payload["tasks"], [])
+
+            cleared_mission = subprocess.run(
+                [
+                    str(WORK_CMD_WRAPPER),
+                    "clear-mission",
+                    "--project-id",
+                    "gakju-archive-demo",
+                    "--state-file",
+                    str(state_file),
+                ],
+                cwd=ROOT,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            self.assertEqual(cleared_mission.returncode, 0, cleared_mission.stderr + cleared_mission.stdout)
+            cleared_mission_payload = json.loads(cleared_mission.stdout)
+            self.assertEqual(cleared_mission_payload["mission"], "")
+
+    def test_workroom_model_profile_buttons_are_invokable(self) -> None:
+        import tkinter as tk
+        from tkinter import ttk
+
+        from ui.project_hub import show_project_hub
+
+        from roost.state import TeamState
+
+        def walk(widget):
+            for child in widget.winfo_children():
+                yield child
+                yield from walk(child)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state = TeamState(Path(tmp) / "team_state.json")
+            state.register_project("demo", display_name="Demo", security_level=0)
+            state.set_model_profile(None, "openrouter/ui", "script", "openrouter", "ui/model", "low")
+            state.set_active_model_profile(None, "openrouter/ui")
+
+            try:
+                root = tk.Tk()
+            except tk.TclError as error:
+                self.skipTest(f"Tk unavailable: {error}")
+
+            root.withdraw()
+
+            class FakeWidget:
+                def __init__(self) -> None:
+                    self.root = root
+                    self.project_id = "demo"
+                    self.state = "idle"
+                    self._registry_path = None
+                    self._project_display_name = "Demo"
+                    self._hub_window = None
+                    self._workroom_mode = True
+                    self._workroom_window = None
+                    self._team_state = state
+
+                def save_workroom_window(self, hub) -> None:
+                    return None
+
+                def switch_project(self, project_id: str) -> None:
+                    self.project_id = project_id
+
+            fake = FakeWidget()
+            try:
+                show_project_hub(fake)
+                root.update()
+                hub = fake._hub_window
+                self.assertIsNotNone(hub)
+
+                notebook = next(child for child in walk(hub) if isinstance(child, ttk.Notebook))
+                notebook.select(3)
+                root.update()
+
+                buttons = {
+                    child.cget("text"): child
+                    for child in walk(hub)
+                    if isinstance(child, tk.Button) and child.cget("text") in {"Copy env", "Test model", "Local", "Value"}
+                }
+                self.assertEqual(set(buttons), {"Copy env", "Test model", "Local", "Value"})
+
+                buttons["Copy env"].invoke()
+                root.update()
+                self.assertIn("$env:OPENROUTER_MODEL = 'ui/model'", root.clipboard_get())
+
+                buttons["Test model"].invoke()
+                root.update()
+                labels = [child.cget("text") for child in walk(hub) if isinstance(child, tk.Label)]
+                self.assertIn("[Test] openrouter/ui: OK local script", labels)
+
+                buttons["Value"].invoke()
+                root.update()
+                self.assertEqual(state.get_active_model_profile()["tier"], "value")
+
+                buttons["Local"].invoke()
+                root.update()
+                self.assertEqual(state.get_active_model_profile()["tier"], "local")
+
+                preset_combo = next(
+                    child
+                    for child in walk(hub)
+                    if isinstance(child, ttk.Combobox) and "all-value" in tuple(child.cget("values"))
+                )
+                preset_combo.set("all-value")
+                preset_combo.event_generate("<<ComboboxSelected>>")
+                root.update()
+                self.assertEqual(state.get_team_model_preset_id(), "all-value")
+            finally:
+                root.destroy()
 
     def test_infers_enabled_project_from_workspace_path(self) -> None:
         from project_room_registry import ProjectRegistryError, infer_project_for_workspace
@@ -1996,11 +3051,16 @@ class PetStudioPreflightTests(unittest.TestCase):
         kit_result, manifest = pet_studio_preflight.check_project_kit(pet_studio_preflight.DEFAULT_REGISTRY, project)
         validation_result = pet_studio_preflight.validate_project_kit(ROOT, manifest)
         ignore_result = pet_studio_preflight.check_local_only_ignores(ROOT)
+        team_model_result = pet_studio_preflight.check_team_model_plan()
 
         self.assertTrue(registry_result.ok, registry_result.message)
         self.assertTrue(kit_result.ok, kit_result.message)
         self.assertTrue(validation_result.ok, validation_result.message)
         self.assertTrue(ignore_result.ok, ignore_result.message)
+        self.assertTrue(team_model_result.ok, team_model_result.message)
+        self.assertIn("save-credits", team_model_result.message)
+        self.assertIn("saved=5/9 units", team_model_result.message)
+        self.assertIn("env=ok", team_model_result.message)
 
     def test_preflight_reports_registry_and_manifest_failures(self) -> None:
         import pet_studio_preflight

@@ -6,6 +6,8 @@ import argparse
 import json
 import logging
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tkinter as tk
@@ -701,7 +703,7 @@ class ProjectRoomWidget:
 
         # Feedback when no project detected
         if not self.project_id:
-            self._toast_message = "No project detected — right-click to register"
+            self._toast_message = "No project detected - right-click to register"
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
@@ -1459,12 +1461,518 @@ def launch_workroom(
     root.mainloop()
 
 
+def team_state_path_for_cli(state_file_arg: str | None = None) -> Path:
+    state_bridge = Path(state_file_arg).expanduser() if state_file_arg else DEFAULT_STATE_FILE
+    return state_bridge.parent / "team_state.json"
+
+
+MODEL_PROFILE_ALIASES = {
+    "codex": "codex/default",
+    "default": "codex/default",
+    "closed": "codex/default",
+    "closed-model": "codex/default",
+    "gpt": "codex/default",
+    "claude": "closed/claude",
+    "openrouter": "openrouter/sota",
+    "open": "openrouter/sota",
+    "open-sota": "openrouter/sota",
+    "local": "local/default",
+    "local-model": "local/default",
+    "fast": "openrouter/fast",
+    "value": "openrouter/fast",
+    "budget": "openrouter/fast",
+    "sota": "openrouter/sota",
+    "cheap": "openrouter/cheap",
+    "free": "openrouter/cheap",
+}
+
+
+def resolve_model_profile_alias(profile_id: str) -> str:
+    text = profile_id.strip()
+    return MODEL_PROFILE_ALIASES.get(text.lower(), text)
+
+
+def _task_id(index: int = 0) -> str:
+    suffix = f"-{index}" if index else ""
+    return f"task-{datetime.now(UTC).strftime('%Y%m%d%H%M%S%f')}{suffix}"
+
+
+def ensure_team_state_project(team_state: Any, project_id: str, display_name: str | None = None) -> None:
+    if team_state.get_project(project_id) is None:
+        team_state.register_project(project_id, display_name=display_name or project_id)
+
+
+def _profile_env_lines(profile: dict[str, Any]) -> list[str]:
+    from roost.model_profile import model_profile_powershell_env_lines
+
+    return model_profile_powershell_env_lines(profile)
+
+
+def _role_model_profile_for_env(team_state: Any, role: str) -> dict[str, Any]:
+    role_name = role.strip().lower()
+    if role_name not in {"scout", "coordinator", "lead"}:
+        raise ValueError(f"Unknown role: {role!r}")
+    return team_state.get_role_model_profile(role_name)
+
+
+def _role_model_env_for_status(team_state: Any) -> dict[str, dict[str, str]]:
+    from roost.model_profile import role_model_env_overrides
+
+    return role_model_env_overrides(team_state.list_role_model_plan())
+
+
+def _role_model_env_clear_for_status(team_state: Any) -> dict[str, list[str]]:
+    from roost.model_profile import role_model_env_clear
+
+    return role_model_env_clear(team_state.list_role_model_plan())
+
+
+def _team_model_env_lines(team_state: Any) -> list[str]:
+    from roost.model_profile import role_model_plan_powershell_env_lines
+
+    return role_model_plan_powershell_env_lines(team_state.list_role_model_plan())
+
+
+def _explain_backend_version_failure(
+    command: str,
+    returncode: int,
+    stderr: str,
+    diagnostics: dict[str, Any],
+) -> str:
+    runtime_failure = (
+        "Unable to create process using" in stderr
+        or ("python.exe" in stderr and ("Access is denied" in stderr or "access is denied" in stderr.lower()))
+        or ("python.exe" in stderr and "액세스" in stderr)
+    )
+    if not runtime_failure:
+        return f"{command} --version failed with exit code {returncode}"
+
+    python_match = re.search(r'["\']([^"\']*python\.exe)["\']', stderr, re.IGNORECASE)
+    if python_match:
+        python_path = python_match.group(1)
+        diagnostics["pythonRuntimePath"] = python_path
+        try:
+            diagnostics["pythonRuntimeExists"] = Path(python_path).exists()
+            diagnostics["pythonRuntimeAccessible"] = True
+        except OSError as error:
+            diagnostics["pythonRuntimeExists"] = None
+            diagnostics["pythonRuntimeAccessible"] = False
+            diagnostics["pythonRuntimeError"] = str(error)
+    diagnostics["repairHint"] = (
+        "Repair or reinstall Hermes so its virtualenv launcher can start its Python runtime. "
+        "Pet Studio already passed the selected model env to Hermes."
+    )
+    return f"{command} launcher could not start its Python runtime"
+
+
+def test_model_profile(profile: dict[str, Any]) -> dict[str, Any]:
+    from roost.model_profile import build_model_profile_env, model_profile_env_overrides
+
+    backend_name = profile.get("backend", "hermes")
+    diagnostics: dict[str, Any] = {
+        "env": model_profile_env_overrides(profile),
+        "secrets": {
+            "OPENROUTER_API_KEY": bool(os.environ.get("OPENROUTER_API_KEY")),
+        },
+    }
+    if backend_name == "codex":
+        return {
+            "ok": True,
+            "status": "saved",
+            "profile": profile,
+            "diagnostics": diagnostics,
+            "message": "Codex profile is saved; no local Codex backend health check is available.",
+        }
+
+    from roost.dispatcher import BackendRegistry
+
+    try:
+        backend_cls = BackendRegistry().get(backend_name)
+        backend = backend_cls()
+        if hasattr(backend, "set_model_profile"):
+            backend.set_model_profile(profile)
+        command = getattr(backend, "hermes_cmd", None)
+        if command:
+            command_path = shutil.which(command)
+            diagnostics["command"] = command
+            diagnostics["commandPath"] = command_path
+            diagnostics["commandFound"] = command_path is not None
+        ok = bool(backend.health_check()) if hasattr(backend, "health_check") else False
+        reason = ""
+        if not ok and diagnostics.get("commandFound") is False:
+            reason = f"Command not found on PATH: {diagnostics.get('command')}"
+        elif not ok and profile.get("provider") == "openrouter" and not diagnostics["secrets"]["OPENROUTER_API_KEY"]:
+            reason = "OPENROUTER_API_KEY is not set"
+        elif not ok and command:
+            try:
+                probe = subprocess.run(
+                    [command, "--version"],
+                    capture_output=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    text=True,
+                    timeout=5,
+                    env=build_model_profile_env(profile),
+                )
+                diagnostics["versionProbe"] = {
+                    "returnCode": probe.returncode,
+                    "stdout": probe.stdout.strip()[:500],
+                    "stderr": probe.stderr.strip()[:500],
+                }
+                reason = _explain_backend_version_failure(
+                    command,
+                    probe.returncode,
+                    probe.stderr,
+                    diagnostics,
+                )
+            except Exception as probe_error:
+                error_text = str(probe_error)
+                diagnostics["versionProbe"] = {"error": error_text}
+                reason = _explain_backend_version_failure(command, -1, error_text, diagnostics)
+        return {
+            "ok": ok,
+            "status": "ok" if ok else "failed",
+            "profile": profile,
+            "backend": backend_name,
+            "diagnostics": diagnostics,
+            "reason": reason,
+        }
+    except Exception as error:
+        return {
+            "ok": False,
+            "status": "error",
+            "profile": profile,
+            "backend": backend_name,
+            "diagnostics": diagnostics,
+            "error": str(error),
+        }
+
+
+def handle_model_profile_cli(args: argparse.Namespace, parser: argparse.ArgumentParser) -> bool:
+    wants_model_action = any(
+        (
+            args.list_model_profiles,
+            args.model,
+            args.model_status,
+            args.use_model_profile,
+            args.set_model_profile,
+            args.set_role_model,
+            args.clear_role_model,
+            args.team_model_preset,
+            args.remove_model_profile,
+            args.test_model_profile is not None,
+            args.print_model_env is not None,
+            args.print_role_model_env is not None,
+            args.print_team_model_env is not None,
+        )
+    )
+    if not wants_model_action:
+        return False
+
+    from roost.state import TeamState
+
+    team_state = TeamState(team_state_path_for_cli(args.state_file))
+
+    try:
+        if args.set_model_profile:
+            if not args.model_provider:
+                parser.error("--set-model-profile requires --model-provider")
+            if not args.model_name:
+                parser.error("--set-model-profile requires --model-name")
+            team_state.set_model_profile(
+                args.project_id,
+                args.set_model_profile,
+                args.model_backend,
+                args.model_provider,
+                args.model_name,
+                args.model_cost,
+                args.model_tier,
+            )
+            if args.use_model_profile == args.set_model_profile:
+                team_state.set_active_model_profile(args.project_id, args.set_model_profile)
+
+        if args.set_role_model:
+            role, profile_id = args.set_role_model
+            team_state.set_role_model_profile(role, resolve_model_profile_alias(profile_id), project_id=args.project_id)
+
+        if args.clear_role_model:
+            team_state.clear_role_model_profile(args.clear_role_model, project_id=args.project_id)
+
+        if args.team_model_preset:
+            team_state.apply_team_model_preset(args.team_model_preset, project_id=args.project_id)
+
+        selected_model = args.model or args.use_model_profile
+        if selected_model and selected_model != args.set_model_profile:
+            team_state.set_active_model_profile(args.project_id, resolve_model_profile_alias(selected_model))
+
+        if args.remove_model_profile:
+            team_state.remove_model_profile(args.project_id, args.remove_model_profile)
+    except Exception as error:
+        parser.error(str(error))
+
+    active_id = team_state.get_active_model_profile_id()
+    profile_id = args.print_model_env or active_id
+    if args.model_status:
+        profile = next((item for item in team_state.list_model_profiles() if item["id"] == active_id), None)
+        if profile is None:
+            parser.error(f"Unknown model profile: {active_id!r}")
+        print(
+            json.dumps(
+                {
+                    "ok": True,
+                    "activeModelProfile": active_id,
+                    "profile": profile,
+                    "teamModelPreset": team_state.get_team_model_preset_id(),
+                    "roleModelPlan": team_state.list_role_model_plan(),
+                    "roleModelEnv": _role_model_env_for_status(team_state),
+                    "roleModelEnvClear": _role_model_env_clear_for_status(team_state),
+                    "teamModelSavings": team_state.estimate_team_model_savings(),
+                    "teamModelPresets": team_state.list_team_model_presets(),
+                    "test": test_model_profile(profile),
+                    "teamState": str(team_state.state_file),
+                },
+                indent=2,
+            )
+        )
+        return True
+
+    if args.test_model_profile is not None:
+        profile_id = resolve_model_profile_alias(args.test_model_profile) if args.test_model_profile else active_id
+        profile = next((item for item in team_state.list_model_profiles() if item["id"] == profile_id), None)
+        if profile is None:
+            parser.error(f"Unknown model profile: {profile_id!r}")
+        print(json.dumps(test_model_profile(profile), indent=2))
+        return True
+
+    if args.print_model_env is not None:
+        profile_id = resolve_model_profile_alias(profile_id)
+        profile = next((item for item in team_state.list_model_profiles() if item["id"] == profile_id), None)
+        if profile is None:
+            parser.error(f"Unknown model profile: {profile_id!r}")
+        print("\n".join(_profile_env_lines(profile)))
+        return True
+
+    if args.print_role_model_env is not None:
+        try:
+            profile = _role_model_profile_for_env(team_state, args.print_role_model_env)
+        except Exception as error:
+            parser.error(str(error))
+        print("\n".join(_profile_env_lines(profile)))
+        return True
+
+    if args.print_team_model_env is not None:
+        print("\n".join(_team_model_env_lines(team_state)))
+        return True
+
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "activeModelProfile": active_id,
+                "teamModelPreset": team_state.get_team_model_preset_id(),
+                "profiles": team_state.list_model_profiles(),
+                "roleModelPlan": team_state.list_role_model_plan(),
+                "roleModelEnv": _role_model_env_for_status(team_state),
+                "roleModelEnvClear": _role_model_env_clear_for_status(team_state),
+                "teamModelSavings": team_state.estimate_team_model_savings(),
+                "teamModelPresets": team_state.list_team_model_presets(),
+                "teamState": str(team_state.state_file),
+            },
+            indent=2,
+        )
+    )
+    return True
+
+
+def handle_workroom_cli(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+    project_id: str | None,
+    display_name: str | None,
+) -> bool:
+    wants_workroom_action = any(
+        (
+            args.goal,
+            args.mission is not None,
+            args.clear_mission,
+            args.add_task,
+            args.add_staff,
+            args.assign_task,
+            args.assign_staff,
+            args.task_start is not None,
+            args.task_done is not None,
+            args.clear_tasks,
+            args.work_status,
+        )
+    )
+    if not wants_workroom_action:
+        return False
+    if not project_id:
+        parser.error("Workroom CLI actions require --project-id or auto-detected project")
+
+    from roost.state import TeamState
+
+    team_state = TeamState(team_state_path_for_cli(args.state_file))
+    cleared_tasks = 0
+    try:
+        ensure_team_state_project(team_state, project_id, display_name=display_name)
+        if args.clear_tasks:
+            cleared_tasks = team_state.clear_project_queue(project_id)
+        if args.clear_mission:
+            team_state.set_project_mission(project_id, "")
+        if args.goal:
+            team_state.set_project_mission(project_id, args.goal)
+            team_state.enqueue_project(
+                project_id,
+                {
+                    "id": _task_id(),
+                    "type": args.goal,
+                    "task": args.goal,
+                    "status": "waiting",
+                    "source": "goal",
+                },
+            )
+        if args.mission is not None:
+            team_state.set_project_mission(project_id, args.mission)
+        for index, task_text in enumerate(args.add_task or []):
+            team_state.enqueue_project(
+                project_id,
+                {
+                    "id": _task_id(index),
+                    "type": task_text,
+                    "task": task_text,
+                    "status": args.task_status,
+                    "source": "cli",
+                },
+            )
+        for employee_id, employee_name in args.add_staff or []:
+            team_state.register_employee(employee_id, employee_name, role=args.staff_role)
+        for task_index, role in args.assign_task or []:
+            team_state.update_project_queue_item(project_id, int(task_index), {"assignedRole": role})
+        for task_index, employee_id in args.assign_staff or []:
+            updates = {"assignedEmployee": employee_id}
+            for employee in team_state.get_employees():
+                if employee.get("id") == employee_id:
+                    updates["assignedRole"] = employee.get("role", "worker")
+                    break
+            team_state.update_project_queue_item(project_id, int(task_index), updates)
+        if args.task_start is not None:
+            team_state.update_project_queue_item(project_id, args.task_start, {"status": "running"})
+        if args.task_done is not None:
+            team_state.update_project_queue_item(project_id, args.task_done, {"status": "done"})
+    except Exception as error:
+        parser.error(str(error))
+
+    project = team_state.get_project(project_id) or {}
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "projectId": project_id,
+                "displayName": project.get("displayName", display_name or project_id),
+                "mission": team_state.get_project_mission(project_id),
+                "tasks": team_state.get_project_queue(project_id),
+                "employees": team_state.get_employees(),
+                "clearedTasks": cleared_tasks,
+                "activeModelProfile": team_state.get_active_model_profile_id(),
+                "teamModelPreset": team_state.get_team_model_preset_id(),
+                "roleModelPlan": team_state.list_role_model_plan(),
+                "roleModelEnv": _role_model_env_for_status(team_state),
+                "roleModelEnvClear": _role_model_env_clear_for_status(team_state),
+                "teamModelSavings": team_state.estimate_team_model_savings(),
+                "teamState": str(team_state.state_file),
+            },
+            indent=2,
+        )
+    )
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--kit", help="Path to a Pet Studio kit manifest (project-room.json) or kit directory")
     parser.add_argument("--config", default=str(DEFAULT_REGISTRY), help="Project assignment registry path")
     parser.add_argument("--project-id", help="Project id from the registry")
     parser.add_argument("--list-projects", action="store_true", help="List registered projects and exit")
+    parser.add_argument("--list-model-profiles", action="store_true", help="List model profiles and exit")
+    parser.add_argument(
+        "--model",
+        help="Set the active model profile by id or alias: closed/gpt/claude, open-sota/sota, local, value, free",
+    )
+    parser.add_argument("--model-status", action="store_true", help="Test the active model profile and exit")
+    parser.add_argument("--use-model-profile", help="Set the active model profile and exit")
+    parser.add_argument("--set-model-profile", help="Create or update a model profile id and exit")
+    parser.add_argument(
+        "--set-role-model",
+        nargs=2,
+        metavar=("ROLE", "PROFILE"),
+        help="Assign a model profile to scout, coordinator, or lead",
+    )
+    parser.add_argument("--clear-role-model", metavar="ROLE", help="Reset a role model profile to the team default")
+    parser.add_argument(
+        "--team-model-preset",
+        help="Apply a team model preset: save-credits, all-local, all-value, lead-sota",
+    )
+    parser.add_argument("--remove-model-profile", help="Remove a model profile id and exit")
+    parser.add_argument(
+        "--test-model-profile",
+        nargs="?",
+        const="",
+        default=None,
+        help="Run the selected model profile backend health check and exit",
+    )
+    parser.add_argument(
+        "--print-model-env",
+        nargs="?",
+        const="",
+        default=None,
+        help="Print PowerShell env lines for the selected model profile and exit",
+    )
+    parser.add_argument(
+        "--print-role-model-env",
+        metavar="ROLE",
+        help="Print PowerShell env lines for the selected scout, coordinator, or lead model and exit",
+    )
+    parser.add_argument(
+        "--print-team-model-env",
+        nargs="?",
+        const="",
+        default=None,
+        help="Print PowerShell env sections for scout, coordinator, and lead and exit",
+    )
+    parser.add_argument("--model-backend", default="hermes", help="Backend for --set-model-profile")
+    parser.add_argument("--model-provider", help="Provider for --set-model-profile")
+    parser.add_argument("--model-name", help="Model name for --set-model-profile")
+    parser.add_argument("--model-cost", default="high", choices=["free", "low", "high"], help="Cost hint")
+    parser.add_argument(
+        "--model-tier",
+        choices=["closed", "open-sota", "local", "value", "free"],
+        help="Hierarchy tier for --set-model-profile",
+    )
+    parser.add_argument("--goal", help="Set the project mission and enqueue it as the first waiting task")
+    parser.add_argument("--mission", default=None, help="Set the project mission and exit")
+    parser.add_argument("--clear-mission", action="store_true", help="Clear the project mission and exit")
+    parser.add_argument("--add-task", action="append", help="Add a waiting task card to the project queue and exit")
+    parser.add_argument("--task-status", default="waiting", choices=["waiting", "running", "done"], help="Status for --add-task")
+    parser.add_argument("--add-staff", nargs=2, action="append", metavar=("ID", "NAME"), help="Register a staff member")
+    parser.add_argument(
+        "--staff-role",
+        default="worker",
+        choices=["scout", "coordinator", "lead", "worker"],
+        help="Role for --add-staff",
+    )
+    parser.add_argument("--assign-task", nargs=2, action="append", metavar=("INDEX", "ROLE"), help="Assign a task index to a role")
+    parser.add_argument(
+        "--assign-staff",
+        nargs=2,
+        action="append",
+        metavar=("INDEX", "STAFF_ID"),
+        help="Assign a task index to a staff member",
+    )
+    parser.add_argument("--task-start", type=int, metavar="INDEX", help="Mark a task index as running")
+    parser.add_argument("--task-done", type=int, metavar="INDEX", help="Mark a task index as done")
+    parser.add_argument("--clear-tasks", action="store_true", help="Clear all task cards for the selected project and exit")
+    parser.add_argument("--work-status", action="store_true", help="Print current mission and task cards and exit")
     parser.add_argument("--state-file", default=None, help="Optional external project state JSON file")
     parser.add_argument(
         "--layout-file", default=str(DEFAULT_LAYOUT_FILE), help="Optional project entity layout JSON file"
@@ -1504,6 +2012,9 @@ def main() -> None:
     parser.add_argument("--render-once", help="Write one rendered full-size frame to PNG and exit")
     parser.add_argument("--render-project-once", help="Write one project-selected full-size frame to PNG and exit")
     args = parser.parse_args()
+
+    if handle_model_profile_cli(args, parser):
+        return
 
     # Auto-detect project from workspace if --project-id not given and not listing/rendering
     if not args.project_id and not args.list_projects and not args.render_once and not args.render_project_once:
@@ -1551,6 +2062,14 @@ def main() -> None:
         kit_path = resolve_kit_path(args.kit)
     else:
         parser.error("Provide --kit or --project-id.")
+
+    if handle_workroom_cli(
+        args,
+        parser,
+        project_id,
+        selected_project.display_name if selected_project is not None else None,
+    ):
+        return
 
     gui_launch = is_gui_launch(args)
     launch_title = WORKROOM_TITLE if args.workroom else WINDOW_TITLE
@@ -1616,7 +2135,7 @@ def main() -> None:
                 project_id,
                 state,
                 state_file,
-                selected_project.display_name if selected_project is not None else None,
+                display_name=selected_project.display_name if selected_project is not None else None,
             )
         finally:
             if widget_lock is not None:

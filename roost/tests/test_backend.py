@@ -60,6 +60,25 @@ class TestHermesBackend(unittest.TestCase):
         self.assertEqual(result["classification"]["source"], "hermes")
 
     @patch("roost.backend.hermes.subprocess.run")
+    def test_classify_passes_model_profile_env(self, mock_run):
+        self.backend.set_model_profile(
+            {
+                "id": "openrouter/fast",
+                "provider": "openrouter",
+                "model": "fast",
+            }
+        )
+        mock_run.return_value = type("R", (), {"returncode": 0, "stdout": "normal"})()
+
+        self.backend.classify_event({"type": "build"})
+
+        env = mock_run.call_args.kwargs["env"]
+        self.assertEqual(env["PET_STUDIO_MODEL_PROFILE"], "openrouter/fast")
+        self.assertEqual(env["PET_STUDIO_MODEL_PROVIDER"], "openrouter")
+        self.assertEqual(env["PET_STUDIO_MODEL"], "fast")
+        self.assertEqual(env["OPENROUTER_MODEL"], "fast")
+
+    @patch("roost.backend.hermes.subprocess.run")
     def test_classify_no_response(self, mock_run):
         mock_run.return_value = type("R", (), {"returncode": 0, "stdout": ""})()
         event = {"type": "build", "status": "failed"}

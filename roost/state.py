@@ -1,4 +1,4 @@
-"""Roost — shared state manager for Pet Studio team orchestration.
+"""Roost - shared state manager for Pet Studio team orchestration.
 
 Manages team_state.json: project queues, employee/lead status, event logs.
 Works without any LLM (script mode). LLM backends add smarter event classification.
@@ -16,6 +16,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 DEFAULT_STATE_FILE = Path("team_state.json")
+TEAM_STATE_VERSION = "0.8.0-dev"
 
 
 def utc_now() -> str:
@@ -29,10 +30,80 @@ class TeamState:
         "local/fast": {"backend": "script", "cost": "free"},
         "remote/sota": {"backend": "hermes", "cost": "high"},
     }
+    _DEFAULT_MODEL_PROFILES: dict[str, dict[str, str]] = {
+        "codex/default": {
+            "backend": "codex",
+            "provider": "codex",
+            "model": "default",
+            "cost": "high",
+            "tier": "closed",
+        },
+        "closed/claude": {
+            "backend": "hermes",
+            "provider": "openrouter",
+            "model": "claude",
+            "cost": "high",
+            "tier": "closed",
+        },
+        "openrouter/fast": {
+            "backend": "hermes",
+            "provider": "openrouter",
+            "model": "fast",
+            "cost": "low",
+            "tier": "value",
+        },
+        "openrouter/sota": {
+            "backend": "hermes",
+            "provider": "openrouter",
+            "model": "sota",
+            "cost": "high",
+            "tier": "open-sota",
+        },
+        "local/default": {
+            "backend": "script",
+            "provider": "local",
+            "model": "local",
+            "cost": "free",
+            "tier": "local",
+        },
+        "openrouter/cheap": {
+            "backend": "hermes",
+            "provider": "openrouter",
+            "model": "cheap",
+            "cost": "free",
+            "tier": "free",
+        },
+    }
     _DEFAULT_ROLE_BACKENDS: dict[str, str] = {
         "scout": "local/fast",
         "coordinator": "remote/sota",
         "lead": "remote/sota",
+    }
+    _DEFAULT_ROLE_MODEL_PROFILES: dict[str, str] = {
+        "scout": "local/default",
+        "coordinator": "openrouter/fast",
+    }
+    _TEAM_MODEL_PRESETS: dict[str, dict[str, str | None]] = {
+        "save-credits": {
+            "scout": "local/default",
+            "coordinator": "openrouter/fast",
+            "lead": None,
+        },
+        "all-local": {
+            "scout": "local/default",
+            "coordinator": "local/default",
+            "lead": "local/default",
+        },
+        "all-value": {
+            "scout": "openrouter/fast",
+            "coordinator": "openrouter/fast",
+            "lead": "openrouter/fast",
+        },
+        "lead-sota": {
+            "scout": "local/default",
+            "coordinator": "openrouter/fast",
+            "lead": "openrouter/sota",
+        },
     }
     _DEFAULT_SKILLS: dict[str, dict[str, Any]] = {
         "file-scan": {"enabled": True, "endpoint": "local/fast"},
@@ -59,7 +130,7 @@ class TeamState:
 
     def _default_state(self) -> dict[str, Any]:
         return {
-            "version": "0.6.0",
+            "version": TEAM_STATE_VERSION,
             "updatedAt": utc_now(),
             "roost": {
                 "status": "idle",
@@ -75,6 +146,9 @@ class TeamState:
             "trust": {},
             "approvals": [],
             "endpoints": self._copy_default_map(self._DEFAULT_ENDPOINTS),
+            "model_profiles": self._copy_default_map(self._DEFAULT_MODEL_PROFILES),
+            "active_model_profile": "openrouter/sota",
+            "role_model_profiles": dict(self._DEFAULT_ROLE_MODEL_PROFILES),
             "role_backends": dict(self._DEFAULT_ROLE_BACKENDS),
             "skills": self._copy_default_map(self._DEFAULT_SKILLS),
         }
@@ -126,6 +200,45 @@ class TeamState:
             self.save()
             return item
         return None
+
+    def remove_roost_queue_item(self, index: int) -> dict[str, Any] | None:
+        queue = self._data.setdefault("roost", {}).setdefault("queue", [])
+        if index < 0 or index >= len(queue):
+            return None
+        item = queue.pop(index)
+        self.save()
+        return item
+
+    def route_roost_queue_item_to_project(
+        self,
+        index: int,
+        project_id: str,
+        status: str = "waiting",
+    ) -> dict[str, Any] | None:
+        from roost.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
+        projects = self._data.setdefault("projects", {})
+        project = projects.get(project_id)
+        if not project:
+            return None
+        roost_queue = self._data.setdefault("roost", {}).setdefault("queue", [])
+        if index < 0 or index >= len(roost_queue):
+            return None
+
+        item = dict(roost_queue.pop(index))
+        task_type = item.get("type", item.get("task", "unknown"))
+        item.setdefault("type", task_type)
+        item.setdefault("task", task_type)
+        item.setdefault("source", "roost")
+        item["status"] = status
+        item["routedAt"] = utc_now()
+        project.setdefault("queue", []).append(item)
+        self.save()
+        return item
 
     # --- Projects ---
 
@@ -219,6 +332,50 @@ class TeamState:
             queue.append(task)
             self.save()
 
+    def update_project_queue_item(
+        self,
+        project_id: str,
+        index: int,
+        updates: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        from roost.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
+        project = self._data.setdefault("projects", {}).get(project_id)
+        if not project:
+            return None
+        queue = project.setdefault("queue", [])
+        if index < 0 or index >= len(queue):
+            return None
+        item = queue[index]
+        for key, value in updates.items():
+            if value is None:
+                item.pop(key, None)
+            else:
+                item[key] = value
+        item["updatedAt"] = utc_now()
+        self.save()
+        return item
+
+    def clear_project_queue(self, project_id: str) -> int:
+        from roost.security import SecurityError, check_security
+
+        try:
+            check_security(project_id, "state.write", self)
+        except SecurityError:
+            raise
+        project = self._data.setdefault("projects", {}).get(project_id)
+        if not project:
+            return 0
+        queue = project.setdefault("queue", [])
+        count = len(queue)
+        project["queue"] = []
+        self.save()
+        return count
+
     def log_event(self, project_id: str, event: dict[str, Any]) -> None:
         project = self._data.setdefault("projects", {}).get(project_id)
         if project:
@@ -299,6 +456,234 @@ class TeamState:
     def _ensure_endpoints(self) -> dict[str, dict[str, Any]]:
         return self._data.setdefault("endpoints", self._copy_default_map(self._DEFAULT_ENDPOINTS))
 
+    def _ensure_model_profiles(self) -> dict[str, dict[str, Any]]:
+        profiles = self._data.setdefault("model_profiles", self._copy_default_map(self._DEFAULT_MODEL_PROFILES))
+        for profile_id, info in self._DEFAULT_MODEL_PROFILES.items():
+            profiles.setdefault(profile_id, dict(info))
+        return profiles
+
+    def list_model_profiles(self) -> list[dict[str, Any]]:
+        from roost.model_profile import model_profile_sort_key, model_profile_tier
+
+        profiles = self._ensure_model_profiles()
+        results = []
+        for profile_id, info in profiles.items():
+            profile = {
+                "id": profile_id,
+                "backend": info.get("backend", ""),
+                "provider": info.get("provider", ""),
+                "model": info.get("model", ""),
+                "cost": info.get("cost", ""),
+                "tier": info.get("tier") or model_profile_tier({"id": profile_id, **info}),
+            }
+            results.append(profile)
+        return sorted(results, key=model_profile_sort_key)
+
+    def get_active_model_profile_id(self) -> str:
+        profile_id = self._data.get("active_model_profile", "openrouter/sota")
+        profiles = self._ensure_model_profiles()
+        return profile_id if profile_id in profiles else "openrouter/sota"
+
+    def get_active_model_profile(self) -> dict[str, Any]:
+        from roost.model_profile import model_profile_tier
+
+        profile_id = self.get_active_model_profile_id()
+        profile = dict(self._ensure_model_profiles().get(profile_id, {}))
+        profile["id"] = profile_id
+        profile["tier"] = profile.get("tier") or model_profile_tier(profile)
+        return profile
+
+    def _ensure_role_model_profiles(self) -> dict[str, str]:
+        role_profiles = self._data.setdefault("role_model_profiles", dict(self._DEFAULT_ROLE_MODEL_PROFILES))
+        for role, profile_id in self._DEFAULT_ROLE_MODEL_PROFILES.items():
+            role_profiles.setdefault(role, profile_id)
+        return role_profiles
+
+    def get_role_model_profile_id(self, role: str) -> str:
+        """Return the model profile assigned to a team role.
+
+        Lead follows the active profile unless it is explicitly overridden, so
+        the user can switch the main expensive model without pushing Scout or
+        Coordinator onto that route.
+        """
+        role = role.strip().lower()
+        profiles = self._ensure_model_profiles()
+        profile_id = self._ensure_role_model_profiles().get(role)
+        if role == "lead" and not profile_id:
+            return self.get_active_model_profile_id()
+        if profile_id in profiles:
+            return str(profile_id)
+        fallback = self._DEFAULT_ROLE_MODEL_PROFILES.get(role)
+        if fallback in profiles:
+            return str(fallback)
+        return self.get_active_model_profile_id()
+
+    def get_role_model_profile(self, role: str) -> dict[str, Any]:
+        from roost.model_profile import model_profile_tier
+
+        profile_id = self.get_role_model_profile_id(role)
+        profile = dict(self._ensure_model_profiles().get(profile_id, {}))
+        profile["id"] = profile_id
+        profile["tier"] = profile.get("tier") or model_profile_tier(profile)
+        return profile
+
+    def set_role_model_profile(self, role: str, profile_id: str, project_id: str | None = None) -> None:
+        self._check_reconfigure(project_id)
+        role = role.strip().lower()
+        if role not in {"scout", "coordinator", "lead"}:
+            raise ValueError(f"Unknown role: {role!r}")
+        if profile_id not in self._ensure_model_profiles():
+            raise ValueError(f"Unknown model profile: {profile_id!r}")
+        self._ensure_role_model_profiles()[role] = profile_id
+        self.save()
+
+    def clear_role_model_profile(self, role: str, project_id: str | None = None) -> bool:
+        self._check_reconfigure(project_id)
+        role = role.strip().lower()
+        if role not in {"scout", "coordinator", "lead"}:
+            raise ValueError(f"Unknown role: {role!r}")
+        role_profiles = self._ensure_role_model_profiles()
+        if role not in role_profiles:
+            return False
+        del role_profiles[role]
+        self.save()
+        return True
+
+    def list_team_model_presets(self) -> list[dict[str, Any]]:
+        return [
+            {"id": preset_id, "roles": dict(roles)}
+            for preset_id, roles in sorted(self._TEAM_MODEL_PRESETS.items())
+        ]
+
+    def get_team_model_preset_id(self) -> str:
+        role_profiles = self._ensure_role_model_profiles()
+        for preset_id, roles in self._TEAM_MODEL_PRESETS.items():
+            explicit_roles_match = all(
+                role_profiles.get(role) == profile_id
+                for role, profile_id in roles.items()
+                if profile_id is not None
+            )
+            follow_active_roles_match = all(
+                role not in role_profiles
+                for role, profile_id in roles.items()
+                if profile_id is None
+            )
+            if explicit_roles_match and follow_active_roles_match:
+                return preset_id
+        return "custom"
+
+    def apply_team_model_preset(self, preset_id: str, project_id: str | None = None) -> None:
+        self._check_reconfigure(project_id)
+        preset_id = preset_id.strip().lower()
+        aliases = {
+            "credits": "save-credits",
+            "cheap": "save-credits",
+            "local": "all-local",
+            "value": "all-value",
+            "sota": "lead-sota",
+        }
+        preset_id = aliases.get(preset_id, preset_id)
+        if preset_id not in self._TEAM_MODEL_PRESETS:
+            raise ValueError(f"Unknown team model preset: {preset_id!r}")
+
+        profiles = self._ensure_model_profiles()
+        role_profiles = self._ensure_role_model_profiles()
+        for role, profile_id in self._TEAM_MODEL_PRESETS[preset_id].items():
+            if profile_id is None:
+                role_profiles.pop(role, None)
+                continue
+            if profile_id not in profiles:
+                raise ValueError(f"Unknown model profile: {profile_id!r}")
+            role_profiles[role] = profile_id
+        self.save()
+
+    def resolve_role_backend(self, role: str) -> str:
+        role = role.strip().lower()
+        role_target = self.get_role_backend(role)
+        if role_target and role_target != self._DEFAULT_ROLE_BACKENDS.get(role):
+            return self.resolve_endpoint_backend(role_target)
+        profile_backend = self.get_role_model_profile(role).get("backend")
+        if profile_backend:
+            return str(profile_backend)
+        return self.resolve_endpoint_backend(self.auto_select_endpoint(role))
+
+    def list_role_model_plan(self) -> list[dict[str, Any]]:
+        """Return the credit-aware model plan for Scout, Coordinator, Lead."""
+        plan = []
+        for role in ("scout", "coordinator", "lead"):
+            role_target = self.get_role_backend(role)
+            profile = self.get_role_model_profile(role)
+            endpoint = role_target if role_target and role_target != self._DEFAULT_ROLE_BACKENDS.get(role) else profile["id"]
+            plan.append(
+                {
+                    "role": role,
+                    "profile": profile,
+                    "endpoint": endpoint,
+                    "backend": self.resolve_role_backend(role),
+                }
+            )
+        return plan
+
+    def estimate_team_model_savings(self) -> dict[str, Any]:
+        """Estimate relative credit savings versus routing all roles to Lead."""
+        from roost.model_profile import estimate_role_model_plan_savings
+
+        return estimate_role_model_plan_savings(
+            self.list_role_model_plan(),
+            self.get_role_model_profile("lead"),
+        )
+
+    def set_active_model_profile(self, project_id: str | None, profile_id: str) -> None:
+        self._check_reconfigure(project_id)
+        if profile_id not in self._ensure_model_profiles():
+            raise ValueError(f"Unknown model profile: {profile_id!r}")
+        self._data["active_model_profile"] = profile_id
+        self.save()
+
+    def set_model_profile(
+        self,
+        project_id: str | None,
+        profile_id: str,
+        backend: str,
+        provider: str,
+        model: str,
+        cost: str,
+        tier: str | None = None,
+    ) -> None:
+        from roost.model_profile import model_profile_tier
+
+        self._check_reconfigure(project_id)
+        profile_id = profile_id.strip()
+        provider = provider.strip()
+        model = model.strip()
+        if not profile_id:
+            raise ValueError("Model profile id is required")
+        if not provider:
+            raise ValueError("Model provider is required")
+        if not model:
+            raise ValueError("Model name is required")
+        self._ensure_model_profiles()[profile_id] = {
+            "backend": backend.strip() or "hermes",
+            "provider": provider,
+            "model": model,
+            "cost": cost.strip() or "high",
+            "tier": tier or model_profile_tier(
+                {"id": profile_id, "provider": provider, "model": model, "cost": cost}
+            ),
+        }
+        self.save()
+
+    def remove_model_profile(self, project_id: str | None, profile_id: str) -> bool:
+        self._check_reconfigure(project_id)
+        profiles = self._ensure_model_profiles()
+        if profile_id not in profiles:
+            return False
+        if profile_id == self.get_active_model_profile_id():
+            raise ValueError("Cannot remove the active model profile")
+        del profiles[profile_id]
+        self.save()
+        return True
+
     def list_endpoints(self) -> list[dict[str, Any]]:
         endpoints = self._ensure_endpoints()
         return [
@@ -357,9 +742,9 @@ class TeamState:
         """Automatically select the best endpoint for a role.
 
         Cost-optimized selection:
-        - Scout → cheapest available (free > low > high)
-        - Coordinator → mid-cost (low > free > high)
-        - Lead → user's chosen lead agent (default: remote/sota)
+        - Scout -> cheapest available (free > low > high)
+        - Coordinator -> mid-cost (low > free > high)
+        - Lead -> user's chosen lead agent (default: remote/sota)
 
         Returns:
             Endpoint alias string.

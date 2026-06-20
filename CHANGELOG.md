@@ -2,27 +2,54 @@
 
 All notable changes to Pet Studio are documented here.
 
+## Unreleased
+
+### Added
+
+- Workroom-oriented team model presets for Scout, Coordinator, and Lead.
+- Model profile CLI wrapper (`tools/pet_studio_model.cmd`) for active model,
+  team preset, role model, and role env plan switching.
+- Work CLI wrapper (`tools/pet_studio_work.cmd`) for mission, task, staff, role,
+  start/done, and status updates without opening the GUI.
+- Work Packet model metadata: active model profile, team model preset, role
+  model plan, role env overrides, provider env cleanup hints, and relative
+  Lead-only savings estimate.
+
+### Changed
+
+- Workroom Endpoints tab now exposes model profiles, credit-aware role plan,
+  team presets, selected-role env copy, and team env plan copy.
+- Dispatcher and packet delivery can route work by assigned team role instead
+  of always using the active Lead profile.
+- `team_state.json` contract version is now `0.8.0-dev`.
+
+### Fixed
+
+- Role env output now clears stale provider-specific model variables before
+  setting a different route in the same shell.
+- Preflight local-only checks now include Work Packet export directories.
+
 ## 0.7.0 - 2026-06-19
 
 ### Added
 
-- Project Hub Toplevel window (`ui/project_hub.py`) — project list, switching, mission input, task cards.
-- Task Cards tab — waiting/running/done columns with auto-sort from team_state queue.
-- Codex packet export (`roost/packet.py`) — team_state → codex packet v1 JSON with slug validation.
-- Mission input in Project Hub — per-project mission text saved to team_state.
+- Project Hub Toplevel window (`ui/project_hub.py`) - project list, switching, mission input, task cards.
+- Task Cards tab - waiting/running/done columns with auto-sort from team_state queue.
+- Work Packet export (`roost/packet.py`) - team_state to Work Packet v1 JSON with slug validation and legacy marker compatibility.
+- Mission input in Project Hub - per-project mission text saved to team_state.
 - State-aware status bar colors (green=running/done, red=failed/blocked, yellow=review, blue=waiting).
-- Toast/status bar separation — toast hides status bar text, restores on expiry.
+- Toast/status bar separation - toast hides status bar text, restores on expiry.
 
 ### Changed
 
-- Team Room panel — converted from slide-in Toplevel to right-click context menu submenu (`add_team_room_menu`).
-- `roost/state.py` — `list_projects()`, `set_project_mission()`, `get_project_mission()` added; `register_project()` now accepts `mission` field.
+- Team Room panel - converted from slide-in Toplevel to right-click context menu submenu (`add_team_room_menu`).
+- `roost/state.py` - `list_projects()`, `set_project_mission()`, `get_project_mission()` added; `register_project()` now accepts `mission` field.
 
 ### Fixed
 
-- Popup close reference leak (`_team_room_panel` not cleaned up) — replaced with menu-based approach.
-- Context menu topmost conflict — menu opens with topmost released, restores after close.
-- Export path escape vulnerability — `_safe_project_filename()` slug validation on project_id.
+- Popup close reference leak (`_team_room_panel` not cleaned up) - replaced with menu-based approach.
+- Context menu topmost conflict - menu opens with topmost released, restores after close.
+- Export path escape vulnerability - `_safe_project_filename()` slug validation on project_id.
 
 ### Tests
 
@@ -39,7 +66,7 @@ All notable changes to Pet Studio are documented here.
 - `Ctrl+Shortcut+T` toggle for Team Room panel.
 - Default employee pool (Codex, Claude) in `team_state.json`.
 - Full UUID (36 chars) for approval IDs instead of truncated 8-char.
-- Zip Slip prevention in `import_preset()` — `is_relative_to()` check on all extracted paths.
+- Zip Slip prevention in `import_preset()` - `is_relative_to()` check on all extracted paths.
 
 ### Tests
 

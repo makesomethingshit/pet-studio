@@ -1,4 +1,4 @@
-"""Tests for roost dispatcher — role-based task routing."""
+"""Tests for roost dispatcher role-based task routing."""
 
 from __future__ import annotations
 
@@ -31,6 +31,11 @@ class TestClassifyTask(unittest.TestCase):
         self.assertEqual(classify_task({"type": "implement"}), TaskRole.LEAD)
         self.assertEqual(classify_task({"type": "deploy"}), TaskRole.LEAD)
         self.assertEqual(classify_task({}), TaskRole.LEAD)
+
+    def test_assigned_role_overrides_type(self):
+        self.assertEqual(classify_task({"type": "implement", "assignedRole": "coordinator"}), TaskRole.COORDINATOR)
+        self.assertEqual(classify_task({"type": "summarize", "assignedRole": "lead"}), TaskRole.LEAD)
+        self.assertEqual(classify_task({"type": "deploy", "assigned_role": "scout"}), TaskRole.SCOUT)
 
     def test_case_insensitive(self):
         self.assertEqual(classify_task({"type": "SCAN"}), TaskRole.SCOUT)
@@ -148,6 +153,66 @@ class TestDispatch(unittest.TestCase):
         self.state.set_role_backend("scout", "mock_backend")
         result = dispatch(task, self.state, registry=custom_registry)
         self.assertEqual(result["classification"]["source"], "mock")
+
+    def test_dispatch_passes_active_model_profile_to_backend(self):
+        task = {"type": "implement", "project_id": "test-proj"}
+        self.state.set_active_model_profile(None, "openrouter/fast")
+        custom_registry = BackendRegistry()
+        mock_cls = MagicMock(spec=object)
+        mock_cls.__name__ = "MockHermes"
+        mock_instance = MagicMock()
+        mock_instance.classify_event.return_value = {
+            "type": "implement",
+            "classification": {"priority": "normal", "source": "mock"},
+        }
+        mock_cls.return_value = mock_instance
+        custom_registry.register("hermes", mock_cls)
+
+        dispatch(task, self.state, registry=custom_registry)
+
+        mock_instance.set_model_profile.assert_called_once()
+        profile = mock_instance.set_model_profile.call_args.args[0]
+        self.assertEqual(profile["id"], "openrouter/fast")
+
+    def test_dispatch_passes_role_model_profile_to_backend(self):
+        task = {"type": "summarize", "project_id": "test-proj"}
+        self.state.set_active_model_profile(None, "openrouter/sota")
+        custom_registry = BackendRegistry()
+        mock_cls = MagicMock(spec=object)
+        mock_cls.__name__ = "MockHermes"
+        mock_instance = MagicMock()
+        mock_instance.classify_event.return_value = {
+            "type": "summarize",
+            "classification": {"priority": "normal", "source": "mock"},
+        }
+        mock_cls.return_value = mock_instance
+        custom_registry.register("hermes", mock_cls)
+
+        dispatch(task, self.state, registry=custom_registry)
+
+        mock_instance.set_model_profile.assert_called_once()
+        profile = mock_instance.set_model_profile.call_args.args[0]
+        self.assertEqual(profile["id"], "openrouter/fast")
+
+    def test_dispatch_uses_assigned_role_model_profile(self):
+        task = {"type": "implement", "project_id": "test-proj", "assignedRole": "coordinator"}
+        self.state.set_active_model_profile(None, "openrouter/sota")
+        custom_registry = BackendRegistry()
+        mock_cls = MagicMock(spec=object)
+        mock_cls.__name__ = "MockHermes"
+        mock_instance = MagicMock()
+        mock_instance.classify_event.return_value = {
+            "type": "implement",
+            "classification": {"priority": "normal", "source": "mock"},
+        }
+        mock_cls.return_value = mock_instance
+        custom_registry.register("hermes", mock_cls)
+
+        dispatch(task, self.state, registry=custom_registry)
+
+        mock_instance.set_model_profile.assert_called_once()
+        profile = mock_instance.set_model_profile.call_args.args[0]
+        self.assertEqual(profile["id"], "openrouter/fast")
 
     def test_dispatch_security_blocks(self):
         """L3 DENY project should raise SecurityError for risky actions."""

@@ -12,10 +12,10 @@ set "PET_STUDIO_WIDGET_PS1=%~dp0pet_studio_widget.ps1"
 if exist "%PET_STUDIO_WIDGET_PS1%" (
     if defined PET_STUDIO_WIDGET_FOREGROUND (
         powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%PET_STUDIO_WIDGET_PS1%" %*
-        exit /b %ERRORLEVEL%
+        call exit /b %%ERRORLEVEL%%
     )
     powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%PET_STUDIO_WIDGET_PS1%" %*
-    exit /b %ERRORLEVEL%
+    call exit /b %%ERRORLEVEL%%
 )
 
 if defined PET_STUDIO_PYTHONW (

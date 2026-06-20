@@ -1,4 +1,4 @@
-"""Hermes Agent backend — subprocess-based event classification."""
+"""Hermes Agent backend - subprocess-based event classification."""
 
 from __future__ import annotations
 
@@ -7,11 +7,13 @@ import logging
 import subprocess
 from typing import Any
 
+from roost.model_profile import build_model_profile_env
+
 logger = logging.getLogger(__name__)
 
 
 class HermesBackend:
-    """Hermes Agent backend — subprocess-based event classification.
+    """Hermes Agent backend - subprocess-based event classification.
 
     Uses `hermes -z` for one-shot classification via subprocess.
     Falls back to script rules if Hermes is not available.
@@ -22,14 +24,24 @@ class HermesBackend:
     def __init__(self, hermes_cmd: str = "hermes", timeout: int = 10):
         self.hermes_cmd = hermes_cmd
         self.timeout = timeout
+        self.model_profile: dict[str, Any] | None = None
+
+    def set_model_profile(self, profile: dict[str, Any]) -> None:
+        self.model_profile = dict(profile)
+
+    def _env(self) -> dict[str, str]:
+        return build_model_profile_env(self.model_profile)
 
     def _run_hermes(self, prompt: str) -> str | None:
         try:
             result = subprocess.run(
                 [self.hermes_cmd, "-z", prompt],
                 capture_output=True,
+                encoding="utf-8",
+                errors="replace",
                 text=True,
                 timeout=self.timeout,
+                env=self._env(),
             )
             if result.returncode == 0:
                 return result.stdout.strip()
@@ -60,8 +72,11 @@ class HermesBackend:
             result = subprocess.run(
                 [self.hermes_cmd, "--version"],
                 capture_output=True,
+                encoding="utf-8",
+                errors="replace",
                 text=True,
                 timeout=5,
+                env=self._env(),
             )
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired, OSError):

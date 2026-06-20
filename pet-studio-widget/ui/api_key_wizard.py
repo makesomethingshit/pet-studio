@@ -8,10 +8,8 @@ from __future__ import annotations
 
 import json
 import tkinter as tk
-from tkinter import ttk
 from pathlib import Path
 from typing import Any
-
 
 WIZARD_BG = "#1e1e2e"
 WIZARD_SURFACE = "#181825"

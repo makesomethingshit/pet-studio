@@ -1,18 +1,25 @@
 # Pet Studio Maintainer Notes
 
-This repository is being prepared for the Pet Studio `v0.6.0` release.
+This repository is being prepared for the Pet Studio `v0.8` workroom line.
 
 ## Public Positioning
 
-Pet Studio is a local-first Codex skill plus desktop widget runtime for building layered pet rooms from hatch-pet packages. The public surface should use Pet Studio naming and stay focused on what works today:
+Pet Studio is a local-first Windows Workroom and desktop widget for project
+rooms. Codex is an optional adapter, not the product center. The public surface
+should use Pet Studio naming and stay focused on what works today:
 
 - launch the sample room
 - install the local `$pet-studio` skill
 - optionally connect Codex hooks to speech bubbles
 - create a first custom room from a hatch-pet package and room assets
 - validate, preflight, render, and create local QA evidence
+- use the Workroom for mission input, task cards, Team Room status, endpoint
+  visibility, and team model presets
+- export/import Work Packets for tasks, staff assignments, model policy, role
+  env, and relative credit estimates
 
-Longer-term workroom concepts live in `docs/PET_STUDIO_WORKROOM_VISION.md`. Treat them as direction, not current feature promises.
+Longer-term workroom concepts live in `docs/PET_STUDIO_WORKROOM_VISION.md`.
+Treat them as direction, not current feature promises.
 
 ## Compatibility Names
 
@@ -24,8 +31,10 @@ The old `project-room-*` names remain as v1 compatibility filenames and module n
 - `project-room-state.json`
 - `project-room-active.json`
 - `project-room-window.json`
+- `project-room-workroom.json`
 - `project-room-session.json`
 - `project-room-hook-events.jsonl`
+- `team_state.json`
 - Python implementation modules named `project_room_*`
 
 Prefer the Pet Studio wrappers in docs and examples:
@@ -48,9 +57,13 @@ Prefer the Pet Studio wrappers in docs and examples:
   - `pet-studio-widget/project-room-active.json`
   - `pet-studio-widget/project-room-hook-events.jsonl`
   - `pet-studio-widget/project-room-layouts.json`
+  - `pet-studio-widget/project-room-workroom.json`
   - `pet-studio-widget/project-room-session.json`
   - `pet-studio-widget/project-room-state.json`
   - `pet-studio-widget/project-room-window.json`
+  - `pet-studio-widget/team_state.json`
+  - `work-packets/`
+  - `codex-packets/`
 
 Before pushing, run:
 
@@ -95,7 +108,7 @@ docs/images/gakju-widget-bubble-example.png
 - Existing `project_room_*` imports and `project-room-*` files remain compatible
 - Codex hook payloads, hook logs, and trust behavior stay in adapter modules
 - Architecture docs define Core, Widget Host, Codex Adapter, Asset Forge, CLI Tools, and future Workroom boundaries
-- Team Room, Project Hub, endpoint registry, dashboard, and orchestration are still future work
+- Team Room, Project Hub, endpoint registry, dashboard, and orchestration were future work at this milestone
 
 **Explicitly deferred to Later / separate milestone:**
 - Sample room pack (runs/sample-room-cozy-corner/)
@@ -117,7 +130,7 @@ All 0.2.0 features are released. Summary of what was shipped:
 - Windows widget launcher single-instance/focus behavior and detached launcher logging
 - Codex hook bridge with `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `Stop` hooks
 
-Out of scope for 0.2.0 (and still out of scope as of 0.5.0):
+Out of scope for 0.2.0 at that milestone:
 - No GUI editor
 - No cloud sync or remote service
 - No full room navigation or game simulation

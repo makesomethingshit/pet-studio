@@ -6,12 +6,15 @@ import argparse
 import json
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 KIT_SCRIPTS = ROOT / "pet-studio-kit" / "scripts"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 if str(KIT_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(KIT_SCRIPTS))
 
@@ -45,6 +48,9 @@ LOCAL_ONLY_PATHS = [
     "pet-studio-widget/project-room-session.json",
     "pet-studio-widget/project-room-state.json",
     "pet-studio-widget/project-room-window.json",
+    "pet-studio-widget/team_state.json",
+    "codex-packets/probe.json",
+    "work-packets/probe.json",
 ]
 
 
@@ -340,7 +346,63 @@ def check_local_only_ignores(root: Path) -> CheckResult:
     missing = [path for path in LOCAL_ONLY_PATHS if not git_check_ignore(root, path)]
     if missing:
         return fail_check("local-only", "These local-only paths are not ignored by git: " + ", ".join(missing))
-    return pass_check("local-only", "QA output, preflight render, hook logs, and runtime state are ignored")
+    return pass_check("local-only", "QA output, preflight render, hook logs, runtime state, and packet exports are ignored")
+
+
+def check_team_model_plan() -> CheckResult:
+    try:
+        from roost.model_profile import role_model_env_overrides
+        from roost.state import TeamState
+
+        with tempfile.TemporaryDirectory() as tmp:
+            team_state = TeamState(Path(tmp) / "team_state.json")
+            active_profile = team_state.get_active_model_profile_id()
+            preset = team_state.get_team_model_preset_id()
+            role_plan = team_state.list_role_model_plan()
+            plan = {item["role"]: item["profile"]["id"] for item in role_plan}
+            role_env = role_model_env_overrides(role_plan)
+            savings = team_state.estimate_team_model_savings()
+    except Exception as error:
+        return fail_check("team-models", f"Cannot inspect default team model plan: {error}")
+
+    expected = {
+        "scout": "local/default",
+        "coordinator": "openrouter/fast",
+        "lead": active_profile,
+    }
+    expected_savings = {
+        "baselineUnits": 9,
+        "planUnits": 4,
+        "savedUnits": 5,
+    }
+    expected_env = {
+        "scout": {"PET_STUDIO_MODEL_PROFILE": "local/default"},
+        "coordinator": {"PET_STUDIO_MODEL_PROFILE": "openrouter/fast", "OPENROUTER_MODEL": "fast"},
+        "lead": {"PET_STUDIO_MODEL_PROFILE": active_profile, "OPENROUTER_MODEL": "sota"},
+    }
+    actual_savings = {key: savings.get(key) for key in expected_savings}
+    actual_env = {
+        role: {key: role_env.get(role, {}).get(key) for key in expected_values}
+        for role, expected_values in expected_env.items()
+    }
+    if (
+        preset != "save-credits"
+        or plan != expected
+        or actual_savings != expected_savings
+        or actual_env != expected_env
+    ):
+        return fail_check(
+            "team-models",
+            "Unexpected default team model plan: "
+            f"preset={preset}, plan={plan}, active={active_profile}, savings={savings}, env={actual_env}",
+        )
+    return pass_check(
+        "team-models",
+        (
+            f"{preset}: scout={plan['scout']}, coordinator={plan['coordinator']}, "
+            f"lead={plan['lead']}, saved={savings['savedUnits']}/{savings['baselineUnits']} units, env=ok"
+        ),
+    )
 
 
 def render_project(root: Path, registry: Path, project_id: str, output: Path) -> CheckResult:
@@ -403,6 +465,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
     if not args.skip_hooks:
         results.append(check_hooks_config(hooks_file, args.project_id))
     results.append(check_local_only_ignores(ROOT))
+    results.append(check_team_model_plan())
     if not args.skip_render:
         results.append(render_project(ROOT, registry, args.project_id, render_output))
     return {

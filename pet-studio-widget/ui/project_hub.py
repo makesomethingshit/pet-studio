@@ -6,8 +6,9 @@ Provides a Toplevel window with projects, tasks, team status, and endpoint setti
 from __future__ import annotations
 
 import tkinter as tk
+from collections.abc import Mapping
 from tkinter import ttk
-from typing import Any, Mapping
+from typing import Any
 
 from roost.model_profile import (
     model_profile_powershell_env_lines,
@@ -125,22 +126,19 @@ def _summary_lines(widget: Any) -> tuple[str, str]:
     display_name = getattr(widget, "_project_display_name", None) or project_id or "No project"
     status = getattr(widget, "state", "idle") or "idle"
     mission = "No mission"
-    security = "L1"
     model_profile = "open-sota openrouter/sota"
-    team_model_preset = "save-credits"
-    roles = "Scout local/fast | Coordinator remote/sota | Lead remote/sota"
     team_state = getattr(widget, "_team_state", None)
     if team_state is not None and project_id:
         project = team_state.get_project(project_id) or {}
         status = project.get("status", status)
         mission = project.get("mission") or mission
-        security = f"L{project.get('securityLevel', 1)}"
+        f"L{project.get('securityLevel', 1)}"
         if hasattr(team_state, "get_active_model_profile_id"):
             active_profile = team_state.get_active_model_profile() if hasattr(team_state, "get_active_model_profile") else {}
             active_profile_id = active_profile.get("id") or team_state.get_active_model_profile_id()
             model_profile = f"{model_profile_tier(active_profile)} {active_profile_id}"
         if hasattr(team_state, "get_team_model_preset_id"):
-            team_model_preset = team_state.get_team_model_preset_id()
+            team_state.get_team_model_preset_id()
         role_parts = _role_model_plan_parts(team_state)
         if not role_parts:
             for role in ("scout", "coordinator", "lead"):
@@ -149,7 +147,7 @@ def _summary_lines(widget: Any) -> tuple[str, str]:
                 else:
                     endpoint = team_state.get_role_backend(role)
                 role_parts.append(f"{role.capitalize()} {endpoint}")
-        roles = " | ".join(role_parts)
+        " | ".join(role_parts)
     return (
         f"{display_name} ({project_id or 'no-project'})",
         f"{mission}  |  {status}  |  {model_profile}",
@@ -740,6 +738,9 @@ def _build_tasks_tab(
         listbox.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
         task_vars[col_key] = [listbox]
 
+    action_bar = tk.Frame(parent, bg="#1e1e2e")
+    action_bar.pack(fill=tk.X, padx=4, pady=(0, 4))
+
     # Empty state for tasks tab
     tasks_empty_hint = tk.Label(
         parent,
@@ -758,7 +759,6 @@ def _build_tasks_tab(
     # Check if all columns are empty
     all_empty = all(task_vars[k][0].size() == 0 for k in ("waiting", "running", "done"))
     _show_tasks_empty(all_empty)
-    action_bar.pack(fill=tk.X, padx=4, pady=(0, 4))
     staff_var = tk.StringVar(value="")
     staff_combo = ttk.Combobox(action_bar, textvariable=staff_var, state="readonly", width=22)
 
@@ -862,7 +862,7 @@ def _build_tasks_tab(
             status_label.config(text=_msg("team_state_unavailable"))
             return
         try:
-            out_path = export_work_packet(
+            export_work_packet(
                 project_id=widget.project_id,
                 team_state=widget._team_state,
                 state=widget.state,

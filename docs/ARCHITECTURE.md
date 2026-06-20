@@ -23,19 +23,21 @@ Desktop widget host:
 - Canvas rendering (room, pet, props, speech bubble)
 - Saved layout, window, and session files
 - Context menu and bubble presentation
-- Team Room slide-in panel (v0.6)
-- Toast notifications (v0.6)
-- Status bar (v0.6)
+- Workroom window with Projects, Tasks, Team Room, and Endpoints tabs
+- Toast notifications
+- Status bar
 
-### roost — Team Orchestration
+### roost - Team Orchestration
 
 `roost/` is the orchestration layer:
 
-- `state.py` — TeamState: projects, queues, employees, approvals, event logs
-- `preset.py` — Room preset export/import (zip-based)
-- `security.py` — L0-L3 security levels per project
-- `backend/script.py` — Rule-based event classification (no LLM)
-- `backend/hermes.py` — Hermes subprocess adapter (optional LLM)
+- `state.py` - TeamState: projects, queues, employees, approvals, event logs
+- `model_profile.py` - model tiers, env overrides, cleanup hints, and relative credit estimates
+- `packet.py` - Work Packet export/import, with legacy marker compatibility
+- `preset.py` - Room preset export/import (zip-based)
+- `security.py` - L0-L3 security levels per project
+- `backend/script.py` - Rule-based event classification (no LLM)
+- `backend/hermes.py` - Hermes subprocess adapter (optional LLM)
 
 **Boundary**: roost works without any LLM. Hermes backend is optional.
 
@@ -61,11 +63,13 @@ Asset pipeline:
 
 User-facing CLI commands:
 
-- `pet_studio_preflight.py` — preflight checks
-- `pet_studio_create_room.py` — scripted room creation
-- `create_room_interactive.py` — interactive room creation
-- `install_pet_studio_codex_integration.py` — install Codex hooks
-- `install_pet_studio_skill.py` — install Pet Studio skill
+- `pet_studio_preflight.py` - preflight checks
+- `pet_studio_model.cmd` - model profile and team preset shortcuts
+- `pet_studio_work.cmd` - mission, task, staff, and status shortcuts
+- `pet_studio_create_room.py` - scripted room creation
+- `create_room_interactive.py` - interactive room creation
+- `install_pet_studio_codex_integration.py` - install Codex hooks
+- `install_pet_studio_skill.py` - install Pet Studio skill
 
 **Boundary**: `tools/` scripts are thin wrappers. Shared behavior belongs in `pet_studio_core/` or `roost/`.
 
@@ -73,13 +77,14 @@ User-facing CLI commands:
 
 ```
 User Mission (text)
-    → Project Hub (v1.0.0)
-        → Task Cards (waiting/running/done)
-            → Team Rooms (assigned by role)
-                → Scout (read-only, cheap)
-                → Coordinator (compress, draft)
-                → Lead (final, expensive, user-selected)
-                    → Work Packet Export
+    -> Workroom / Project Hub
+        -> Task Cards (waiting/running/done)
+            -> Team Room roles
+                -> Scout (read-only, cheap/local)
+                -> Coordinator (compress, draft, value route)
+                -> Lead (final, user-selected active model)
+                    -> Work Packet Export / Import
+                        -> role env overrides + provider cleanup hints
 ```
 
 ## Compatibility
@@ -92,5 +97,7 @@ v1 storage names stay unchanged:
 - `project-room-active.json`
 - `project-room-layouts.json`
 - `project-room-window.json`
+- `project-room-workroom.json`
 - `project-room-session.json`
 - `team_state.json` (roost)
+- `work-packets/` and `codex-packets/` stay local-only export folders
