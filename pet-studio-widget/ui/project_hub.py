@@ -16,6 +16,92 @@ from roost.model_profile import (
 )
 from roost.packet import export_work_packet
 
+# Lazy import to avoid circular dependency
+_api_key_wizard = None
+
+
+def _get_api_key_wizard():
+    global _api_key_wizard
+    if _api_key_wizard is None:
+        from ui.api_key_wizard import show_api_key_wizard
+        _api_key_wizard = show_api_key_wizard
+    return _api_key_wizard
+
+
+# ---------------------------------------------------------------------------
+# User-friendly error messages (비전공자 타겟)
+# ---------------------------------------------------------------------------
+
+_USER_MESSAGES: dict[str, str] = {
+    # 내부 키 → 사용자 친화적 메시지
+    "export_failed": "내보내기에 실패했습니다. 프로젝트를 먼저 선택해주세요.",
+    "import_failed": "가져오기에 실패했습니다. 파일 경로를 확인해주세요.",
+    "switch_failed": "프로젝트 전환에 실패했습니다. 프로젝트를 선택해주세요.",
+    "model_switch_failed": "모델 변경에 실패했습니다. 인터넷 연결을 확인해주세요.",
+    "team_preset_failed": "팀 모드 변경에 실패했습니다.",
+    "team_state_unavailable": "팀 상태를 불러올 수 없습니다. 다시 시작해주세요.",
+    "select_project_first": "프로젝트를 먼저 선택해주세요.",
+    "select_task_first": "태스크를 먼저 선택해주세요.",
+    "select_staff_first": "스태프를 먼저 선택해주세요.",
+    "staff_id_required": "스태프 이름을 입력해주세요.",
+    "no_tier_model": "해당 등급의 모델이 없습니다.",
+    "mission_saved": "미션이 저장되었습니다 ✓",
+    "staff_added": "스태프가 추가되었습니다 ✓",
+    "staff_exists": "이미 등록된 스태프입니다.",
+    "task_loaded": "태스크를 불러왔습니다 ✓",
+    "exported": "패킷을 내보냈습니다 ✓",
+    "imported": "패킷을 가져왔습니다 ✓",
+    "tasks_cleared": "태스크를 비웠습니다 ✓",
+    "queue_empty": "대기열이 비어있습니다.",
+    "no_staff": "등록된 스태프가 없습니다. 스태프를 먼저 추가해주세요.",
+    "no_approvals": "대기 중인 승인이 없습니다.",
+    "approval_resolved": "승인이 처리되었습니다 ✓",
+    "dequeued": "작업을 시작했습니다 ✓",
+    "dropped": "작업을 제거했습니다 ✓",
+    "routed": "작업을 프로젝트로 연결했습니다 ✓",
+    "role_saved": "역할이 저장되었습니다 ✓",
+    "preset_applied": "프리셋이 적용되었습니다 ✓",
+    "switched": "프로젝트를 전환했습니다 ✓",
+    "team_room_loaded": "팀 룸을 불러왔습니다 ✓",
+    "no_project": "프로젝트가 없습니다. 새 프로젝트를 만들어보세요.",
+    "no_tasks": "태스크가 없습니다. 미션을 입력하면 자동으로 생성됩니다.",
+    "no_endpoints": "엔드포인트가 없습니다.",
+    "no_model_profiles": "모델 프로필이 없습니다.",
+}
+
+
+def _msg(key: str, **kwargs) -> str:
+    """Return a user-friendly message by key, with optional format args."""
+    text = _USER_MESSAGES.get(key, key)
+    if kwargs:
+        try:
+            return text.format(**kwargs)
+        except (KeyError, IndexError):
+            return text
+    return text
+
+
+def _friendly_error(e: Exception) -> str:
+    """Convert a technical exception to a user-friendly Korean message."""
+    text = str(e)
+    # 네트워크 관련
+    if any(kw in text.lower() for kw in ("connection", "timeout", "network", "unreachable", "refused")):
+        return "인터넷 연결을 확인해주세요."
+    # 파일 관련
+    if any(kw in text.lower() for kw in ("file", "path", "not found", "no such", "permission")):
+        return "파일 경로를 확인해주세요."
+    # JSON 관련
+    if any(kw in text.lower() for kw in ("json", "decode", "parse")):
+        return "파일 형식이 올바르지 않습니다."
+    # API 관련
+    if any(kw in text.lower() for kw in ("api", "key", "auth", "401", "403", "429")):
+        return "API 키를 확인해주세요."
+    # 기본
+    return "문제가 발생했습니다. 다시 시도해주세요."
+
+
+
+
 
 def _powershell_env_lines_for_profile(profile: Mapping[str, Any] | None) -> list[str]:
     return model_profile_powershell_env_lines(profile)
@@ -294,9 +380,9 @@ def show_project_hub(widget: Any) -> None:
             widget._team_state.set_active_model_profile(getattr(widget, "project_id", None), model_var.get())
             _refresh_summary()
             _refresh_credit_plan_from_header()
-            status_label.config(text=f"Active model: {model_var.get()}")
+            status_label.config(text=f"모델이 변경되었습니다: {model_var.get()}")
         except Exception as e:
-            status_label.config(text=f"Model switch failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     def _save_team_model_preset(_event: tk.Event | None = None) -> None:
         if not is_workroom or getattr(widget, "_team_state", None) is None:
@@ -305,16 +391,16 @@ def show_project_hub(widget: Any) -> None:
             widget._team_state.apply_team_model_preset(team_preset_var.get(), project_id=getattr(widget, "project_id", None))
             _refresh_model_choices()
             _refresh_credit_plan_from_header()
-            status_label.config(text=f"Team mode: {team_preset_var.get()}")
+            status_label.config(text=f"팀 모드가 변경되었습니다: {team_preset_var.get()}")
         except Exception as e:
-            status_label.config(text=f"Team mode switch failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     def _select_model_tier(tier: str) -> None:
         if not is_workroom or getattr(widget, "_team_state", None) is None:
             return
         profile = _profile_for_tier(tier)
         if profile is None:
-            status_label.config(text=f"No {tier} model profile")
+            status_label.config(text=_msg("no_tier_model"))
             return
         try:
             profile_id = profile["id"]
@@ -322,9 +408,9 @@ def show_project_hub(widget: Any) -> None:
             model_var.set(profile_id)
             _refresh_model_choices()
             _refresh_credit_plan_from_header()
-            status_label.config(text=f"Active model: {tier} {profile_id}")
+            status_label.config(text=f"모델이 변경되었습니다: {tier} {profile_id}")
         except Exception as e:
-            status_label.config(text=f"Model switch failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     if model_picker is not None:
         model_picker.bind("<<ComboboxSelected>>", _save_model_profile)
@@ -484,6 +570,42 @@ def _build_projects_tab(
 
     tree.tag_configure("current", foreground="#a6e3a1")
 
+    # Empty state hint (shown when no projects exist)
+    empty_frame = tk.Frame(parent, bg="#1e1e2e")
+    empty_hint = tk.Label(
+        empty_frame,
+        text="프로젝트가 없습니다.",
+        fg="#6c7086",
+        bg="#1e1e2e",
+        font=("Segoe UI", 10, "bold"),
+    )
+    empty_hint.pack(pady=(12, 4))
+    empty_sub = tk.Label(
+        empty_frame,
+        text="API 키를 연결하면 AI 팀을 바로 시작할 수 있습니다.",
+        fg="#585b70",
+        bg="#1e1e2e",
+        font=("Segoe UI", 9),
+    )
+    empty_sub.pack(pady=(0, 8))
+
+    api_key_btn = tk.Label(
+        empty_frame,
+        text="🔑  API 키 연결하기",
+        fg="#89b4fa",
+        bg="#1e1e2e",
+        font=("Segoe UI", 9, "underline"),
+        cursor="hand2",
+    )
+    api_key_btn.pack(pady=(0, 4))
+    api_key_btn.bind(
+        "<Button-1>",
+        lambda e: _get_api_key_wizard()(hub, getattr(widget, "_team_state", None)),
+    )
+
+    if not projects:
+        empty_frame.pack(pady=12)
+
     # Handlers
     def _on_select(event: tk.Event) -> None:
         sel = tree.selection()
@@ -495,9 +617,9 @@ def _build_projects_tab(
         mission_var.set(p.get("mission", ""))
         mission_frame.pack(fill=tk.X, padx=4, pady=(4, 8), after=tree.master)
         if pid == current_id:
-            status_label.config(text="Current project")
+            status_label.config(text="현재 프로젝트입니다")
         else:
-            status_label.config(text="Double-click to switch")
+            status_label.config(text="더블클릭으로 전환")
 
     def _on_double_click(event: tk.Event) -> None:
         sel = tree.selection()
@@ -506,13 +628,13 @@ def _build_projects_tab(
         pid = sel[0]
         if pid == current_id:
             return
-        status_label.config(text=f"Switching: {pid}...")
+        status_label.config(text=f"전환 중: {pid}...")
         hub.after(100, lambda: _do_switch(widget, pid, hub, status_label))
 
     def _on_save() -> None:
         sel = tree.selection()
         if not sel:
-            status_label.config(text="Select a project first")
+            status_label.config(text=_msg("select_project_first"))
             return
         pid = sel[0]
         mission = mission_var.get().strip()
@@ -523,9 +645,9 @@ def _build_projects_tab(
             refresh_summary = getattr(widget, "_refresh_project_hub_summary", None)
             if callable(refresh_summary):
                 refresh_summary()
-            status_label.config(text="Mission saved")
+            status_label.config(text=_msg("mission_saved"))
         else:
-            status_label.config(text="TeamState unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
 
     tree.bind("<<TreeviewSelect>>", _on_select)
     tree.bind("<Double-1>", _on_double_click)
@@ -618,7 +740,24 @@ def _build_tasks_tab(
         listbox.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 4))
         task_vars[col_key] = [listbox]
 
-    action_bar = tk.Frame(parent, bg="#1e1e2e")
+    # Empty state for tasks tab
+    tasks_empty_hint = tk.Label(
+        parent,
+        text="태스크가 없습니다. 미션을 입력하면 자동으로 생성됩니다.",
+        fg="#6c7086",
+        bg="#1e1e2e",
+        font=("Segoe UI", 9),
+    )
+
+    def _show_tasks_empty(show: bool) -> None:
+        if show:
+            tasks_empty_hint.pack(pady=12)
+        else:
+            tasks_empty_hint.pack_forget()
+
+    # Check if all columns are empty
+    all_empty = all(task_vars[k][0].size() == 0 for k in ("waiting", "running", "done"))
+    _show_tasks_empty(all_empty)
     action_bar.pack(fill=tk.X, padx=4, pady=(0, 4))
     staff_var = tk.StringVar(value="")
     staff_combo = ttk.Combobox(action_bar, textvariable=staff_var, state="readonly", width=22)
@@ -636,15 +775,15 @@ def _build_tasks_tab(
 
     def _task_update(updates: dict[str, Any], message: str) -> None:
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState or project unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
             return
         task_index = _selected_task_index()
         if task_index is None:
-            status_label.config(text="Select a task first")
+            status_label.config(text=_msg("select_task_first"))
             return
         item = widget._team_state.update_project_queue_item(widget.project_id, task_index, updates)
         _refresh_tasks()
-        status_label.config(text=message if item else "Task not found")
+        status_label.config(text=message if item else _msg("no_tasks"))
 
     def _assign_role(role: str) -> None:
         _task_update({"assignedRole": role}, f"Assigned task to {role}")
@@ -652,7 +791,7 @@ def _build_tasks_tab(
     def _assign_staff() -> None:
         selected = staff_var.get()
         if not selected:
-            status_label.config(text="Select staff first")
+            status_label.config(text=_msg("select_staff_first"))
             return
         employee_id, _, label = selected.partition(" ")
         updates = {"assignedEmployee": employee_id}
@@ -673,7 +812,7 @@ def _build_tasks_tab(
             task_indexes[col_key].clear()
 
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState or project unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
             return
 
         try:
@@ -715,12 +854,12 @@ def _build_tasks_tab(
             lb.insert(tk.END, display)
             task_indexes[target].append(index)
 
-        status_label.config(text=f"Loaded {len(queue)} tasks")
+        status_label.config(text=_msg("task_loaded"))
 
     def _on_export() -> None:
         """Export work packet for current project."""
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState or project unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
             return
         try:
             out_path = export_work_packet(
@@ -728,9 +867,9 @@ def _build_tasks_tab(
                 team_state=widget._team_state,
                 state=widget.state,
             )
-            status_label.config(text=f"Exported: {out_path}")
+            status_label.config(text=_msg("exported"))
         except Exception as e:
-            status_label.config(text=f"Export failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     def _on_import() -> None:
         """Import work packet from file dialog."""
@@ -740,7 +879,7 @@ def _build_tasks_tab(
         from roost.packet import import_work_packet
 
         if widget._team_state is None or not widget.project_id:
-            status_label.config(text="TeamState or project unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
             return
         packet_dir = Path.cwd() / "work-packets"
         legacy_packet_dir = Path.cwd() / "codex-packets"
@@ -754,10 +893,10 @@ def _build_tasks_tab(
             return
         try:
             import_work_packet(file_path, widget._team_state)
-            status_label.config(text=f"Imported: {Path(file_path).name}")
+            status_label.config(text=_msg("imported"))
             _refresh_tasks()
         except Exception as e:
-            status_label.config(text=f"Import failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     export_btn.bind("<Button-1>", lambda e: _on_export())
     import_btn.bind("<Button-1>", lambda e: _on_import())
@@ -878,7 +1017,7 @@ def _build_team_room_tab(
         for box in panels.values():
             box.delete(0, tk.END)
         if widget._team_state is None:
-            status_label.config(text="TeamState unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
             return
 
         pending = widget._team_state.get_pending_approvals()
@@ -915,7 +1054,7 @@ def _build_team_room_tab(
         if not queue:
             panels["Queue"].insert(tk.END, "Queue empty")
 
-        status_label.config(text=f"Team Room loaded: {len(pending)} approvals, {len(queue)} queue items")
+        status_label.config(text=_msg("team_room_loaded"))
 
     def _resolve_selected(approved: bool) -> None:
         if widget._team_state is None:
@@ -934,7 +1073,7 @@ def _build_team_room_tab(
             return
         item = widget._team_state.dequeue_roost()
         _refresh()
-        status_label.config(text=f"Dequeued {item.get('type', 'queue item')}" if item else "Queue empty")
+        status_label.config(text=_msg("dequeued") if item else _msg("queue_empty"))
 
     def _drop_selected_queue_item() -> None:
         if widget._team_state is None:
@@ -947,7 +1086,7 @@ def _build_team_room_tab(
             return
         item = widget._team_state.remove_roost_queue_item(queue_indexes[idx])
         _refresh()
-        status_label.config(text=f"Dropped {item.get('type', 'queue item')}" if item else "Queue item not found")
+        status_label.config(text=_msg("dropped") if item else _msg("queue_empty"))
 
     def _route_selected_queue_item() -> None:
         if widget._team_state is None or not widget.project_id:
@@ -960,11 +1099,11 @@ def _build_team_room_tab(
             return
         item = widget._team_state.route_roost_queue_item_to_project(queue_indexes[idx], widget.project_id)
         _refresh()
-        status_label.config(text=f"Routed {item.get('type', 'queue item')} to tasks" if item else "Queue item not found")
+        status_label.config(text=_msg("routed") if item else _msg("queue_empty"))
 
     def _add_staff_dialog() -> None:
         if widget._team_state is None:
-            status_label.config(text="TeamState unavailable")
+            status_label.config(text=_msg("team_state_unavailable"))
             return
         dialog = tk.Toplevel(parent.winfo_toplevel())
         dialog.title("Add staff")
@@ -1001,11 +1140,11 @@ def _build_team_room_tab(
             name = name_entry.get().strip() or employee_id
             role = role_var.get().strip() or "worker"
             if not employee_id:
-                status_label.config(text="Staff ID is required")
+                status_label.config(text=_msg("staff_id_required"))
                 return
             created = widget._team_state.register_employee(employee_id, name, role=role)
             _refresh()
-            status_label.config(text=f"Staff added: {employee_id}" if created else f"Staff already exists: {employee_id}")
+            status_label.config(text=_msg("staff_added") if created else _msg("staff_exists"))
             dialog.destroy()
 
         tk.Button(dialog, text="Add", command=_save).pack(pady=(10, 8))
@@ -1070,11 +1209,11 @@ def _do_switch(widget: Any, project_id: str, hub: tk.Toplevel, status_label: tk.
         refresh_summary = getattr(widget, "_refresh_project_hub_summary", None)
         if callable(refresh_summary):
             refresh_summary()
-        status_label.config(text=f"Switched: {project_id}")
+        status_label.config(text=_msg("switched"))
         if not getattr(widget, "_workroom_mode", False):
             hub.after(500, lambda: _close_hub(widget, hub))
     except Exception as e:
-        status_label.config(text=f"Switch failed: {e}")
+        status_label.config(text=_friendly_error(e))
 
 
 def _build_endpoints_tab(
@@ -1164,9 +1303,9 @@ def _build_endpoints_tab(
             team_state.apply_team_model_preset(preset_id, project_id=project_id)
             _refresh_credit_plan()
             _refresh_header_model_profiles()
-            status_label.config(text=f"Team model preset applied: {preset_id}")
+            status_label.config(text=_msg("preset_applied"))
         except Exception as e:
-            status_label.config(text=f"Team model preset failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     for label, preset_id in (
         ("Save credits", "save-credits"),
@@ -1201,9 +1340,9 @@ def _build_endpoints_tab(
             team_state.set_role_model_profile(role, profile_id, project_id=project_id)
             _refresh_credit_plan()
             _refresh_header_model_profiles()
-            status_label.config(text=f"Role model saved: {role} -> {profile_id}")
+            status_label.config(text=_msg("role_saved"))
         except Exception as e:
-            status_label.config(text=f"Role model save failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     def _clear_role_model(role: str) -> None:
         try:
@@ -1212,7 +1351,7 @@ def _build_endpoints_tab(
             _refresh_header_model_profiles()
             status_label.config(text=f"Role model reset: {role}")
         except Exception as e:
-            status_label.config(text=f"Role model reset failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     for role_name in ("scout", "coordinator", "lead"):
         row = tk.Frame(role_model_controls, bg="#1e1e2e")
@@ -1414,7 +1553,7 @@ def _build_endpoints_tab(
             _refresh_model_profiles()
             status_label.config(text=f"Active model: {profile_id}")
         except Exception as e:
-            status_label.config(text=f"Model switch failed: {e}")
+            status_label.config(text=_friendly_error(e))
 
     def _remove_model_profile() -> None:
         profile_id = _selected_model_profile_id()
@@ -1423,7 +1562,7 @@ def _build_endpoints_tab(
         try:
             removed = team_state.remove_model_profile(project_id, profile_id)
         except Exception as e:
-            status_label.config(text=f"Model remove failed: {e}")
+            status_label.config(text=_friendly_error(e))
             return
         if removed:
             _refresh_model_profiles()
@@ -1532,7 +1671,7 @@ def _build_endpoints_tab(
                 status_label.config(text=f"Saved model: {id_entry.get().strip()}")
                 dialog.destroy()
             except Exception as e:
-                status_label.config(text=f"Model save failed: {e}")
+                status_label.config(text=_friendly_error(e))
 
         tk.Button(dialog, text="Save", command=_save).pack(pady=(10, 8))
 
@@ -1610,7 +1749,7 @@ def _build_endpoints_tab(
         try:
             removed = team_state.remove_endpoint(project_id, alias)
         except Exception as e:
-            status_label.config(text=f"Endpoint remove failed: {e}")
+            status_label.config(text=_friendly_error(e))
             return
         if removed:
             _refresh_endpoints()
@@ -1650,7 +1789,7 @@ def _build_endpoints_tab(
                     status_label.config(text=f"Added: {alias}")
                 dialog.destroy()
             except Exception as e:
-                status_label.config(text=f"Endpoint add failed: {e}")
+                status_label.config(text=_friendly_error(e))
 
         tk.Button(dialog, text="Save", command=_save).pack(pady=(4, 8))
 
@@ -1682,7 +1821,7 @@ def _build_endpoints_tab(
                 _refresh_credit_plan()
                 status_label.config(text=f"Role saved: {rn} -> {v.get()}")
             except Exception as e:
-                status_label.config(text=f"Role save failed: {e}")
+                status_label.config(text=_friendly_error(e))
 
         var.trace_add("write", lambda *a, f=_save_role: f())
 
@@ -1707,7 +1846,7 @@ def _build_endpoints_tab(
                 team_state.set_skill_enabled(sid, v.get(), project_id=project_id)
                 status_label.config(text=f"Skill {'ON' if v.get() else 'OFF'}: {sid}")
             except Exception as e:
-                status_label.config(text=f"Skill save failed: {e}")
+                status_label.config(text=_friendly_error(e))
 
         cb = tk.Checkbutton(
             row,
