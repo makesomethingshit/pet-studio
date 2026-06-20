@@ -1,209 +1,139 @@
-# Pet Studio Roadmap
+# Pet Studio v1.0.0 Roadmap
 
-## Current State: v0.6.1
+> 비전: AI를 모르는 사람도 AI팀을 부릴 수 있다.
+> 포지셔닝: 기능은 남들 뒤에서 따라가되, 사용감은 압도적으로 앞선다.
 
-Shipped and working:
+## 버전 체계
 
-- Windows desktop widget with layered room rendering
-- Project registry, saved layout/window/session, state bridge
-- Workspace auto-detection, tray controls, status bar, project switching
-- Optional Codex skill and hook adapter
-- `pet_studio_core` — registry and state primitives (adapter-independent)
-- Room creation, validation, previews, and QA packs
-- Room preset export/import (`roost.preset`)
-- Roost state manager — queues, event history, L0-L3 security
-- Script and Hermes event classifiers
-- Team Room slide-in panel with approvals, staff status, queue
-- Approval queue with L2 ASK auto-enrollment
-- Employee status tracking
-- QA gate and CI checks (ruff)
-
-Not yet built:
-
-- Project Hub UI
-- Mission input
-- Task Cards
-- Endpoint registry UI
-- Trust-score auto-approval
-- Scout / Coordinator roles (only Lead exists)
-- macOS/Linux widget hosts
+| 버전 | 테마 | 비전 가치 | 상태 |
+|---|---|---|---|
+| 0.7 | Project Hub + Mission + Task Cards | 한눈에 보이는 상태 | Done |
+| 0.8 | Token Roles + Endpoint UI + Model Presets | 역할 자동 분배 | Done |
+| 0.9 | 사용성 마비 — 비전공자 30초 안에 시작 | 설정 없이 시작 | 진행중 |
+| 1.0 | 안정적 릴리스 — 에러 없이, 설명 없이 쓸 수 있음 | 안전한 실행 | 다음 |
 
 ---
 
-## v0.7 — Project Hub + Team Room UI Redesign
+## v0.9: 사용성 마비 (Usability Parity)
 
-**Theme**: Shared meeting space for Team Rooms. Fix all current Team Room UX issues.
+**목표:** 비전공자가 설치 후 30초 안에 첫 미션을 입력하고 AI를 실행할 수 있어야 한다.
 
-### Phase 1a: Team Room Quick Fixes (Toplevel 유지)
+### 설정 없이 시작
 
-1. **위치 계산 수정** — 팝업이 위젯 뒤에 가려짐 해결. topmost 제거, 위젯 우측 엣지에 앵커
-2. **접기/펴기 버튼** — 최소화 가능한 커스텀 프레임으로 변경
-3. **역할 뱃지 추가** — Staff 카드에 Scout/Coordinator/Lead 아이콘
-4. **큐 액션 버튼** — 각 큐 아이템에 할당/제거 버튼
+- [ ] **원클릭 설치** — `pip install` 또는 `.cmd` 더블클릭으로 설치 완료
+- [ ] **API 키 연결 마법사** — 첫 실행 시 "어떤 AI를 쓰시겠어요?" → OpenRouter/Codex/Hermes 선택 → API 키 입력 → 끝
+- [ ] **기본 프리셋 자동 적용** — `save-credits` 프리셋이 기본. 사용자가 모르게 최적 설정 적용
+- [ ] **빈 상태 안내** — 프로젝트가 없을 때 "새 프로젝트 만들기" 버튼 하나만 보이게
 
-**예상 시간**: 2-3h
+### 한눈에 보이는 상태
 
-### Phase 1b: Team Room Canvas Panel (Phase 1a 완료 후)
+- [ ] **실시간 상태 표시** — 태스크가 진행 중일 때 진행률/상태 텍스트 표시
+- [ ] **패킷 전달 피드백** — 전달 성공/실패를 토스트가 아닌 상태바에 지속 표시
+- [ ] **에러 메시지 번역** — 기술적 에러 대신 "AI 연결을 확인해주세요" 같은 사용자 친화적 메시지
+- [ ] **Staff 역할별 색상 구분** — Scout(파랑), Coordinator(노랑), Lead(초록) 색상 라벨
 
-1. **Toplevel → Canvas 내장 패널** — slide-in 패널로 교체
-2. **시각 디자인** — 어두운 배경, 카드 구분선, 상태 색상
-3. **Staff 카드 인터랙션** — 클릭 → 상세 보기
-4. **큐 드래그** — 순서 변경
+### 역할 자동 분배
 
-**예상 시간**: 3-4h
-**리스크**: Canvas 패널 구현 난이도 높음 → Phase 1a 완료 후 필요성 재평가
+- [ ] **미션 입력 → 자동 태스크 분해** — "리팩토링해줘" 입력 시 Scout가 파일 스캔 → Coordinator가 계획 → Lead가 실행
+- [ ] **프리셋 기반 팀 구성** — 기본 3인 팀(Scout/Coordinator/Lead) 자동 생성
+- [ ] **커스텀 팀 가능** — 고급 사용자가 역할 추가/제거 가능 (기본은 숨김)
 
-### Phase 2: Project Hub
+### 안전한 실행
 
-1. **Hub 창** — 일반 Toplevel (topmost 없음), 위젯과 별도 생명주기
-2. **트레이 메뉴** — "Open Project Hub" 추가
-3. **Mission Input** — 텍스트 입력 → 수동 할당 (자동 라우팅은 v0.8)
-4. **Task Cards** — Canvas 기반 카드, waiting/running/done 칼럼
+- [ ] **위험 작업 확인 대화상자** — "이 작업은 파일을 삭제합니다. 계속할까요?" 명확한 경고
+- [ ] **되돌리기** — 실행 취소 가능 (최소 1단계)
+- [ ] **보안 레벨 기본값 L1** — 새 프로젝트는 기본적으로 L1(경고 후 허용)
 
-**예상 시간**: 5-7h
+### 테스트
 
-### Phase 3: Work Packet Export
-
-1. **Packet 구조** — mission, tasks, context, assigned_rooms, target_agent
-2. **Export API** — `export_packet(team_state, project_id) → dict`
-3. **Save as JSON**
-
-**예상 시간**: 1-2h
-
-### Out of Scope for v0.7
-
-- 자동 라우팅 (v0.8로 이관)
-- Canvas 패널 고급 애니메이션
-- 다중 프로젝트 동시 Hub
-
-### Definition of Done
-
-- [ ] 팝업 위치 계정 수정 (위젯 뒤에 가려짐 해결)
-- [ ] 팝업 접기/펴기 가능
-- [ ] Staff 카드에 역할 뱃지 (Scout/Coordinator/Lead)
-- [ ] 큐 아이템에 액션 버튼
-- [ ] (Phase 1b 진행 시) Canvas 패널로 교체
-- [ ] Project Hub 창 열기 (일반 창, topmost 없음)
-- [ ] Mission 입력 → 수동 할당
-- [ ] Task Cards 렌더링 (waiting/running/done)
-- [ ] Work Packet Export (JSON)
-- [ ] 로직 단위 테스트 추가 (state, packet)
-- [ ] UI 수동 QA 완료
-- [ ] CI green (ruff check + format)
-
-### 예상 일정
-
-| Phase | 시간 |
-|---|---|
-| Phase 1a | 2-3h |
-| Phase 1b | 3-4h (조건부) |
-| Phase 2 | 5-7h |
-| Phase 3 | 1-2h |
-| 테스트 + QA | 2-3h |
-| **합계** | **13-19h (버퍼 20% 포함)** |
+- [ ] 비전공자 3인 이상 테스트 — 설명 없이 설치 → 미션 입력 → 실행 → 결과 확인
+- [ ] 에러 시나리오 테스트 — API 키 없음, 네트워크 끊김, 잘못된 미션
+- [ ] 284 기존 테스트 전부 통과
 
 ---
 
-## v0.8 — Token-Optimized Roles
+## v1.0.0: 안정적 릴리스
 
-**Theme**: Scout/Coordinator roles to reduce token costs
+**목표:** 설명서 없이도 쓸 수 있는 수준. 에러가 나도 사용자가 혼자 해결할 수 있어야 한다.
 
-### Scope
+### 설치 & 설정
 
-| Feature | Description | Priority |
-|---|---|---|
-| **Scout Role** | Low-cost worker for read-only tasks (file scan, log summary). Saves tokens. | P0 |
-| **Coordinator Role** | Mid-level worker that compresses Scout results and drafts packets. | P0 |
-| **Endpoint Registry UI** | Visual alias management (`local/fast`, `remote/sota`, `mock/scout`). | P1 |
-| **Trust Automation** | Auto-approve low-risk actions based on trust score. | P2 |
+- [ ] **원라인 설치** — Windows: `.cmd` 더블클릭, Mac/Linux: `pip install pet-studio`
+- [ ] **자동 업데이트 알림** — 새 버전이 있으면 조용히 알림, 강제 업데이트 아님
+- [ ] **API 키 관리** — 여러 API 키 저장/전환 가능, 키 유출 없이 안전 저장
 
-### Definition of Done
+### 사용성
 
-- [ ] Scout role handles read-only classification (replaces some Lead calls)
-- [ ] Coordinator role compresses and drafts (replaces some Lead calls)
-- [ ] Token usage reduced vs. Lead-only baseline (measurable)
-- [ ] Endpoint Registry UI shows aliases, allows add/remove
-- [ ] All existing tests pass + new features tested
-- [ ] CI green (ruff check + format)
+- [ ] **온보딩 플로우** — 첫 실행 시 3단계 튜토리얼 (프로젝트 만들기 → 미션 입력 → 결과 확인)
+- [ ] **검색** — 프로젝트/태스크/스태프 검색 가능
+- [ ] **단축키** — 자주 쓰는 동작 단축키 지원 (Ctrl+N: 새 프로젝트, Ctrl+Enter: 미션 실행)
+- [ ] **다국어** — 한국어/영어 최소 지원
 
----
+### 안정성
 
-## v0.9 — Integration & Polish
+- [ ] **자동 저장** — 모든 상태 변경 즉시 저장, 크래시 복구
+- [ ] **로그 없는 에러 처리** — 사용자에게 로그 파일 경로 대신 "문제가 발생했습니다" + 해결 방법 표시
+- [ ] **그레이스풀 디그레이드** — API 키가 없으면 로컬 모드로 전환, 네트워크 없으면 오프라인 모드
 
-**Theme**: Everything works together, docs caught up, performance measured
+### 문서
 
-### Scope
+- [ ] **README** — 설치 → 첫 실행 → 기능 소개 → FAQ, 5분 안에 읽을 수 있는 분량
+- [ ] **도움말** — 앱 내 도움말 (F1 또는 ? 버튼)
+- [ ] **아키텍처 문서** — 기여자를 위한 아키텍처 설명
 
-- End-to-end integration testing (Hub → Mission → Task Cards → Roles → Work Packet)
-- Token savings measured and documented (Scout/Coordinator vs. Lead-only baseline)
-- README, INSTALL, guides updated for all new features
-- Performance baseline established (startup time, memory, UI responsiveness)
-- Bug fixes and edge cases from v0.7 + v0.8
+### 릴리스 체크리스트
 
-### Definition of Done
-
-- [ ] All v0.7 and v0.8 features working together
-- [ ] End-to-end tests pass
-- [ ] Token savings measured and documented
-- [ ] README/INSTALL updated
-- [ ] Performance baseline recorded
-- [ ] CI green (ruff check + format)
-- [ ] No known critical bugs
+- [ ] 284 테스트 전부 통과
+- [ ] 비전공자 5인 이상 사용 테스트 통과
+- [ ] Windows 10/11 동작 확인
+- [ ] README + 아키텍처 + 경쟁 분석 문서 최신화
+- [ ] CHANGELOG 정리
+- [ ] 버전 태그 `v1.0.0` 생성
 
 ---
 
-## v1.0.0 — Stable Release
+## 버전 중간 마일스톤
 
-**Theme**: Ship it. Public-ready.
+### v0.8.1 (패치) ✅
+- classify_task 중복 호출 제거
+- enqueued_at/enqueuedAt 네이밍 통일
+- 헤더 2단 분리 (Workroom)
+- Mission 영역 동적 표시
+- 간격 배수 통일 (4/8/12px)
+- Staff 역할별 그룹 분리
 
-### Scope
+### v0.9.0 (사용성)
+- 설치 마법사
+- 에러 메시지 번역
+- 실시간 상태 표시
+- 패킷 전달 피드백
 
-- All features from v0.7, v0.8, v0.9 integrated and stable
-- Documentation complete (README, INSTALL, VISION, ROADMAP, guides)
-- QA gate passed
-- Release notes written
+### v0.9.5 (안정성)
+- 자동 저장 + 크래시 복구
+- 그레이스풀 디그레이드
+- 온보딩 플로우
 
-### Out of Scope for v1.0.0
-
-- Tool Broker / Permission Lease system
-- Room editor
-- Theme packs
-- macOS/Linux hosts
-- Cloud sync
-- Auto-execute from any adapter by default
-- Separate Scout/Coordinator pets in UI (internal roles only)
-
-### Definition of Done
-
-- [ ] All features stable and tested
-- [ ] Documentation complete
-- [ ] QA gate passed
-- [ ] Release notes published
-- [ ] CI green (ruff check + format)
+### v1.0.0 (릴리스)
+- 문서 완성
+- 비전공자 테스트
+- 버전 태그
 
 ---
 
-## Post-v1.0.0 (Concepts, Not Scheduled)
+## Out of Scope (v1.0 이전)
 
-- Tool Broker with Permission Leases
-- Room editor
-- Theme packs
-- macOS/Linux widget hosts
-- Community preset sharing
-- Trust-score auto-approval
-- Richer endpoint adapters (Ollama, llama.cpp, vLLM)
+- 웹/모바일 앱
+- 클라우드 동기화
+- 자율 오케스트레이션 (사용자 개입 없이 AI끼리 판단)
+- 멀티 플랫폼 (Mac/Linux 위젯)
+- 플러그인 시스템
+- 팀 협업 (여러 사용자가 같은 프로젝트)
 
----
+## Post-1.0 Ideas
 
-## Version History
-
-| Version | Focus |
-|---|---|
-| 0.3.x | Boundary + Hygiene — Core/adapter split, installers, QA gate |
-| 0.4.x | Widget App — room switching, tray, status bar, optional Codex adapter |
-| 0.5.x | Roost Foundation — presets, state manager, security, backends |
-| 0.6.x | Team UI — Team Room panel, approvals, staff tracking, toast UX |
-| **0.7** | **Project Hub — Mission input, Task Cards, Work Packet export** |
-| **0.8** | **Token Roles — Scout, Coordinator, Endpoint Registry, trust** |
-| **0.9** | **Integration & Polish — e2e tests, token savings, docs** |
-| **1.0.0** | **Stable Release — all features integrated and tested** |
+- 웹 대시보드 (원격 모니터링)
+- 모바일 알림 (Slack/Discord 연동)
+- 플러그인 시스템
+- 팀 협업 (공유 프로젝트)
+- 테마 팩
+- 프리셋 마켓플레이스
