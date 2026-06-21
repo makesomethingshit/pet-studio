@@ -292,95 +292,6 @@ def show_project_hub(widget: Any) -> None:
     model_picker = None
     team_preset_picker = None
     quick_model_buttons: dict[str, tk.Button] = {}
-    if is_workroom and getattr(widget, "_team_state", None) is not None:
-        profiles = widget._team_state.list_model_profiles()
-        profile_ids = [profile["id"] for profile in profiles]
-        # Controls row: model/preset/tier buttons
-        header_bot = tk.Frame(hub, bg=HUB_COLORS["panel"], height=68)
-        header_bot.pack(fill=tk.X, padx=0, pady=0)
-        header_bot.pack_propagate(False)
-        model_panel = tk.Frame(header_bot, bg=HUB_COLORS["panel"])
-        model_panel.pack(side=tk.LEFT, padx=18, pady=8)
-        tk.Label(
-            model_panel,
-            text="Active model",
-            fg=HUB_COLORS["muted"],
-            bg=HUB_COLORS["panel"],
-            font=("Segoe UI", 8),
-        ).pack(anchor=tk.W)
-        model_var.set(widget._team_state.get_active_model_profile_id())
-        model_picker = ttk.Combobox(
-            model_panel,
-            textvariable=model_var,
-            values=profile_ids,
-            state="readonly",
-            width=22,
-        )
-        model_picker.pack(anchor=tk.W)
-        tk.Label(
-            model_panel,
-            text="Team mode",
-            fg=HUB_COLORS["muted"],
-            bg=HUB_COLORS["panel"],
-            font=("Segoe UI", 8),
-        ).pack(anchor=tk.W, pady=(4, 0))
-        preset_ids = [preset["id"] for preset in widget._team_state.list_team_model_presets()]
-        team_preset_var.set(widget._team_state.get_team_model_preset_id())
-        team_preset_picker = ttk.Combobox(
-            model_panel,
-            textvariable=team_preset_var,
-            values=preset_ids,
-            state="readonly",
-            width=22,
-        )
-        team_preset_picker.pack(anchor=tk.W)
-        quick_frame = tk.Frame(model_panel, bg=HUB_COLORS["panel"])
-        quick_frame.pack(anchor=tk.W, pady=(4, 0))
-        # Row 1: Closed, Open SOTA, Local
-        row1 = tk.Frame(quick_frame, bg=HUB_COLORS["panel"])
-        row1.pack(anchor=tk.W)
-        for tier, label in (
-            ("closed", "Closed"),
-            ("open-sota", "Open SOTA"),
-            ("local", "Local"),
-        ):
-            btn = tk.Button(
-                row1,
-                text=label,
-                command=lambda selected=tier: _select_model_tier(selected),
-                fg=HUB_COLORS["text"],
-                bg=HUB_COLORS["panel_2"],
-                activeforeground=HUB_COLORS["input"],
-                activebackground=HUB_COLORS["accent_2"],
-                relief=tk.FLAT,
-                padx=6,
-                pady=1,
-                font=("Segoe UI", 8),
-            )
-            btn.pack(side=tk.LEFT, padx=(0, 3))
-            quick_model_buttons[tier] = btn
-        # Row 2: Value, Free
-        row2 = tk.Frame(quick_frame, bg=HUB_COLORS["panel"])
-        row2.pack(anchor=tk.W, pady=(3, 0))
-        for tier, label in (
-            ("value", "Value"),
-            ("free", "Free"),
-        ):
-            btn = tk.Button(
-                row2,
-                text=label,
-                command=lambda selected=tier: _select_model_tier(selected),
-                fg=HUB_COLORS["text"],
-                bg=HUB_COLORS["panel_2"],
-                activeforeground=HUB_COLORS["input"],
-                activebackground=HUB_COLORS["accent_2"],
-                relief=tk.FLAT,
-                padx=6,
-                pady=1,
-                font=("Segoe UI", 8),
-            )
-            btn.pack(side=tk.LEFT, padx=(0, 3))
-            quick_model_buttons[tier] = btn
 
     def _refresh_summary() -> None:
         summary, meta = _summary_lines(widget)
@@ -462,34 +373,35 @@ def show_project_hub(widget: Any) -> None:
         except Exception as e:
             status_label.config(text=_friendly_error(e))
 
-    if model_picker is not None:
-        model_picker.bind("<<ComboboxSelected>>", _save_model_profile)
-    if team_preset_picker is not None:
-        team_preset_picker.bind("<<ComboboxSelected>>", _save_team_model_preset)
-
     widget._refresh_project_hub_summary = _refresh_summary
-    widget._refresh_project_hub_model_profiles = _refresh_model_choices
+    widget._refresh_project_hub_model_profiles = _refresh_summary
     _refresh_summary()
 
-    # --- Notebook (Projects / Tasks) ---
+    # --- Notebook (Daily / Advanced) ---
     notebook = ttk.Notebook(hub)
     notebook.pack(fill=tk.BOTH, expand=True, padx=12, pady=(12, 0))
 
-    # Tab 1: Projects
-    projects_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
-    notebook.add(projects_tab, text="Projects")
+    daily_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
+    notebook.add(daily_tab, text="Daily")
 
-    # Tab 2: Tasks
-    tasks_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
-    notebook.add(tasks_tab, text="Tasks")
+    advanced_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
+    notebook.add(advanced_tab, text="Advanced")
 
-    # Tab 3: Team Room
-    team_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
-    notebook.add(team_tab, text="Team Room")
+    projects_tab = tk.Frame(daily_tab, bg=HUB_COLORS["bg"], height=250)
+    projects_tab.pack(fill=tk.X)
+    projects_tab.pack_propagate(False)
 
-    # Tab 4: Endpoints
-    endpoints_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
-    notebook.add(endpoints_tab, text="Endpoints")
+    tasks_tab = tk.Frame(daily_tab, bg=HUB_COLORS["bg"])
+    tasks_tab.pack(fill=tk.BOTH, expand=True)
+
+    advanced_notebook = ttk.Notebook(advanced_tab)
+    advanced_notebook.pack(fill=tk.BOTH, expand=True)
+
+    team_tab = tk.Frame(advanced_notebook, bg=HUB_COLORS["bg"])
+    advanced_notebook.add(team_tab, text="Team Room")
+
+    endpoints_tab = tk.Frame(advanced_notebook, bg=HUB_COLORS["bg"])
+    advanced_notebook.add(endpoints_tab, text="Endpoints")
 
     # --- Status bar ---
     status_frame = tk.Frame(hub, bg=HUB_COLORS["panel"], height=32)
@@ -704,6 +616,12 @@ def _build_projects_tab(
     save_btn.bind("<Button-1>", lambda e: _on_save())
     mission_entry.bind("<Return>", lambda e: _on_save())
 
+    initial_id = current_id if current_id in project_map else (projects[0]["id"] if projects else None)
+    if initial_id:
+        tree.selection_set(initial_id)
+        tree.see(initial_id)
+        _on_select(None)
+
 
 def _build_tasks_tab(
     parent: tk.Frame,
@@ -718,7 +636,7 @@ def _build_tasks_tab(
 
     export_btn = tk.Label(
         toolbar,
-        text="Export Work Packet",
+        text="Export",
         fg="#89b4fa",
         bg="#181825",
         font=("Segoe UI", 8, "underline"),
@@ -728,7 +646,7 @@ def _build_tasks_tab(
 
     import_btn = tk.Label(
         toolbar,
-        text="Import Packet",
+        text="Import",
         fg="#89b4fa",
         bg="#181825",
         font=("Segoe UI", 8, "underline"),
@@ -796,7 +714,7 @@ def _build_tasks_tab(
     # Empty state for tasks tab
     tasks_empty_hint = tk.Label(
         parent,
-        text="태스크가 없습니다. 미션을 입력하면 자동으로 생성됩니다.",
+        text="No tasks yet. Add a mission or import a Work Packet.",
         fg="#6c7086",
         bg="#1e1e2e",
         font=("Segoe UI", 9),
@@ -855,6 +773,49 @@ def _build_tasks_tab(
 
     def _set_task_status(status: str) -> None:
         _task_update({"status": status}, f"Marked task {status}")
+
+    def _start_task() -> None:
+        if widget._team_state is None or not widget.project_id:
+            status_label.config(text=_msg("team_state_unavailable"))
+            return
+        task_index = _selected_task_index()
+        if task_index is None:
+            status_label.config(text=_msg("select_task_first"))
+            return
+        queue = widget._team_state.get_project_queue(widget.project_id)
+        if task_index >= len(queue):
+            status_label.config(text=_msg("no_tasks"))
+            return
+        widget._team_state.update_project_queue_item(widget.project_id, task_index, {"status": "running"})
+        _refresh_tasks()
+        status_label.config(text="Dispatching task to AI...")
+        task_payload = dict(queue[task_index])
+        task_payload["project_id"] = widget.project_id
+        try:
+            from roost.dispatcher import dispatch
+
+            result = dispatch(task_payload, widget._team_state)
+            classification = result.get("classification", {}) if isinstance(result, dict) else {}
+            source = str(classification.get("source", ""))
+            updates = {"classification": classification, "lastDispatch": result}
+            if source and "(no response)" not in source:
+                widget._team_state.update_project_queue_item(widget.project_id, task_index, updates)
+                _refresh_tasks()
+                status_label.config(text=f"AI dispatch: {source} / {classification.get('priority', 'normal')}")
+                return
+            updates["status"] = "waiting"
+            updates["dispatchError"] = "No AI response"
+            widget._team_state.update_project_queue_item(widget.project_id, task_index, updates)
+            _refresh_tasks()
+            status_label.config(text="AI dispatch failed: no response")
+        except Exception as e:
+            widget._team_state.update_project_queue_item(
+                widget.project_id,
+                task_index,
+                {"status": "waiting", "dispatchError": str(e)},
+            )
+            _refresh_tasks()
+            status_label.config(text=_friendly_error(e))
 
     def _refresh_tasks() -> None:
         """Reload tasks from team_state into listboxes."""
@@ -954,12 +915,26 @@ def _build_tasks_tab(
     import_btn.bind("<Button-1>", lambda e: _on_import())
     refresh_btn.bind("<Button-1>", lambda e: _refresh_tasks())
 
+    tk.Label(
+        action_bar,
+        text="Select a task, then:",
+        fg=HUB_COLORS["subtle"],
+        bg="#1e1e2e",
+        font=DS_FONTS["caption"],
+    ).pack(side=tk.LEFT, padx=(0, 8))
+    tk.Label(
+        action_bar,
+        text="Assign:",
+        fg=HUB_COLORS["muted"],
+        bg="#1e1e2e",
+        font=DS_FONTS["caption"],
+    ).pack(side=tk.LEFT, padx=(0, 4))
     tk.Button(action_bar, text="Scout", command=lambda: _assign_role("scout")).pack(side=tk.LEFT, padx=(0, 4))
     tk.Button(action_bar, text="Coordinator", command=lambda: _assign_role("coordinator")).pack(side=tk.LEFT, padx=(0, 4))
     tk.Button(action_bar, text="Lead", command=lambda: _assign_role("lead")).pack(side=tk.LEFT, padx=(0, 10))
     staff_combo.pack(side=tk.LEFT, padx=(0, 4))
     tk.Button(action_bar, text="Assign staff", command=_assign_staff).pack(side=tk.LEFT, padx=(0, 10))
-    tk.Button(action_bar, text="Start", command=lambda: _set_task_status("running")).pack(side=tk.LEFT, padx=(0, 4))
+    tk.Button(action_bar, text="Start", command=_start_task).pack(side=tk.LEFT, padx=(0, 4))
     tk.Button(action_bar, text="Done", command=lambda: _set_task_status("done")).pack(side=tk.LEFT)
 
     # Initial load
@@ -1284,9 +1259,53 @@ def _build_endpoints_tab(
     team_state = widget._team_state if getattr(widget, "_team_state", None) is not None else TeamState()
     project_id = getattr(widget, "project_id", None)
 
+    # --- Adapter connection ---
+    from roost.auth_config import masked_auth_status
+
+    connection_frame = tk.Frame(tab, bg="#181825", height=54)
+    connection_frame.pack(fill=tk.X, padx=8, pady=(8, 4))
+    connection_frame.pack_propagate(False)
+    tk.Label(
+        connection_frame,
+        text="Connection",
+        fg="#cdd6f4",
+        bg="#181825",
+        font=("Segoe UI", 9, "bold"),
+    ).pack(side=tk.LEFT, padx=(8, 10))
+    connection_status = tk.Label(
+        connection_frame,
+        text="",
+        fg="#a6adc8",
+        bg="#181825",
+        font=("Segoe UI", 8),
+        anchor=tk.W,
+    )
+    connection_status.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    def _refresh_connection_status() -> None:
+        configured = masked_auth_status()["configured"]
+        active = [key for key, ok in configured.items() if ok]
+        connection_status.config(text=("Configured: " + ", ".join(active)) if active else "No API, local URL, or OAuth token saved.")
+
+    def _open_connection_settings() -> None:
+        if _get_api_key_wizard()(hub, team_state):
+            _refresh_connection_status()
+            status_label.config(text="Connection settings saved.")
+
+    tk.Button(
+        connection_frame,
+        text="Edit connection",
+        command=_open_connection_settings,
+        bg="#313244",
+        fg="#cdd6f4",
+        relief=tk.FLAT,
+        padx=8,
+    ).pack(side=tk.RIGHT, padx=8)
+    _refresh_connection_status()
+
     # --- Auto-select banner ---
     auto_frame = tk.Frame(tab, bg="#181825", height=28)
-    auto_frame.pack(fill=tk.X, padx=8, pady=(8, 4))
+    auto_frame.pack(fill=tk.X, padx=8, pady=(0, 4))
     auto_frame.pack_propagate(False)
 
     auto_labels = {}
@@ -1624,24 +1643,14 @@ def _build_endpoints_tab(
         profile = _selected_model_profile()
         if profile is None:
             return
-        backend_name = profile.get("backend", "hermes")
-        if backend_name == "script":
-            status_label.config(text=f"[Test] {profile['id']}: OK local script")
-            return
-        if backend_name == "codex":
-            status_label.config(text=f"[Test] {profile['id']}: Codex profile saved")
-            return
-        from roost.dispatcher import BackendRegistry
+        from project_room_model_cli import test_model_profile
 
-        try:
-            cls = BackendRegistry().get(backend_name)
-            inst = cls()
-            if hasattr(inst, "set_model_profile"):
-                inst.set_model_profile(profile)
-            ok = inst.health_check()
-            status_label.config(text=f"[Test] {profile['id']}: {'OK' if ok else 'FAIL'}")
-        except Exception as e:
-            status_label.config(text=f"[Test] {profile['id']}: ERROR - {e}")
+        result = test_model_profile(profile)
+        if result.get("ok"):
+            source = result.get("diagnostics", {}).get("liveProbe", {}).get("source", profile.get("backend", ""))
+            status_label.config(text=f"[Test] {profile['id']}: OK {source}")
+            return
+        status_label.config(text=f"[Test] {profile['id']}: FAIL {result.get('reason') or result.get('error') or ''}")
 
     def _copy_model_profile_env() -> None:
         profile = _selected_model_profile()

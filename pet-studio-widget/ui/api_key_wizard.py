@@ -21,11 +21,13 @@ WIZARD_FONT = "Segoe UI"
 
 FIELD_SPECS = (
     ("OpenRouter key", "OPENROUTER_API_KEY", "sk-or-..."),
-    ("Hermes gateway URL", "HERMES_GATEWAY_URL", "https://..."),
-    ("Hermes token", "HERMES_GATEWAY_TOKEN", "optional"),
+    ("Local gateway URL", "HERMES_GATEWAY_URL", "http://127.0.0.1:8787/v1"),
+    ("Gateway auth token", "HERMES_GATEWAY_TOKEN", "optional"),
+    ("Hermes base URL", "HERMES_BASE_URL", "optional"),
     ("Hermes command", "HERMES_CMD", "hermes"),
     ("Codex command", "CODEX_CMD", "codex"),
     ("Codex OAuth token", "CODEX_OAUTH_TOKEN", "optional"),
+    ("Codex auth token", "CODEX_AUTH_TOKEN", "optional"),
     ("Codex API key", "CODEX_API_KEY", "optional"),
 )
 
@@ -52,7 +54,7 @@ def show_api_key_wizard(parent: tk.Tk | tk.Toplevel, team_state: Any) -> bool:
 
     wizard = tk.Toplevel(parent)
     wizard.title("Connect adapters")
-    wizard.geometry("520x500")
+    wizard.geometry("560x560")
     wizard.configure(bg=WIZARD_BG)
     wizard.resizable(False, False)
     wizard.transient(parent)

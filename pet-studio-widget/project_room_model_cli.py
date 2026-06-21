@@ -139,12 +139,20 @@ def test_model_profile(profile: dict[str, Any]) -> dict[str, Any]:
             diagnostics["command"] = command
             diagnostics["commandPath"] = command_path
             diagnostics["commandFound"] = command_path is not None
-        ok = bool(backend.health_check()) if hasattr(backend, "health_check") else False
+        health_ok = bool(backend.health_check()) if hasattr(backend, "health_check") else False
+        live_result = backend.classify_event({"type": "connection_probe", "status": "running"})
+        classification = live_result.get("classification", {}) if isinstance(live_result, dict) else {}
+        diagnostics["liveProbe"] = classification
+        source = str(classification.get("source", ""))
+        live_ok = bool(source) and "(no response)" not in source
+        ok = health_ok and live_ok
         reason = ""
         if not ok and diagnostics.get("commandFound") is False:
             reason = f"Command not found on PATH: {diagnostics.get('command')}"
         elif not ok and profile.get("provider") == "openrouter" and not diagnostics["secrets"]["OPENROUTER_API_KEY"]:
             reason = "OPENROUTER_API_KEY is not set"
+        elif not ok and health_ok and not live_ok:
+            reason = "backend health check passed but model returned no response"
         elif not ok and command:
             try:
                 probe = subprocess.run(

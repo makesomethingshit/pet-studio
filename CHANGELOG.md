@@ -14,6 +14,9 @@ All notable changes to Pet Studio are documented here.
 - Work Packet model metadata: active model profile, team model preset, role
   model plan, role env overrides, provider env cleanup hints, and relative
   Lead-only savings estimate.
+- Team memory candidate approval flow and Work Packet approved-memory context.
+- Local OpenAI-compatible gateway backend and Codex CLI backend.
+- Shared Workroom Tk design tokens in `pet-studio-widget/ui/design_system.py`.
 
 ### Changed
 
@@ -21,6 +24,7 @@ All notable changes to Pet Studio are documented here.
   team presets, selected-role env copy, and team env plan copy.
 - Dispatcher and packet delivery can route work by assigned team role instead
   of always using the active Lead profile.
+- Project Hub ttk styling now routes through shared design tokens.
 - `team_state.json` contract version is now `0.8.0-dev`.
 
 ### Fixed

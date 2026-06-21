@@ -1,6 +1,6 @@
 # Pet Studio Maintainer Notes
 
-This repository is being prepared for the Pet Studio `v0.8` workroom line.
+This repository is on the Pet Studio `v0.8` workroom line.
 
 ## Public Positioning
 
@@ -16,7 +16,8 @@ should use Pet Studio naming and stay focused on what works today:
 - use the Workroom for mission input, task cards, Team Room status, endpoint
   visibility, and team model presets
 - export/import Work Packets for tasks, staff assignments, model policy, role
-  env, and relative credit estimates
+  env, approved team memory, and relative credit estimates
+- keep Workroom visual styling routed through `pet-studio-widget/ui/design_system.py`
 
 Longer-term workroom concepts live in `docs/PET_STUDIO_WORKROOM_VISION.md`.
 Treat them as direction, not current feature promises.
@@ -46,6 +47,9 @@ Prefer the Pet Studio wrappers in docs and examples:
 - `pet-studio-widget/pet_studio_event_adapter.py`
 - `pet-studio-widget/set_pet_studio_state.py`
 - `pet-studio-widget/set_active_pet_studio.py`
+- `tools/pet_studio_model.cmd`
+- `tools/pet_studio_work.cmd`
+- `tools/pet_studio_memory.py`
 - `tools/install_pet_studio_skill.py`
 
 ## Release Checklist
@@ -100,7 +104,7 @@ docs/images/pet-studio-demo.gif
 docs/images/gakju-widget-bubble-example.png
 ```
 
-## Completed 0.4.0 — Status Bar, System Tray, Auto-Switch
+## Historical: Completed 0.4.0 - Status Bar, System Tray, Auto-Switch
 
 - `pet_studio_core` owns shared registry and state bridge primitives
 - Workspace auto-switch via `infer_project_for_workspace()` in adapter/widget (no separate watcher module)
@@ -108,7 +112,7 @@ docs/images/gakju-widget-bubble-example.png
 - Existing `project_room_*` imports and `project-room-*` files remain compatible
 - Codex hook payloads, hook logs, and trust behavior stay in adapter modules
 - Architecture docs define Core, Widget Host, Codex Adapter, Asset Forge, CLI Tools, and future Workroom boundaries
-- Team Room, Project Hub, endpoint registry, dashboard, and orchestration were future work at this milestone
+- At the 0.4.0 milestone, the Workroom surfaces did not exist yet. Team Room, Project Hub, and endpoint UI now exist in the Workroom; dashboard and full orchestration remain out of scope.
 
 **Explicitly deferred to Later / separate milestone:**
 - Sample room pack (runs/sample-room-cozy-corner/)
@@ -116,7 +120,7 @@ docs/images/gakju-widget-bubble-example.png
 - Helper pet AI (behavior mapping + bubble messages)
 - Standalone workspace_watcher.py polling module
 
-## Completed 0.2.0 — First Room Creation UX
+## Historical: Completed 0.2.0 - First Room Creation UX
 
 All 0.2.0 features are released. Summary of what was shipped:
 
@@ -130,12 +134,12 @@ All 0.2.0 features are released. Summary of what was shipped:
 - Windows widget launcher single-instance/focus behavior and detached launcher logging
 - Codex hook bridge with `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `Stop` hooks
 
-Out of scope for 0.2.0 at that milestone:
+Out of scope for the 0.2.0 milestone at that time:
 - No GUI editor
 - No cloud sync or remote service
 - No full room navigation or game simulation
 - No automatic helper/sub-pet concept selection without user confirmation
-- No Team Room or Project Hub
+- No Team Room or Project Hub at that milestone
 
 ## Notes
 

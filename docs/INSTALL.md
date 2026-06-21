@@ -6,7 +6,7 @@ Pet Studio is currently Windows-focused and local-first.
 
 - Windows as the primary tested desktop widget host.
 - Python 3.11+ with Pillow.
-- Codex Desktop or a local Codex skill folder for `$pet-studio`.
+- Codex Desktop or a local Codex skill folder only if you want the optional Codex adapter.
 - A hatch-pet package to use as the style source when creating new rooms.
 
 ## Install The Skill
@@ -14,8 +14,8 @@ Pet Studio is currently Windows-focused and local-first.
 Clone the repo and install the skill:
 
 ```powershell
-git clone https://github.com/makesomethingshit/codex-pet-studio-skill.git
-cd codex-pet-studio-skill
+git clone https://github.com/makesomethingshit/pet-studio.git
+cd pet-studio
 .\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
 ```
 
@@ -34,6 +34,12 @@ The installer copies the skill to:
 The repository also keeps the older `project-room-*` file names as the v1 compatibility format. New public commands use Pet Studio names.
 
 ## Launch The Demo Widget
+
+Open the Workroom app:
+
+```powershell
+.\tools\pet_studio_workroom.cmd --project-id gakju-archive-demo
+```
 
 Run the preflight first. It checks Python/Pillow, the installed skill, the public demo registry, the sample kit, local-only ignore rules, and a one-frame render. It also reports whether Codex hook entries are installed:
 

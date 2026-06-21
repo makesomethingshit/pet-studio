@@ -52,13 +52,14 @@ Optional Codex adapter:
 - Team Room tab for approvals, staff status, and Roost queue
 - Endpoint registry with role mappings for Scout, Coordinator, and Lead
 - Credit-aware role model plan: Scout uses local/free routes, Coordinator uses value routes, Lead follows the active model
-- Model profiles for switching between Codex and Hermes/OpenRouter from the Workroom or CLI
+- Model profiles for switching between Codex, Hermes, OpenRouter, and local gateway routes from the Workroom or CLI
 - Companion desktop pet widget with layered room, props, pets, speech bubbles, status bar, and toast messages
+- Shared Tk design tokens for the Workroom in `pet-studio-widget/ui/design_system.py`
 - Project registry, saved layout/window/session, workspace auto-detection, and project switching
 - File-based state bridge using the existing `project-room-*` compatibility files
 - Room creation, validation, preview sheets, QA packs, and preset export/import
-- Roost project queues, event logs, L0-L3 security levels, and script/Hermes classifiers
-- Optional Codex skill and hook bridge, plus Work Packet export/import for tasks, staff assignments, model policy, role env, and relative credit estimate
+- Roost project queues, event logs, L0-L3 security levels, team memory approval, and script/Hermes/gateway/Codex classifiers
+- Optional Codex skill and hook bridge, plus Work Packet export/import for tasks, staff assignments, approved memory, model policy, role env, and relative credit estimate
 - Korean CLI repair hints via `--lang ko` or `PET_STUDIO_LANG=ko`
 
 Switch the active model profile:
@@ -118,6 +119,8 @@ Send team work into the Workroom:
 .\tools\pet_studio_work.cmd status --project-id gakju-archive-demo
 .\tools\pet_studio_work.cmd clear --project-id gakju-archive-demo
 .\tools\pet_studio_work.cmd clear-mission --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd memory add "Prefer cheap Scout routes" --scope team
+.\tools\pet_studio_work.cmd memory list
 ```
 
 `status` includes the current mission, tasks, staff, role model plan, role env,
@@ -189,6 +192,8 @@ Backends:
 
 - `ScriptBackend`: rule-based, no LLM
 - `HermesBackend`: optional Hermes Agent subprocess
+- `GatewayBackend`: optional OpenAI-compatible local gateway, defaulting to `http://127.0.0.1:8787/v1`
+- `CodexBackend`: optional Codex CLI subprocess for locally authenticated Codex users
 
 Security levels are per project: L0 allow, L1 warn, L2 ask, L3 deny.
 

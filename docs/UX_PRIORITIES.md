@@ -21,6 +21,7 @@ Use this question first: "Will the user feel this immediately?"
 | File state bridge | `pet_studio_core/state.py` | Keeps `project-room-*` compatibility files. |
 | Project registry | `pet_studio_core/registry.py` | Workspace/project inference and compatibility wrapper. |
 | Workroom window | `pet-studio-widget/ui/project_hub.py` | Projects, Tasks, Team Room, Endpoints tabs. |
+| Workroom design tokens | `pet-studio-widget/ui/design_system.py` | Shared colors, spacing, fonts, role/status colors, and ttk styling. |
 | Mission input | Workroom Projects tab | Saved in `team_state.json`. |
 | Task cards | Workroom Tasks tab | Waiting/running/done lanes, role/staff assignment, dispatcher model routing, start/done actions. |
 | Team Room tab | Workroom | Staff registration, approvals, staff status, project queue, queue cleanup, queue-to-task routing. |
@@ -29,6 +30,7 @@ Use this question first: "Will the user feel this immediately?"
 | Relative credit estimate | Workroom, CLI | Compares current role model plan against Lead-only routing using cost hints. |
 | Team model presets | Workroom, CLI | `save-credits`, `all-local`, `all-value`, `lead-sota`. |
 | Work Packet export/import | Workroom, `roost/packet.py` | Preserves mission, tasks, staff assignments, active model, team model policy, role env cleanup hints, and relative credit estimate. |
+| Team memory approval | `roost/team_memory.py`, `tools/pet_studio_memory.py` | Pending candidates are approved or rejected before entering Work Packet context. |
 | Preflight team-model check | `tools/pet_studio_preflight.py` | Verifies default `save-credits` role plan and relative savings estimate. |
 
 ### Still Rough
@@ -38,7 +40,7 @@ Use this question first: "Will the user feel this immediately?"
 | State animation | Basic status/color changes. | Small fade/crossfade only if it stays cheap. |
 | Task cards | Functional lanes. | Better density and row actions before visual flourish. |
 | Team Room | Workroom tab only, with staff registration, approval, queue cleanup, and queue-to-task routing actions. | Keep expanding this surface before adding a second team UI. |
-| Model backends | Script fallback plus optional adapters. | Add real backend call sites only when a user flow needs them. |
+| Model backends | Script fallback plus optional Hermes, gateway, and Codex adapters. | Keep adapters thin and callable from current Workroom/CLI routes. |
 
 ## UX Rules
 
