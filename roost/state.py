@@ -29,6 +29,7 @@ class TeamState:
     _DEFAULT_ENDPOINTS: dict[str, dict[str, str]] = {
         "local/fast": {"backend": "script", "cost": "free"},
         "remote/sota": {"backend": "hermes", "cost": "high"},
+        "fusion/local": {"backend": "gateway", "cost": "low"},
     }
     _DEFAULT_MODEL_PROFILES: dict[str, dict[str, str]] = {
         "codex/default": {
@@ -72,6 +73,13 @@ class TeamState:
             "model": "cheap",
             "cost": "free",
             "tier": "free",
+        },
+        "fusion/local": {
+            "backend": "gateway",
+            "provider": "openrouter",
+            "model": "fusion",
+            "cost": "low",
+            "tier": "value",
         },
     }
     _DEFAULT_ROLE_BACKENDS: dict[str, str] = {
@@ -394,6 +402,22 @@ class TeamState:
                     "priority": event.get("priority", "normal"),
                 }
             )
+            candidate = event.get("memoryCandidate")
+            if isinstance(candidate, dict):
+                try:
+                    from roost.team_memory import add_memory_candidate
+
+                    add_memory_candidate(
+                        self.state_file.parent,
+                        str(candidate.get("summary", "")),
+                        scope=str(candidate.get("scope", "project")),
+                        project_id=str(candidate.get("projectId") or project_id),
+                        kind=str(candidate.get("kind", "lesson")),
+                        evidence=[str(item) for item in candidate.get("evidence", [])],
+                        source="event",
+                    )
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("Failed to record memory candidate: %s", e)
 
     # --- Context accumulation ---
 
@@ -454,7 +478,10 @@ class TeamState:
     # --- Endpoints ---
 
     def _ensure_endpoints(self) -> dict[str, dict[str, Any]]:
-        return self._data.setdefault("endpoints", self._copy_default_map(self._DEFAULT_ENDPOINTS))
+        endpoints = self._data.setdefault("endpoints", self._copy_default_map(self._DEFAULT_ENDPOINTS))
+        for alias, info in self._DEFAULT_ENDPOINTS.items():
+            endpoints.setdefault(alias, dict(info))
+        return endpoints
 
     def _ensure_model_profiles(self) -> dict[str, dict[str, Any]]:
         profiles = self._data.setdefault("model_profiles", self._copy_default_map(self._DEFAULT_MODEL_PROFILES))
@@ -613,7 +640,11 @@ class TeamState:
         for role in ("scout", "coordinator", "lead"):
             role_target = self.get_role_backend(role)
             profile = self.get_role_model_profile(role)
-            endpoint = role_target if role_target and role_target != self._DEFAULT_ROLE_BACKENDS.get(role) else profile["id"]
+            endpoint = (
+                role_target
+                if role_target and role_target != self._DEFAULT_ROLE_BACKENDS.get(role)
+                else profile["id"]
+            )
             plan.append(
                 {
                     "role": role,

@@ -18,6 +18,7 @@ if /I "%CMD%"=="done" goto done
 if /I "%CMD%"=="status" goto status
 if /I "%CMD%"=="clear" goto clear
 if /I "%CMD%"=="clear-mission" goto clear_mission
+if /I "%CMD%"=="memory" goto memory
 if /I "%CMD%"=="open" goto open
 goto passthrough
 
@@ -63,6 +64,10 @@ call exit /b %%ERRORLEVEL%%
 
 :clear_mission
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --clear-mission %REST%
+call exit /b %%ERRORLEVEL%%
+
+:memory
+call "%~dp0pet_studio_python.cmd" "%~dp0pet_studio_memory.py" %REST%
 call exit /b %%ERRORLEVEL%%
 
 :open

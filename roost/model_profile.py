@@ -6,6 +6,8 @@ import os
 from collections.abc import Mapping
 from typing import Any
 
+from roost.auth_config import apply_auth_config_env
+
 MODEL_TIER_ORDER = {
     "closed": 0,
     "open-sota": 1,
@@ -210,7 +212,7 @@ def build_model_profile_env(
     base_env: Mapping[str, str] | None = None,
 ) -> dict[str, str]:
     """Build a subprocess environment for the selected model profile."""
-    env = dict(os.environ if base_env is None else base_env)
+    env = apply_auth_config_env(os.environ if base_env is None else base_env)
     overrides = model_profile_env_overrides(profile)
     for key in model_profile_env_clear(profile):
         env.pop(key, None)

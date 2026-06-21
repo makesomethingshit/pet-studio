@@ -895,6 +895,36 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("$env:PET_STUDIO_MODEL_PROFILE = 'local/default'", role_env.stdout)
         self.assertIn("Remove-Item Env:OPENROUTER_MODEL -ErrorAction SilentlyContinue", role_env.stdout)
 
+    @unittest.skipIf(os.name != "nt", "Windows .cmd wrapper regression")
+    def test_model_cmd_passthrough_preserves_parenthesized_model_name(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            saved = subprocess.run(
+                [
+                    str(MODEL_CMD_WRAPPER),
+                    "--state-file",
+                    str(state_file),
+                    "--set-model-profile",
+                    "openrouter/test-model",
+                    "--model-provider",
+                    "openrouter",
+                    "--model-name",
+                    "test(model)",
+                    "--model-cost",
+                    "low",
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+        self.assertEqual(saved.returncode, 0, saved.stderr + saved.stdout)
+        payload = json.loads(saved.stdout)
+        profile = next(item for item in payload["profiles"] if item["id"] == "openrouter/test-model")
+        self.assertEqual(profile["model"], "test(model)")
+        self.assertEqual(profile["cost"], "low")
+
     def test_work_cmd_wrapper_uses_widget_work_cli(self) -> None:
         text = WORK_CMD_WRAPPER.read_text(encoding="utf-8").lower()
 
@@ -1176,6 +1206,32 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertEqual(root.attributes, [("-topmost", True)])
         self.assertEqual(root.lift_count, 1)
+
+    def test_fixed_window_geometry_keeps_widget_size_and_position(self) -> None:
+        import project_room_widget
+
+        self.assertEqual(project_room_widget.fixed_window_geometry(480, 320, 20, 40), "480x320+20+40")
+        self.assertEqual(project_room_widget.fixed_window_geometry(0, -1), "1x1")
+
+    def test_project_hub_uses_app_sized_shell_and_ttk_styles(self) -> None:
+        text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
+
+        self.assertIn('hub.geometry("820x580")', text)
+        self.assertIn("hub.minsize(760, 520)", text)
+        self.assertIn('width = saved.get("width", 980)', text)
+        self.assertIn('height = saved.get("height", 680)', text)
+        self.assertIn("def _configure_hub_style", text)
+        self.assertIn('"TNotebook.Tab"', text)
+        self.assertIn('"Treeview"', text)
+
+    def test_local_auth_file_is_ignored_and_wizard_is_clean(self) -> None:
+        gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
+        wizard = (WIDGET_DIR / "ui" / "api_key_wizard.py").read_text(encoding="utf-8")
+
+        self.assertIn("pet-studio-widget/.pet_studio_keys.json", gitignore)
+        self.assertIn("Connect Hermes / Codex", wizard)
+        self.assertIn("HERMES_GATEWAY_URL", wizard)
+        self.assertIn("CODEX_OAUTH_TOKEN", wizard)
 
     def test_done_state_resets_to_idle_after_reset_delay(self) -> None:
         from datetime import datetime

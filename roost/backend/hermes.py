@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import subprocess
 from typing import Any
 
 from roost.model_profile import build_model_profile_env
+from roost.auth_config import apply_auth_config_env
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +23,9 @@ class HermesBackend:
 
     name = "hermes"
 
-    def __init__(self, hermes_cmd: str = "hermes", timeout: int = 10):
-        self.hermes_cmd = hermes_cmd
+    def __init__(self, hermes_cmd: str | None = None, timeout: int = 10):
+        auth_env = apply_auth_config_env(os.environ)
+        self.hermes_cmd = hermes_cmd or auth_env.get("HERMES_CMD", "hermes")
         self.timeout = timeout
         self.model_profile: dict[str, Any] | None = None
 

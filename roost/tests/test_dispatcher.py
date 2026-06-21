@@ -49,13 +49,15 @@ class TestBackendRegistry(unittest.TestCase):
     def test_default_backends(self):
         self.assertIn("script", self.registry.available)
         self.assertIn("hermes", self.registry.available)
+        self.assertIn("codex", self.registry.available)
+        self.assertIn("gateway", self.registry.available)
 
     def test_register_new(self):
         mock_cls = MagicMock()
         mock_cls.__name__ = "FakeBackend"
-        self.registry.register("codex", mock_cls)
-        self.assertIn("codex", self.registry.available)
-        self.assertEqual(self.registry.get("codex"), mock_cls)
+        self.registry.register("fake", mock_cls)
+        self.assertIn("fake", self.registry.available)
+        self.assertEqual(self.registry.get("fake"), mock_cls)
 
     def test_get_unknown_raises(self):
         with self.assertRaises(ValueError):
@@ -64,10 +66,10 @@ class TestBackendRegistry(unittest.TestCase):
     def test_reset(self):
         mock_cls = MagicMock()
         mock_cls.__name__ = "FakeBackend"
-        self.registry.register("codex", mock_cls)
+        self.registry.register("fake", mock_cls)
         self.registry.reset()
-        self.assertNotIn("codex", self.registry.available)
-        self.assertEqual(set(self.registry.available), {"script", "hermes"})
+        self.assertNotIn("fake", self.registry.available)
+        self.assertEqual(set(self.registry.available), {"script", "hermes", "codex", "gateway"})
 
 
 class TestResolveBackendForRole(unittest.TestCase):

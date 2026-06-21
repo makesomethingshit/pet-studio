@@ -20,6 +20,20 @@ from roost.packet import export_work_packet
 # Lazy import to avoid circular dependency
 _api_key_wizard = None
 
+HUB_COLORS = {
+    "bg": "#111318",
+    "panel": "#181b22",
+    "panel_2": "#20242d",
+    "line": "#2c3340",
+    "text": "#eef2f8",
+    "muted": "#9aa6b5",
+    "subtle": "#6f7b8b",
+    "accent": "#6aa6ff",
+    "accent_2": "#66d9a6",
+    "danger": "#ff6b7a",
+    "input": "#0c0f14",
+}
+
 
 def _get_api_key_wizard():
     global _api_key_wizard
@@ -71,6 +85,43 @@ _USER_MESSAGES: dict[str, str] = {
 }
 
 
+_USER_MESSAGES = {
+    "export_failed": "Export failed. Select a project first.",
+    "import_failed": "Import failed. Check the file path.",
+    "switch_failed": "Project switch failed. Select a project first.",
+    "model_switch_failed": "Model change failed. Check the endpoint connection.",
+    "team_preset_failed": "Team mode change failed.",
+    "team_state_unavailable": "Team state is unavailable. Try again.",
+    "select_project_first": "Select a project first.",
+    "select_task_first": "Select a task first.",
+    "select_staff_first": "Select a staff member first.",
+    "staff_id_required": "Enter a staff id.",
+    "no_tier_model": "No model profile exists for that tier.",
+    "mission_saved": "Mission saved.",
+    "staff_added": "Staff added.",
+    "staff_exists": "Staff is already registered.",
+    "task_loaded": "Task loaded.",
+    "exported": "Work Packet exported.",
+    "imported": "Work Packet imported.",
+    "tasks_cleared": "Tasks cleared.",
+    "queue_empty": "Queue is empty.",
+    "no_staff": "No staff registered. Add staff first.",
+    "no_approvals": "No approvals waiting.",
+    "approval_resolved": "Approval resolved.",
+    "dequeued": "Task started.",
+    "dropped": "Task removed.",
+    "routed": "Task routed to project.",
+    "role_saved": "Role saved.",
+    "preset_applied": "Preset applied.",
+    "switched": "Project switched.",
+    "team_room_loaded": "Team Room loaded.",
+    "no_project": "No project selected.",
+    "no_tasks": "No tasks yet.",
+    "no_endpoints": "No endpoints configured.",
+    "no_model_profiles": "No model profiles configured.",
+}
+
+
 def _msg(key: str, **kwargs) -> str:
     """Return a user-friendly message by key, with optional format args."""
     text = _USER_MESSAGES.get(key, key)
@@ -82,8 +133,8 @@ def _msg(key: str, **kwargs) -> str:
     return text
 
 
-def _friendly_error(e: Exception) -> str:
-    """Convert a technical exception to a user-friendly Korean message."""
+def _legacy_friendly_error(e: Exception) -> str:
+    """Legacy mojibake fallback kept until the old copy table is removed."""
     text = str(e)
     # 네트워크 관련
     if any(kw in text.lower() for kw in ("connection", "timeout", "network", "unreachable", "refused")):
@@ -104,6 +155,20 @@ def _friendly_error(e: Exception) -> str:
 
 
 
+def _friendly_error(e: Exception) -> str:
+    """Convert a technical exception to a short status-bar message."""
+    text = str(e).lower()
+    if any(kw in text for kw in ("connection", "timeout", "network", "unreachable", "refused")):
+        return "Check the network or endpoint connection."
+    if any(kw in text for kw in ("file", "path", "not found", "no such", "permission")):
+        return "Check the file path or permissions."
+    if any(kw in text for kw in ("json", "decode", "parse")):
+        return "The file format is not valid JSON."
+    if any(kw in text for kw in ("api", "key", "auth", "401", "403", "429")):
+        return "Check API key or rate limit settings."
+    return "Something went wrong. Try again."
+
+
 def _powershell_env_lines_for_profile(profile: Mapping[str, Any] | None) -> list[str]:
     return model_profile_powershell_env_lines(profile)
 
@@ -113,12 +178,61 @@ def _powershell_env_lines_for_role_plan(role_model_plan: list[Mapping[str, Any]]
 
 
 def _workroom_geometry(saved: dict[str, int] | None) -> str:
-    width = saved.get("width", 900) if saved else 900
-    height = saved.get("height", 640) if saved else 640
+    width = saved.get("width", 980) if saved else 980
+    height = saved.get("height", 680) if saved else 680
     geometry = f"{width}x{height}"
     if saved and isinstance(saved.get("x"), int) and isinstance(saved.get("y"), int):
         geometry += f"+{saved['x']}+{saved['y']}"
     return geometry
+
+
+def _configure_hub_style(hub: tk.Toplevel) -> None:
+    style = ttk.Style(hub)
+    try:
+        style.theme_use("clam")
+    except tk.TclError:
+        pass
+    style.configure("TNotebook", background=HUB_COLORS["bg"], borderwidth=0, tabmargins=(8, 6, 8, 0))
+    style.configure(
+        "TNotebook.Tab",
+        background=HUB_COLORS["panel"],
+        foreground=HUB_COLORS["muted"],
+        padding=(14, 7),
+        borderwidth=0,
+        font=("Segoe UI", 9),
+    )
+    style.map(
+        "TNotebook.Tab",
+        background=[("selected", HUB_COLORS["panel_2"])],
+        foreground=[("selected", HUB_COLORS["text"])],
+    )
+    style.configure(
+        "Treeview",
+        background=HUB_COLORS["input"],
+        fieldbackground=HUB_COLORS["input"],
+        foreground=HUB_COLORS["text"],
+        borderwidth=0,
+        rowheight=26,
+        font=("Segoe UI", 9),
+    )
+    style.configure(
+        "Treeview.Heading",
+        background=HUB_COLORS["panel_2"],
+        foreground=HUB_COLORS["muted"],
+        relief=tk.FLAT,
+        font=("Segoe UI", 8, "bold"),
+    )
+    style.map("Treeview", background=[("selected", "#26435f")], foreground=[("selected", HUB_COLORS["text"])])
+    style.configure(
+        "TCombobox",
+        fieldbackground=HUB_COLORS["input"],
+        background=HUB_COLORS["panel_2"],
+        foreground=HUB_COLORS["text"],
+        arrowcolor=HUB_COLORS["muted"],
+        bordercolor=HUB_COLORS["line"],
+        lightcolor=HUB_COLORS["line"],
+        darkcolor=HUB_COLORS["line"],
+    )
 
 
 def _summary_lines(widget: Any) -> tuple[str, str]:
@@ -187,53 +301,46 @@ def show_project_hub(widget: Any) -> None:
     hub.title("Pet Studio Workroom" if is_workroom else "Project Hub")
     if is_workroom:
         hub.geometry(_workroom_geometry(getattr(widget, "_workroom_window", None)))
+        hub.minsize(900, 620)
     else:
-        hub.geometry("560x480")
+        hub.geometry("820x580")
+        hub.minsize(760, 520)
     hub.resizable(True, True)
-    hub.configure(bg="#1e1e2e")
+    hub.configure(bg=HUB_COLORS["bg"])
+    _configure_hub_style(hub)
 
     widget._hub_window = hub
 
     # --- Header ---
-    # Workroom: 2-row header (title row + controls row)
-    # Normal: single 36px title bar
-    if is_workroom:
-        header_top = tk.Frame(hub, bg="#181825", height=40)
-        header_top.pack(fill=tk.X, padx=0, pady=0)
-        header_top.pack_propagate(False)
-        header_text = tk.Frame(header_top, bg="#181825")
-        header_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=12, pady=6)
-    else:
-        header = tk.Frame(hub, bg="#181825", height=36)
-        header.pack(fill=tk.X, padx=0, pady=0)
-        header.pack_propagate(False)
-        header_text = tk.Frame(header, bg="#181825")
-        header_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=12, pady=6)
+    header_top = tk.Frame(hub, bg=HUB_COLORS["panel"], height=86 if is_workroom else 76)
+    header_top.pack(fill=tk.X, padx=0, pady=0)
+    header_top.pack_propagate(False)
+    header_text = tk.Frame(header_top, bg=HUB_COLORS["panel"])
+    header_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=18, pady=10)
     tk.Label(
         header_text,
         text="Pet Studio Workroom" if is_workroom else "Project Hub",
-        fg="#cdd6f4",
-        bg="#181825",
-        font=("Segoe UI", 11, "bold"),
+        fg=HUB_COLORS["text"],
+        bg=HUB_COLORS["panel"],
+        font=("Segoe UI", 14, "bold"),
     ).pack(anchor=tk.W)
 
     summary_label = tk.Label(
         header_text,
         text="",
-        fg="#6c7086",
-        bg="#181825",
-        font=("Segoe UI", 8),
+        fg=HUB_COLORS["muted"],
+        bg=HUB_COLORS["panel"],
+        font=("Segoe UI", 9),
     )
     meta_label = tk.Label(
         header_text,
         text="",
-        fg="#585b70",
-        bg="#181825",
+        fg=HUB_COLORS["subtle"],
+        bg=HUB_COLORS["panel"],
         font=("Segoe UI", 8),
     )
-    if is_workroom:
-        summary_label.pack(anchor=tk.W)
-        meta_label.pack(anchor=tk.W)
+    summary_label.pack(anchor=tk.W, pady=(4, 0))
+    meta_label.pack(anchor=tk.W)
 
     model_var = tk.StringVar()
     team_preset_var = tk.StringVar()
@@ -244,16 +351,16 @@ def show_project_hub(widget: Any) -> None:
         profiles = widget._team_state.list_model_profiles()
         profile_ids = [profile["id"] for profile in profiles]
         # Controls row: model/preset/tier buttons
-        header_bot = tk.Frame(hub, bg="#181825", height=68)
+        header_bot = tk.Frame(hub, bg=HUB_COLORS["panel"], height=68)
         header_bot.pack(fill=tk.X, padx=0, pady=0)
         header_bot.pack_propagate(False)
-        model_panel = tk.Frame(header_bot, bg="#181825")
-        model_panel.pack(side=tk.LEFT, padx=12, pady=8)
+        model_panel = tk.Frame(header_bot, bg=HUB_COLORS["panel"])
+        model_panel.pack(side=tk.LEFT, padx=18, pady=8)
         tk.Label(
             model_panel,
             text="Active model",
-            fg="#6c7086",
-            bg="#181825",
+            fg=HUB_COLORS["muted"],
+            bg=HUB_COLORS["panel"],
             font=("Segoe UI", 8),
         ).pack(anchor=tk.W)
         model_var.set(widget._team_state.get_active_model_profile_id())
@@ -268,8 +375,8 @@ def show_project_hub(widget: Any) -> None:
         tk.Label(
             model_panel,
             text="Team mode",
-            fg="#6c7086",
-            bg="#181825",
+            fg=HUB_COLORS["muted"],
+            bg=HUB_COLORS["panel"],
             font=("Segoe UI", 8),
         ).pack(anchor=tk.W, pady=(4, 0))
         preset_ids = [preset["id"] for preset in widget._team_state.list_team_model_presets()]
@@ -282,10 +389,10 @@ def show_project_hub(widget: Any) -> None:
             width=22,
         )
         team_preset_picker.pack(anchor=tk.W)
-        quick_frame = tk.Frame(model_panel, bg="#181825")
+        quick_frame = tk.Frame(model_panel, bg=HUB_COLORS["panel"])
         quick_frame.pack(anchor=tk.W, pady=(4, 0))
         # Row 1: Closed, Open SOTA, Local
-        row1 = tk.Frame(quick_frame, bg="#181825")
+        row1 = tk.Frame(quick_frame, bg=HUB_COLORS["panel"])
         row1.pack(anchor=tk.W)
         for tier, label in (
             ("closed", "Closed"),
@@ -296,10 +403,10 @@ def show_project_hub(widget: Any) -> None:
                 row1,
                 text=label,
                 command=lambda selected=tier: _select_model_tier(selected),
-                fg="#cdd6f4",
-                bg="#313244",
-                activeforeground="#11111b",
-                activebackground="#a6e3a1",
+                fg=HUB_COLORS["text"],
+                bg=HUB_COLORS["panel_2"],
+                activeforeground=HUB_COLORS["input"],
+                activebackground=HUB_COLORS["accent_2"],
                 relief=tk.FLAT,
                 padx=6,
                 pady=1,
@@ -308,7 +415,7 @@ def show_project_hub(widget: Any) -> None:
             btn.pack(side=tk.LEFT, padx=(0, 3))
             quick_model_buttons[tier] = btn
         # Row 2: Value, Free
-        row2 = tk.Frame(quick_frame, bg="#181825")
+        row2 = tk.Frame(quick_frame, bg=HUB_COLORS["panel"])
         row2.pack(anchor=tk.W, pady=(3, 0))
         for tier, label in (
             ("value", "Value"),
@@ -318,10 +425,10 @@ def show_project_hub(widget: Any) -> None:
                 row2,
                 text=label,
                 command=lambda selected=tier: _select_model_tier(selected),
-                fg="#cdd6f4",
-                bg="#313244",
-                activeforeground="#11111b",
-                activebackground="#a6e3a1",
+                fg=HUB_COLORS["text"],
+                bg=HUB_COLORS["panel_2"],
+                activeforeground=HUB_COLORS["input"],
+                activebackground=HUB_COLORS["accent_2"],
                 relief=tk.FLAT,
                 padx=6,
                 pady=1,
@@ -355,9 +462,9 @@ def show_project_hub(widget: Any) -> None:
         active_tier = model_profile_tier(active_profile)
         for tier, button in quick_model_buttons.items():
             if tier == active_tier:
-                button.config(bg="#89b4fa", fg="#11111b")
+                button.config(bg=HUB_COLORS["accent"], fg=HUB_COLORS["input"])
             else:
-                button.config(bg="#313244", fg="#cdd6f4")
+                button.config(bg=HUB_COLORS["panel_2"], fg=HUB_COLORS["text"])
         if team_preset_picker is not None:
             preset_ids = [preset["id"] for preset in widget._team_state.list_team_model_presets()]
             team_preset_picker.configure(values=preset_ids)
@@ -421,33 +528,33 @@ def show_project_hub(widget: Any) -> None:
 
     # --- Notebook (Projects / Tasks) ---
     notebook = ttk.Notebook(hub)
-    notebook.pack(fill=tk.BOTH, expand=True, padx=8, pady=(8, 0))
+    notebook.pack(fill=tk.BOTH, expand=True, padx=12, pady=(12, 0))
 
     # Tab 1: Projects
-    projects_tab = tk.Frame(notebook, bg="#1e1e2e")
+    projects_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
     notebook.add(projects_tab, text="Projects")
 
     # Tab 2: Tasks
-    tasks_tab = tk.Frame(notebook, bg="#1e1e2e")
+    tasks_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
     notebook.add(tasks_tab, text="Tasks")
 
     # Tab 3: Team Room
-    team_tab = tk.Frame(notebook, bg="#1e1e2e")
+    team_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
     notebook.add(team_tab, text="Team Room")
 
     # Tab 4: Endpoints
-    endpoints_tab = tk.Frame(notebook, bg="#1e1e2e")
+    endpoints_tab = tk.Frame(notebook, bg=HUB_COLORS["bg"])
     notebook.add(endpoints_tab, text="Endpoints")
 
     # --- Status bar ---
-    status_frame = tk.Frame(hub, bg="#181825", height=28)
+    status_frame = tk.Frame(hub, bg=HUB_COLORS["panel"], height=32)
     status_frame.pack(fill=tk.X, side=tk.BOTTOM)
     status_frame.pack_propagate(False)
     status_label = tk.Label(
         status_frame,
         text="",
-        fg="#6c7086",
-        bg="#181825",
+        fg=HUB_COLORS["muted"],
+        bg=HUB_COLORS["panel"],
         font=("Segoe UI", 8),
     )
     status_label.pack(side=tk.LEFT, padx=12, pady=4)

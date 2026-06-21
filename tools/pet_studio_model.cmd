@@ -3,9 +3,6 @@ setlocal EnableExtensions DisableDelayedExpansion
 
 set "SCRIPT=%~dp0..\pet-studio-widget\pet_studio_widget.py"
 set "CMD=%~1"
-set "REST="
-if not "%~2"=="" set "REST=%*"
-if defined REST call set "REST=%%REST:* =%%"
 
 if /I "%CMD%"=="codex" goto model_codex
 if /I "%CMD%"=="closed" goto model_closed
@@ -37,78 +34,97 @@ if /I "%CMD%"=="lead" goto role_lead
 goto passthrough
 
 :model_codex
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model codex %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_closed
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model closed %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_gpt
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model gpt %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_claude
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model claude %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_openrouter
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model openrouter %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_open
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model open %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_open_sota
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model open-sota %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_local
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model local %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_fast
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model fast %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_value
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model value %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_sota
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model sota %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_cheap
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model cheap %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_free
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model free %REST%
 call exit /b %%ERRORLEVEL%%
 
 :model_status
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --model-status %REST%
 call exit /b %%ERRORLEVEL%%
 
 :preset_save_credits
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --team-model-preset save-credits %REST%
 call exit /b %%ERRORLEVEL%%
 
 :preset_all_local
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --team-model-preset all-local %REST%
 call exit /b %%ERRORLEVEL%%
 
 :preset_all_value
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --team-model-preset all-value %REST%
 call exit /b %%ERRORLEVEL%%
 
 :preset_lead_sota
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --team-model-preset lead-sota %REST%
 call exit /b %%ERRORLEVEL%%
 
 :reset_role
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --clear-role-model %REST%
 call exit /b %%ERRORLEVEL%%
 
@@ -140,17 +156,26 @@ call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --print-role-model-env lead %REST2%
 call exit /b %%ERRORLEVEL%%
 
 :role_scout
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --set-role-model scout %REST%
 call exit /b %%ERRORLEVEL%%
 
 :role_coordinator
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --set-role-model coordinator %REST%
 call exit /b %%ERRORLEVEL%%
 
 :role_lead
+call :set_rest %*
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" --set-role-model lead %REST%
 call exit /b %%ERRORLEVEL%%
 
 :passthrough
 call "%~dp0pet_studio_python.cmd" "%SCRIPT%" %*
 call exit /b %%ERRORLEVEL%%
+
+:set_rest
+set "REST="
+if not "%~2"=="" set "REST=%*"
+if defined REST call set "REST=%%REST:* =%%"
+exit /b 0

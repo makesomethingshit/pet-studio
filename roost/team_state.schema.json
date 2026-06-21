@@ -54,7 +54,8 @@
   "approvals": [],
   "endpoints": {
     "local/fast": {"backend": "script", "cost": "free"},
-    "remote/sota": {"backend": "hermes", "cost": "high"}
+    "remote/sota": {"backend": "hermes", "cost": "high"},
+    "fusion/local": {"backend": "gateway", "cost": "low"}
   },
   "model_profiles": {
     "codex/default": {
@@ -98,6 +99,13 @@
       "model": "cheap",
       "cost": "free",
       "tier": "free"
+    },
+    "fusion/local": {
+      "backend": "gateway",
+      "provider": "openrouter",
+      "model": "fusion",
+      "cost": "low",
+      "tier": "value"
     }
   },
   "active_model_profile": "openrouter/sota",

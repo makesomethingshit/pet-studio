@@ -396,6 +396,13 @@ def apply_topmost(root: tk.Tk, enabled: bool) -> None:
         root.lift()
 
 
+def fixed_window_geometry(width: int, height: int, x: int | None = None, y: int | None = None) -> str:
+    geometry = f"{max(1, int(width))}x{max(1, int(height))}"
+    if x is not None and y is not None:
+        geometry += f"+{int(x)}+{int(y)}"
+    return geometry
+
+
 def is_gui_launch(args: argparse.Namespace) -> bool:
     return not bool(args.list_projects or args.render_once or args.render_project_once)
 
@@ -701,7 +708,6 @@ class ProjectRoomWidget:
         self._context_menu_open = False
         self._hub_window: tk.Toplevel | None = None
 
-        # Feedback when no project detected
         if not self.project_id:
             self._toast_message = "No project detected - right-click to register"
 
@@ -749,6 +755,30 @@ class ProjectRoomWidget:
             self.root.after(self.state_refresh_ms, self.refresh_external_state)
         if self.topmost:
             self.root.after(250, self.refresh_topmost)
+
+    def open_project_hub(self) -> None:
+        """Open or focus the Project Hub without creating a second Tk root."""
+        self.root.update_idletasks()
+        widget_geometry = fixed_window_geometry(
+            int(self.canvas.cget("width")),
+            int(self.canvas.cget("height")),
+            self.root.winfo_x(),
+            self.root.winfo_y(),
+        )
+        show_project_hub(self)
+        hub = self._hub_window
+        if hub is None:
+            return
+        try:
+            self.root.geometry(widget_geometry)
+            self.root.after(100, lambda: self.root.geometry(widget_geometry))
+            self.root.after(500, lambda: self.root.geometry(widget_geometry))
+            hub.lift()
+            hub.focus_force()
+            hub.wm_attributes("-topmost", True)
+            hub.after(400, lambda: hub.wm_attributes("-topmost", False))
+        except tk.TclError:
+            self._hub_window = None
 
     def entity_image(self, entity: SceneEntity, frame_index: int) -> Image.Image:
         source = self.layer_assets.get(entity.id)
@@ -1174,7 +1204,7 @@ class ProjectRoomWidget:
                 pass
 
         # Project Hub
-        menu.add_command(label="Project Hub", command=lambda: show_project_hub(self))
+        menu.add_command(label="Project Hub", command=self.open_project_hub)
 
         # Preset submenu
         if self.project_id:
@@ -1387,7 +1417,6 @@ class ProjectRoomWidget:
         self.animate()
         self.root.mainloop()
 
-
 class WorkroomHost:
     def __init__(
         self,
@@ -1476,6 +1505,8 @@ MODEL_PROFILE_ALIASES = {
     "openrouter": "openrouter/sota",
     "open": "openrouter/sota",
     "open-sota": "openrouter/sota",
+    "fusion": "fusion/local",
+    "gateway": "fusion/local",
     "local": "local/default",
     "local-model": "local/default",
     "fast": "openrouter/fast",
@@ -1567,22 +1598,22 @@ def _explain_backend_version_failure(
 
 def test_model_profile(profile: dict[str, Any]) -> dict[str, Any]:
     from roost.model_profile import build_model_profile_env, model_profile_env_overrides
+    from roost.auth_config import masked_auth_status
 
     backend_name = profile.get("backend", "hermes")
+    profile_env = build_model_profile_env(profile)
     diagnostics: dict[str, Any] = {
         "env": model_profile_env_overrides(profile),
         "secrets": {
-            "OPENROUTER_API_KEY": bool(os.environ.get("OPENROUTER_API_KEY")),
+            "OPENROUTER_API_KEY": bool(profile_env.get("OPENROUTER_API_KEY")),
+            "CODEX_OAUTH_TOKEN": bool(profile_env.get("CODEX_OAUTH_TOKEN")),
+            "CODEX_AUTH_TOKEN": bool(profile_env.get("CODEX_AUTH_TOKEN")),
+            "CODEX_API_KEY": bool(profile_env.get("CODEX_API_KEY")),
+            "HERMES_GATEWAY_TOKEN": bool(profile_env.get("HERMES_GATEWAY_TOKEN")),
+            "HERMES_API_KEY": bool(profile_env.get("HERMES_API_KEY")),
         },
+        "auth": masked_auth_status(profile_env),
     }
-    if backend_name == "codex":
-        return {
-            "ok": True,
-            "status": "saved",
-            "profile": profile,
-            "diagnostics": diagnostics,
-            "message": "Codex profile is saved; no local Codex backend health check is available.",
-        }
 
     from roost.dispatcher import BackendRegistry
 
@@ -1591,7 +1622,7 @@ def test_model_profile(profile: dict[str, Any]) -> dict[str, Any]:
         backend = backend_cls()
         if hasattr(backend, "set_model_profile"):
             backend.set_model_profile(profile)
-        command = getattr(backend, "hermes_cmd", None)
+        command = getattr(backend, "hermes_cmd", None) or getattr(backend, "codex_cmd", None)
         if command:
             command_path = shutil.which(command)
             diagnostics["command"] = command

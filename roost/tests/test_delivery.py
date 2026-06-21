@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import tempfile
 import unittest
+import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -92,6 +93,40 @@ class TestDeliverPacket(unittest.TestCase):
         env = mock_run.call_args.kwargs["env"]
         self.assertEqual(env["PET_STUDIO_MODEL_PROFILE"], "openrouter/fast")
         self.assertEqual(env["OPENROUTER_MODEL"], "fast")
+
+    @patch("roost.delivery.subprocess.run")
+    def test_deliver_to_hermes_uses_local_gateway_command(self, mock_run):
+        with tempfile.TemporaryDirectory() as tmp:
+            auth_path = Path(tmp) / ".pet_studio_keys.json"
+            auth_path.write_text(
+                '{"HERMES_CMD":"hermes-gateway","HERMES_GATEWAY_URL":"https://gateway.test"}',
+                encoding="utf-8",
+            )
+            old_config = os.environ.get("PET_STUDIO_AUTH_CONFIG")
+            os.environ["PET_STUDIO_AUTH_CONFIG"] = str(auth_path)
+            try:
+                mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
+                deliver_packet("test-proj", self.state, agent="hermes")
+            finally:
+                if old_config is None:
+                    os.environ.pop("PET_STUDIO_AUTH_CONFIG", None)
+                else:
+                    os.environ["PET_STUDIO_AUTH_CONFIG"] = old_config
+
+        self.assertEqual(mock_run.call_args.args[0][0], "hermes-gateway")
+        self.assertEqual(mock_run.call_args.kwargs["env"]["HERMES_GATEWAY_URL"], "https://gateway.test")
+
+    @patch("roost.backend.codex.subprocess.run")
+    def test_deliver_to_codex_backend_uses_codex_profile(self, mock_run):
+        self.state.set_active_model_profile(None, "codex/default")
+        mock_run.return_value = MagicMock(returncode=0, stdout="OK", stderr="")
+
+        result = deliver_packet("test-proj", self.state, agent="codex")
+
+        self.assertEqual(result["agent"], "codex")
+        self.assertEqual(result["status"], "delivered")
+        self.assertEqual(mock_run.call_args.args[0][0:2], ["codex", "exec"])
+        self.assertEqual(mock_run.call_args.kwargs["env"]["PET_STUDIO_MODEL_PROFILE"], "codex/default")
 
     def test_work_packet_includes_model_profile_and_compat_marker(self):
         self.state.set_active_model_profile(None, "openrouter/fast")

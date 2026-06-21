@@ -16,6 +16,8 @@ import logging
 from typing import Any
 
 from roost.backend import RoostBackend
+from roost.backend.codex import CodexBackend
+from roost.backend.gateway import GatewayBackend
 from roost.backend.hermes import HermesBackend
 from roost.backend.script import ScriptBackend
 
@@ -72,6 +74,8 @@ class BackendRegistry:
         self._backends: dict[str, type[RoostBackend]] = {
             "script": ScriptBackend,
             "hermes": HermesBackend,
+            "codex": CodexBackend,
+            "gateway": GatewayBackend,
         }
 
     def register(self, name: str, cls: type[RoostBackend]) -> None:
@@ -90,6 +94,8 @@ class BackendRegistry:
         self._backends = {
             "script": ScriptBackend,
             "hermes": HermesBackend,
+            "codex": CodexBackend,
+            "gateway": GatewayBackend,
         }
 
     @property

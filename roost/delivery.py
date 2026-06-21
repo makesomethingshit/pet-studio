@@ -15,6 +15,7 @@ from typing import Any
 
 from roost.model_profile import build_model_profile_env
 from roost.packet import build_work_packet
+from roost.auth_config import apply_auth_config_env
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,13 @@ def deliver_packet(
     try:
         backend_cls = default_registry.get(agent)
         backend = backend_cls()
+        if hasattr(backend, "set_model_profile"):
+            profile = (
+                team_state.get_role_model_profile(role)
+                if hasattr(team_state, "get_role_model_profile")
+                else team_state.get_active_model_profile()
+            )
+            backend.set_model_profile(profile)
         if hasattr(backend, "deliver_packet"):
             return backend.deliver_packet(packet)
         raise DeliveryError(f"Agent {agent!r} does not support packet delivery")
@@ -102,14 +110,16 @@ def _deliver_to_hermes(packet: dict[str, Any], model_profile: dict[str, Any] | N
             json.dump(packet, f, indent=2, ensure_ascii=False)
             tmp_path = f.name
 
+        env = build_model_profile_env(model_profile) if model_profile else apply_auth_config_env()
+        hermes_cmd = env.get("HERMES_CMD", "hermes")
         result = subprocess.run(
-            ["hermes", "-z", f"Execute this packet: {tmp_path}"],
+            [hermes_cmd, "-z", f"Execute this packet: {tmp_path}"],
             capture_output=True,
             encoding="utf-8",
             errors="replace",
             text=True,
             timeout=30,
-            env=build_model_profile_env(model_profile) if model_profile else None,
+            env=env,
         )
 
         return {
