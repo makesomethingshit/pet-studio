@@ -1006,7 +1006,10 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertFalse(project_room_widget.focus_existing_widget_window(platform="linux"))
 
     def test_widget_script_relaunch_writes_stdout_and_stderr_to_log(self) -> None:
-        text = (WIDGET_DIR / "project_room_widget.py").read_text(encoding="utf-8")
+        text = (
+            (WIDGET_DIR / "project_room_widget.py").read_text(encoding="utf-8")
+            + (WIDGET_DIR / "project_room_model_cli.py").read_text(encoding="utf-8")
+        )
 
         self.assertIn("DEFAULT_WIDGET_LOG", text)
         self.assertIn("stdout=log_handle", text)

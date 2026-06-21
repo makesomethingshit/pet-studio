@@ -146,7 +146,6 @@ def build_work_packet(
     project_id: str,
     team_state: Any,
     state: str = "idle",
-    context_budget: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build a work packet from team state."""
     packet = build_codex_packet(project_id, team_state, state)
@@ -156,8 +155,6 @@ def build_work_packet(
         memory_context = load_memory_context(team_state.state_file.parent, project_id)
         packet["team_memory"] = memory_context["team_memory"]
         packet["project_culture"] = memory_context["project_culture"]
-    if context_budget is not None:
-        packet["context_budget"] = context_budget
     return packet
 
 
@@ -166,10 +163,9 @@ def export_work_packet(
     team_state: Any,
     out_dir: str | Path = "work-packets",
     state: str = "idle",
-    context_budget: dict[str, Any] | None = None,
 ) -> Path:
     """Build and write a work packet JSON file."""
-    packet = build_work_packet(project_id, team_state, state, context_budget)
+    packet = build_work_packet(project_id, team_state, state)
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
     safe_name = _safe_project_filename(project_id)
