@@ -2,132 +2,75 @@
 
 ## Priority Framework
 
-판단 기준: **"유저가 말 안해도 체감하는가?"**
+Use this question first: "Can a non-expert send a mission and understand the current flow?"
 
 | Priority | Time | Criteria | Examples |
-|---|---|---|---|
-| **P0** | < 1h | 즉시 체감. 상태를 바로 알 수 있어야 함. | Status bar, state labels, bubble text. |
-| **P1** | 1-2h | 워크플로우 단축. | Context menu, auto-switch, shortcuts. |
-| **P2** | 2-4h | 시각 폴리쉬. | Animation, transitions, color polish. |
-| **P3** | 백로그 | 니스-투-해브. | Theme packs, room editor, macOS support. |
+|---|---:|---|---|
+| P0 | < 1h | Blocks first mission or status understanding. | launch, mission input, AI/fallback result, clear errors |
+| P1 | 1-2h | Removes friction from daily use. | widget quick mission, saved window state, task actions |
+| P2 | 2-4h | Makes the app calmer and easier to scan. | card density, status color, small transitions |
+| P3 | backlog | Useful, but not required for the current Workroom path. | theme packs, room editor, non-Windows host |
 
-## Current Implementation (v0.6.1)
+## Current Implementation
 
-### P0 — Shipped
+### Shipped
 
-| Feature | File | Status |
+| Feature | Surface | Notes |
 |---|---|---|
-| Pet avatar + room rendering | `pet-studio-widget/` | ✅ |
-| Speech bubble state display | `pet-studio-widget/` | ✅ |
-| Project state bridge (JSON) | `pet_studio_core/` | ✅ |
-| Workspace/project auto-detection | `pet_studio_core/` | ✅ |
-| Team status (idle/running/blocked/review/done) | `roost/state.py` | ✅ |
-| Toast notifications (error/warn/info) | `pet-studio-widget/ui/toast.py` | ✅ |
+| Workroom Daily view | `pet-studio-widget/ui/project_hub.py` | Project rail, Mission Console, Task Board. |
+| Advanced Workroom settings | Workroom | Team Room, Endpoints, role routes, model profiles. |
+| Widget companion | `pet-studio-widget/` | Room rendering, flow rail, bubble/status display, quick mission entry. |
+| File state bridge | `pet_studio_core/state.py` | Keeps `project-room-*` compatibility files. |
+| Project registry | `pet_studio_core/registry.py` | Workspace/project inference and compatibility wrapper. |
+| Workroom design tokens | `pet-studio-widget/ui/design_system.py` | Shared colors, spacing, fonts, role/status colors, and ttk styling. |
+| Task cards | Workroom Daily | Waiting/running/done lanes, role assignment, start/done actions. |
+| Endpoint registry UI | Advanced | Role routes and model profiles. |
+| Credit-aware role model plan | Advanced, CLI, Work Packet | Scout/Coordinator can use cheaper routes, Lead can use the active model. |
+| Work Packet export/import | Workroom, `roost/packet.py` | Preserves mission, tasks, staff assignments, model policy, role env, and credit estimate. |
+| Team memory approval | `roost/team_memory.py`, `tools/pet_studio_memory.py` | Pending candidates are approved or rejected before entering Work Packet context. |
 
-### P1 — Shipped
+### Still Rough
 
-| Feature | File | Status |
+| Area | Current state | Preferred next move |
 |---|---|---|
-| Widget context menu (right-click) | `pet-studio-widget/` | ✅ |
-| Team Room Panel (slide-in) | `pet-studio-widget/ui/team_room_popup.py` | ✅ |
-| Approval queue for dangerous actions | `roost/state.py` | ✅ |
-| Room preset export/import | `roost/preset.py` | ✅ |
-| State cycle (idle→running→waiting→blocked→review→done) | `roost/state.py` | ✅ |
-| Status bar with employee icons | `pet-studio-widget/ui/status_bar.py` | ✅ |
-
-### P2 — Partial
-
-| Feature | File | Status |
-|---|---|---|
-| State transition animation | `pet-studio-widget/` | 🟡 Basic (color change only) |
-| Helper pet appearance | `pet-studio-widget/` | 🟡 Blocked/review states only |
-| Layout persistence | JSON files | ✅ |
-
-### P3 — Planned (v0.7)
-
-| Feature | Target | Status |
-|---|---|---|
-| Project Hub window | 0.7 | ❌ Planned |
-| Mission input | 0.7 | ❌ Planned |
-| Task Card board | 0.7 | ❌ Planned |
-| Codex packet export | 0.7 | ❌ Planned |
-
-### P3 — Planned (v0.8)
-
-| Feature | Target | Status |
-|---|---|---|
-| Endpoint Registry UI | 0.8 | ❌ Planned |
-| Scout role integration | 0.8 | ❌ Planned |
-| Coordinator role integration | 0.8 | ❌ Planned |
-
-### P3 — Planned (v0.9)
-
-| Feature | Target | Status |
-|---|---|---|
-| Integration testing | 0.9 | ❌ Planned |
-| Token savings measurement | 0.9 | ❌ Planned |
-| Documentation update | 0.9 | ❌ Planned |
-
-### P3 — Backlog (Post-1.0.0)
-
-| Feature | Status |
-|---|---|
-| Room editor | ❌ Backlog |
-| Theme packs | ❌ Backlog |
-| macOS/Linux widget host | ❌ Backlog |
+| First AI connection | Optional adapters exist. | Add one-step setup for Codex/OpenRouter/Hermes/gateway. |
+| Failure messages | Some friendly errors exist. | Translate connection/auth/fallback failures into user actions. |
+| Task cards | Functional lanes. | Improve density and selected-task actions before adding visual effects. |
+| Team Room | Advanced tab only. | Keep it secondary; do not add another team UI. |
 
 ## UX Rules
 
-### State Bubble Text
+- Daily shows only project, mission, status, and task board.
+- Advanced contains Team Room, Endpoints, Model Profiles, and role routing.
+- Widget is a companion: status at a glance plus quick mission entry.
+- Keep Codex/Hermes/OpenRouter/gateway as adapter labels, not the product center.
+- Prefer team-level presets over repeated per-role edits.
+- Preserve `project-room-*` file names and CLI compatibility.
+- Keep status messages short and actionable.
 
-- Bubble text ≤ 4 words when possible.
-- State labels in Korean (로컬 앱) or English (Codex bridge).
-- Bubble update = immediate, no fade-in delay.
+## Current Workroom Priorities
 
-### Context Menu Order
+### P0
 
-1. Most frequent action first (`Cycle state`)
-2. Middle: navigation (`Open Project Hub` — v1.0.0)
-3. Last: meta (`Settings`, `About`)
+- Keep Workroom and widget launch reliable.
+- Keep mission input available from Daily and widget.
+- Show whether mission dispatch used AI or fallback.
+- Show friendly failures for missing API key, gateway URL, Hermes, or network.
 
-### Team Panel
+### P1
 
-- Slide-in from right side of widget.
-- Max 3 staff cards visible at once.
-- Overflow → scroll, not collapse.
+- Add first-run AI connection setup.
+- Improve routing outcome visibility across Tasks and Team Room.
+- Keep Work Packet export/import round-tripping mission, tasks, staff assignments, model policy, role env hints, and credit estimate.
 
-### Permission UX
+### P2
 
-- Scout actions = silent (read-only).
-- Coordinator actions = bubble notification.
-- L3/Deny actions = pause + bubble prompt.
-- L2/Ask = modal before action.
+- Improve Task Card density and selected-task actions.
+- State-aware status bar color.
+- Small fade/crossfade only if it stays cheap.
 
-## v0.7 UX Work
+### Backlog
 
-### P0 (Must Have)
-
-- Project Hub window: clean, minimal, shows connected Team Rooms
-- Mission input: single text field, submit → auto-route
-- Task Cards: waiting/running/done columns, drag or auto-sort
-
-### P1 (Should Have)
-
-- Codex packet export button in Task Card context menu
-
-## v0.8 UX Work
-
-### P0 (Must Have)
-
-- Endpoint Registry UI: add/remove/edit aliases
-- Role selector per Team Room (Scout/Coordinator/Lead)
-
-### P1 (Should Have)
-
-- Auto-switch project based on active Codex session
-- Team Room preset selector (visual, not CLI)
-
-### P2 (Nice to Have)
-
-- Smooth state transition animation (fade/crossfade)
-- Pet expression variants per state
+- Room editor.
+- Theme packs.
+- macOS/Linux widget host.

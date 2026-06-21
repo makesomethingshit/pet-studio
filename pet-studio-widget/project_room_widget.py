@@ -52,6 +52,13 @@ from project_room_registry import (  # noqa: E402
     project_to_summary,
     select_project,
 )
+from project_room_model_cli import (  # noqa: E402
+    _explain_backend_version_failure,
+    _role_model_env_clear_for_status,
+    _role_model_env_for_status,
+    handle_model_profile_cli,
+    team_state_path_for_cli,
+)
 from project_room_scene import (  # noqa: E402
     DEFAULT_LAYOUT_FILE,
     DEFAULT_SESSION_FILE,
@@ -77,23 +84,26 @@ from set_active_project import write_active_project  # noqa: E402
 
 # UI submodules
 from ui.preset_dialog import export_preset_dialog, import_preset_dialog  # noqa: E402
-from ui.project_hub import show_project_hub  # noqa: E402
+from ui.project_hub import _publish_widget_state, show_project_hub  # noqa: E402
 from ui.status_bar import draw_status_bar  # noqa: E402
-from ui.team_room_popup import add_team_room_menu  # noqa: E402
+from roost.workflow import start_mission_workflow  # noqa: E402
 
 CHROMA = "#ff00ff"
 WINDOW_TITLE = "Pet Studio Widget"
+WORKROOM_TITLE = "Pet Studio Workroom"
 DEFAULT_BUBBLE_FONT = "Segoe UI"
 TOPMOST_REFRESH_MS = 2000
 BACKGROUND_CHILD_ENV = "PET_STUDIO_WIDGET_BACKGROUND_CHILD"
 DEFAULT_WIDGET_LOG = ROOT / "pet-studio-widget" / "project-room-widget.log"
 DEFAULT_WIDGET_LOCK = ROOT / "pet-studio-widget" / "project-room-widget.lock"
+DEFAULT_WORKROOM_LOCK = ROOT / "pet-studio-widget" / "project-room-workroom.lock"
+DEFAULT_WORKROOM_FILE = ROOT / "pet-studio-widget" / "project-room-workroom.json"
 HIT_TEST_ALPHA_THRESHOLD = 16
 DEFAULT_STATE_STALE_AFTER_MS = 300000
 DEFAULT_DEMO_CYCLE_DELAY_SECONDS = 2.0
 STATUS_BAR_HEIGHT = 20
-STATUS_BAR_BG = "#1e1e2e"
-STATUS_BAR_FG = "#cdd6f4"
+STATUS_BAR_BG = "#241f18"
+STATUS_BAR_FG = "#f7ead7"
 STATUS_BAR_FONT = "Segoe UI"
 STATUS_LABELS = {
     "idle": "대기",
@@ -302,6 +312,10 @@ def session_window_value(session: dict, key: str) -> int | float | None:
     return int(value) if isinstance(value, int) else None
 
 
+def clamp_widget_scale(scale: float) -> float:
+    return max(0.6, min(2.0, round(float(scale), 3)))
+
+
 def resolve_startup_window(
     saved_window: dict | None,
     session: dict,
@@ -313,10 +327,10 @@ def resolve_startup_window(
     session_scale = session_window_value(session, "scale") if restore_session else None
     session_x = session_window_value(session, "x") if restore_session else None
     session_y = session_window_value(session, "y") if restore_session else None
-    scale = scale_arg if scale_arg is not None else float(session_scale or (saved_window or {}).get("scale", 1.0))
+    raw_scale = scale_arg if scale_arg is not None else float(session_scale or (saved_window or {}).get("scale", 1.0))
     x = x_arg if x_arg is not None else session_x if session_x is not None else (saved_window or {}).get("x")
     y = y_arg if y_arg is not None else session_y if session_y is not None else (saved_window or {}).get("y")
-    return float(scale), x if isinstance(x, int) else None, y if isinstance(y, int) else None
+    return clamp_widget_scale(raw_scale), x if isinstance(x, int) else None, y if isinstance(y, int) else None
 
 
 def resolve_startup_state(
@@ -392,6 +406,13 @@ def apply_topmost(root: tk.Tk, enabled: bool) -> None:
         root.lift()
 
 
+def fixed_window_geometry(width: int, height: int, x: int | None = None, y: int | None = None) -> str:
+    geometry = f"{max(1, int(width))}x{max(1, int(height))}"
+    if x is not None and y is not None:
+        geometry += f"+{int(x)}+{int(y)}"
+    return geometry
+
+
 def is_gui_launch(args: argparse.Namespace) -> bool:
     return not bool(args.list_projects or args.render_once or args.render_project_once)
 
@@ -436,6 +457,36 @@ def focus_existing_widget_window(title: str = WINDOW_TITLE, platform: str = sys.
     except (AttributeError, OSError):
         return False
     return True
+
+
+def load_workroom_window(path: Path = DEFAULT_WORKROOM_FILE) -> dict[str, int] | None:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    window = data.get("window") if isinstance(data, dict) else None
+    if not isinstance(window, dict):
+        return None
+    result: dict[str, int] = {}
+    for key in ("x", "y", "width", "height"):
+        value = window.get(key)
+        if isinstance(value, int) and (key in ("x", "y") or value > 0):
+            result[key] = value
+    return result if {"width", "height"}.issubset(result) else None
+
+
+def save_workroom_window(path: Path, window: dict[str, int]) -> None:
+    data = {
+        "schemaVersion": 1,
+        "window": {
+            "x": int(window["x"]),
+            "y": int(window["y"]),
+            "width": int(window["width"]),
+            "height": int(window["height"]),
+        },
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
 
 def acquire_widget_lock(lock_file: Path = DEFAULT_WIDGET_LOCK, platform: str = sys.platform):
@@ -590,6 +641,26 @@ def bubble_avoid_owner_shift(
     return (target_left - left, target_top - top)
 
 
+def dispatch_widget_mission(widget: Any, mission: str) -> tuple[bool, str]:
+    mission = mission.strip()
+    if not mission:
+        return False, "Enter a mission first."
+    project_id = getattr(widget, "project_id", None)
+    team_state = getattr(widget, "_team_state", None)
+    if not project_id or team_state is None:
+        return False, "Project state is unavailable."
+
+    if hasattr(team_state, "get_project") and team_state.get_project(project_id) is None:
+        display_name = getattr(widget, "_project_display_name", None) or project_id
+        if hasattr(team_state, "register_project"):
+            team_state.register_project(project_id, display_name=display_name, mission=mission)
+
+    _publish_widget_state(widget, project_id, "running", "Running mission workflow...")
+    ok, message = start_mission_workflow(team_state, project_id, mission)
+    _publish_widget_state(widget, project_id, "running" if ok else "failed", message, None if ok else 6000)
+    return ok, message
+
+
 class ProjectRoomWidget:
     def __init__(
         self,
@@ -661,15 +732,18 @@ class ProjectRoomWidget:
         self.bubble_items: list[int] = []
         self.topmost = bool(topmost)
         self._status_bar_items: list[int] = []
+        self._flow_items: list[int] = []
         self._toast_items: list[int] = []
         self._toast_job_id: int | None = None
         self._toast_message: str | None = None
         self._context_menu_open = False
         self._hub_window: tk.Toplevel | None = None
+        self._mission_bar: tk.Frame | None = None
+        self._mission_entry: tk.Entry | None = None
+        self._mission_status: tk.Label | None = None
 
-        # Feedback when no project detected
         if not self.project_id:
-            self._toast_message = "No project detected — right-click to register"
+            self._toast_message = "No project detected - right-click to register"
 
         self.root = tk.Tk()
         self.root.overrideredirect(True)
@@ -706,6 +780,8 @@ class ProjectRoomWidget:
         self.root.bind("<Control-equal>", lambda _event: self.adjust_scale(1.1))
         self.root.bind("<Control-minus>", lambda _event: self.adjust_scale(1 / 1.1))
         self.root.bind("<Control-0>", lambda _event: self.reset_scale())
+        self.root.bind("m", lambda _event: self.show_mission_bar())
+        self.root.bind("M", lambda _event: self.show_mission_bar())
         self.redraw_scene()
 
         if click_through:
@@ -715,6 +791,86 @@ class ProjectRoomWidget:
             self.root.after(self.state_refresh_ms, self.refresh_external_state)
         if self.topmost:
             self.root.after(250, self.refresh_topmost)
+
+    def open_project_hub(self) -> None:
+        """Open or focus the Project Hub without creating a second Tk root."""
+        self.root.update_idletasks()
+        widget_geometry = fixed_window_geometry(
+            int(self.canvas.cget("width")),
+            int(self.canvas.cget("height")),
+            self.root.winfo_x(),
+            self.root.winfo_y(),
+        )
+        show_project_hub(self)
+        hub = self._hub_window
+        if hub is None:
+            return
+        try:
+            self.root.geometry(widget_geometry)
+            self.root.after(100, lambda: self.root.geometry(widget_geometry))
+            self.root.after(500, lambda: self.root.geometry(widget_geometry))
+            hub.lift()
+            hub.focus_force()
+            hub.wm_attributes("-topmost", True)
+            hub.after(400, lambda: hub.wm_attributes("-topmost", False))
+        except tk.TclError:
+            self._hub_window = None
+
+    def open_mission_dialog(self) -> None:
+        self.show_mission_bar()
+
+    def show_mission_bar(self) -> None:
+        if self._mission_bar is None:
+            bar = tk.Frame(self.root, bg="#241f18", bd=1, relief=tk.FLAT)
+            tk.Label(
+                bar,
+                text="mission",
+                bg="#241f18",
+                fg="#8fd7c2",
+                font=("Segoe UI", 8, "bold"),
+            ).pack(side=tk.LEFT, padx=(6, 4))
+            entry = tk.Entry(
+                bar,
+                bg="#15120e",
+                fg="#f7ead7",
+                insertbackground="#f7ead7",
+                relief=tk.FLAT,
+                font=("Segoe UI", 9),
+            )
+            entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4), pady=4)
+            status = tk.Label(bar, text="", bg="#241f18", fg="#d7bfa3", font=("Segoe UI", 8))
+            status.pack(side=tk.LEFT, padx=(0, 4))
+            tk.Button(bar, text="Run", command=self.submit_mission_bar, relief=tk.FLAT).pack(
+                side=tk.RIGHT, padx=(0, 4), pady=3
+            )
+            entry.bind("<Return>", lambda _event: self.submit_mission_bar())
+            entry.bind("<Escape>", lambda _event: self.hide_mission_bar())
+            self._mission_bar = bar
+            self._mission_entry = entry
+            self._mission_status = status
+        width = int(self.canvas.cget("width"))
+        height = int(self.canvas.cget("height"))
+        self._mission_bar.place(x=6, y=max(4, height - STATUS_BAR_HEIGHT - 34), width=max(120, width - 12), height=30)
+        self._mission_bar.lift()
+        if self._mission_status is not None:
+            self._mission_status.config(text="")
+        if self._mission_entry is not None:
+            self._mission_entry.focus_set()
+
+    def hide_mission_bar(self) -> None:
+        if self._mission_bar is not None:
+            self._mission_bar.place_forget()
+
+    def submit_mission_bar(self) -> None:
+        mission = self._mission_entry.get().strip() if self._mission_entry is not None else ""
+        ok, message = dispatch_widget_mission(self, mission)
+        if self._mission_status is not None:
+            self._mission_status.config(text=message[:28])
+        self.redraw_scene()
+        if ok:
+            if self._mission_entry is not None:
+                self._mission_entry.delete(0, tk.END)
+            self.hide_mission_bar()
 
     def entity_image(self, entity: SceneEntity, frame_index: int) -> Image.Image:
         source = self.layer_assets.get(entity.id)
@@ -772,15 +928,18 @@ class ProjectRoomWidget:
                 continue
             self.draw_entity(entity, self.index)
         self.draw_bubble()
+        self.draw_flow_indicator()
         draw_status_bar(self)
 
     def _clear_scene(self) -> None:
         self.canvas.delete("entity")
         self.canvas.delete("bubble")
+        self.canvas.delete("flow")
         self.entity_items.clear()
         self.entity_images.clear()
         self.entity_photos.clear()
         self.bubble_items.clear()
+        self._flow_items.clear()
 
     def _fade_out_scene(self) -> None:
         """Quick fade-out by lowering opacity of existing items."""
@@ -921,6 +1080,79 @@ class ProjectRoomWidget:
         self.canvas.tag_lower(shadow_rect, tail)
         self.canvas.tag_lower(shadow_tail, shadow_rect)
         self.bubble_items.extend([shadow_rect, shadow_tail, rect, tail, text_item])
+
+    def _flow_lines(self) -> list[str]:
+        if self._team_state is None or not self.project_id:
+            return []
+        try:
+            queue = self._team_state.get_project_queue(self.project_id)
+            mission = self._team_state.get_project_mission(self.project_id)
+        except Exception:
+            return []
+        counts = {"waiting": 0, "running": 0, "done": 0}
+        active = ""
+        detail = ""
+        for item in queue:
+            status = str(item.get("status", "waiting")).lower()
+            if status in {"done", "completed", "approved"}:
+                bucket = "done"
+            elif status in {"running", "in_progress"}:
+                bucket = "running"
+            else:
+                bucket = "waiting"
+            counts[bucket] += 1
+            if not active and bucket != "done":
+                active = str(item.get("task") or item.get("type") or "").strip()
+                detail = str(item.get("dispatchMessage") or item.get("dispatchError") or "").strip()
+        if not active:
+            active = mission or "idle"
+        lines = ["studio", f"run {counts['running']}", f"wait {counts['waiting']}", active[:18]]
+        if detail:
+            lines.append(detail[:16])
+        return lines
+
+    def draw_flow_indicator(self) -> None:
+        lines = self._flow_lines()
+        if not lines:
+            return
+        x = max(5, int(round(6 * self.scale)))
+        y = max(8, int(round(10 * self.scale)))
+        font_size = max(7, int(round(7.5 * self.scale)))
+        line_h = max(10, int(round(11 * self.scale)))
+        width = max(58, int(round(68 * self.scale)))
+        height = line_h * len(lines) + 8
+        rect = self.canvas.create_rectangle(
+            x,
+            y,
+            x + width,
+            y + height,
+            fill="#241f18",
+            outline="#8fd7c2",
+            tags=("flow",),
+        )
+        self._flow_items.append(rect)
+        mission_item = self.canvas.create_text(
+            x + width - 6,
+            y + 5,
+            text="mission",
+            fill="#8fd7c2",
+            font=(STATUS_BAR_FONT, max(7, font_size - 1), "underline"),
+            anchor=tk.NE,
+            tags=("flow", "mission-action"),
+        )
+        self._flow_items.append(mission_item)
+        self.canvas.tag_bind("mission-action", "<Button-1>", lambda _event: self.show_mission_bar())
+        for index, text in enumerate(lines):
+            item = self.canvas.create_text(
+                x + 5,
+                y + 5 + index * line_h,
+                text=text,
+                fill="#d7bfa3" if index else "#8fd7c2",
+                font=(STATUS_BAR_FONT, font_size, "bold" if index == 0 else "normal"),
+                anchor=tk.NW,
+                tags=("flow",),
+            )
+            self._flow_items.append(item)
 
     def update_pet_frames(self) -> None:
         for entity in visible_scene_entities(self.kit, self.entities, self.state):
@@ -1118,6 +1350,7 @@ class ProjectRoomWidget:
         entity = self.pick_draggable_entity(event.x, event.y)
         menu = tk.Menu(self.root, tearoff=False)
         menu.add_command(label="Cycle state", command=self.run_demo_cycle)
+        menu.add_command(label="Run mission...", command=self.show_mission_bar)
 
         # Switch to submenu
         if self._registry_path:
@@ -1140,17 +1373,7 @@ class ProjectRoomWidget:
                 pass
 
         # Project Hub
-        menu.add_command(label="Project Hub", command=lambda: show_project_hub(self))
-
-        # Codex submenu
-        codex_menu = tk.Menu(menu, tearoff=False)
-        codex_menu.add_command(
-            label="Install Hook",
-            command=self._install_codex_hook_confirm,
-        )
-        menu.add_cascade(label="Codex", menu=codex_menu)
-
-        add_team_room_menu(menu, self)
+        menu.add_command(label="Project Hub", command=self.open_project_hub)
 
         # Preset submenu
         if self.project_id:
@@ -1259,14 +1482,15 @@ class ProjectRoomWidget:
         self.save_session(self.state_source)
 
     def set_scale(self, scale: float) -> None:
-        next_scale = max(0.6, min(2.0, round(scale, 3)))
+        next_scale = clamp_widget_scale(scale)
         if next_scale == self.scale:
             return
         self.scale = next_scale
         source_canvas = self.kit.get("sourceCanvas", self.kit["cell"])
         canvas_width = max(1, int(round(int(source_canvas["width"]) * self.scale)))
         canvas_height = max(1, int(round(int(source_canvas["height"]) * self.scale)))
-        self.canvas.configure(width=canvas_width, height=canvas_height)
+        self._canvas_height = canvas_height
+        self.canvas.configure(width=canvas_width, height=canvas_height + STATUS_BAR_HEIGHT)
         self.redraw_scene()
         self.save_window_position()
 
@@ -1334,48 +1558,6 @@ class ProjectRoomWidget:
         self._status_bar_items.clear()
         self.redraw_scene(crossfade=True)
 
-    def _install_codex_hook_confirm(self) -> None:
-        """Show confirmation dialog before installing Codex hook."""
-        import tkinter.messagebox as msgbox
-
-        result = msgbox.askyesno(
-            "Install Codex Hook",
-            "이 작업은 .codex/hooks.json에 Pet Studio 훅을 등록합니다.\n계속하시겠습니까?",
-            icon="warning",
-        )
-        if result:
-            self._install_codex_hook()
-
-    def _install_codex_hook(self) -> None:
-        """Run the Codex hook installer script and show result via toast."""
-        import subprocess
-
-        script = ROOT / "tools" / "install_pet_studio_codex_integration.py"
-        if not script.exists():
-            from ui.toast import show_toast
-
-            show_toast(self, "Hook installer not found", level="error")
-            return
-        try:
-            result = subprocess.run(
-                [sys.executable, str(script), "--project-id", self.project_id or ""],
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-            if result.returncode == 0:
-                from ui.toast import show_toast
-
-                show_toast(self, "Codex hook installed ✓", level="info")
-            else:
-                from ui.toast import show_toast
-
-                show_toast(self, f"Hook install failed: {result.stderr[:80]}", level="error")
-        except Exception as e:
-            from ui.toast import show_toast
-
-            show_toast(self, f"Hook install error: {e}", level="error")
-
     def close(self) -> None:
         self.cancel_demo_cycle()
         self.save_session(self.state_source)
@@ -1405,6 +1587,192 @@ class ProjectRoomWidget:
         self.animate()
         self.root.mainloop()
 
+class WorkroomHost:
+    def __init__(
+        self,
+        root: tk.Tk,
+        registry_path: str,
+        project_id: str | None,
+        state: str,
+        state_file: Path | None,
+        workroom_file: Path,
+        workroom_window: dict[str, int] | None,
+        display_name: str | None = None,
+    ) -> None:
+        self.root = root
+        self.project_id = project_id
+        self.state = normalize_state(state, "idle")
+        self._registry_path = registry_path
+        self._project_display_name = display_name
+        self._hub_window: tk.Toplevel | None = None
+        self._workroom_mode = True
+        self._workroom_file = workroom_file
+        self._workroom_window = workroom_window
+        self._team_state: Any = None
+        try:
+            from roost.state import TeamState
+
+            ts_path = state_file.parent / "team_state.json" if state_file else None
+            self._team_state = TeamState(ts_path) if ts_path else TeamState()
+        except Exception:  # noqa: BLE001
+            self._team_state = None
+
+    def switch_project(self, project_id: str) -> None:
+        project = select_project(self._registry_path, project_id)
+        self.project_id = project.project_id
+        self.state = normalize_state(project.default_state, "idle")
+        self._project_display_name = project.display_name
+
+    def save_workroom_window(self, hub: tk.Toplevel) -> None:
+        save_workroom_window(
+            self._workroom_file,
+            {
+                "x": hub.winfo_x(),
+                "y": hub.winfo_y(),
+                "width": hub.winfo_width(),
+                "height": hub.winfo_height(),
+            },
+        )
+
+
+def launch_workroom(
+    registry_path: str,
+    project_id: str | None,
+    state: str,
+    state_file: Path | None,
+    workroom_file: Path = DEFAULT_WORKROOM_FILE,
+    display_name: str | None = None,
+) -> None:
+    root = tk.Tk()
+    root.withdraw()
+    root.title(WORKROOM_TITLE)
+    host = WorkroomHost(
+        root,
+        registry_path,
+        project_id,
+        state,
+        state_file,
+        workroom_file,
+        load_workroom_window(workroom_file),
+        display_name,
+    )
+    show_project_hub(host)
+    root.mainloop()
+
+
+def _task_id(index: int = 0) -> str:
+    suffix = f"-{index}" if index else ""
+    return f"task-{datetime.now(UTC).strftime('%Y%m%d%H%M%S%f')}{suffix}"
+
+
+def ensure_team_state_project(team_state: Any, project_id: str, display_name: str | None = None) -> None:
+    if team_state.get_project(project_id) is None:
+        team_state.register_project(project_id, display_name=display_name or project_id)
+
+
+def handle_workroom_cli(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+    project_id: str | None,
+    display_name: str | None,
+) -> bool:
+    wants_workroom_action = any(
+        (
+            args.goal,
+            args.mission is not None,
+            args.clear_mission,
+            args.add_task,
+            args.add_staff,
+            args.assign_task,
+            args.assign_staff,
+            args.task_start is not None,
+            args.task_done is not None,
+            args.clear_tasks,
+            args.work_status,
+        )
+    )
+    if not wants_workroom_action:
+        return False
+    if not project_id:
+        parser.error("Workroom CLI actions require --project-id or auto-detected project")
+
+    from roost.state import TeamState
+
+    team_state = TeamState(team_state_path_for_cli(args.state_file))
+    cleared_tasks = 0
+    try:
+        ensure_team_state_project(team_state, project_id, display_name=display_name)
+        if args.clear_tasks:
+            cleared_tasks = team_state.clear_project_queue(project_id)
+        if args.clear_mission:
+            team_state.set_project_mission(project_id, "")
+        if args.goal:
+            team_state.set_project_mission(project_id, args.goal)
+            team_state.enqueue_project(
+                project_id,
+                {
+                    "id": _task_id(),
+                    "type": args.goal,
+                    "task": args.goal,
+                    "status": "waiting",
+                    "source": "goal",
+                },
+            )
+        if args.mission is not None:
+            team_state.set_project_mission(project_id, args.mission)
+        for index, task_text in enumerate(args.add_task or []):
+            team_state.enqueue_project(
+                project_id,
+                {
+                    "id": _task_id(index),
+                    "type": task_text,
+                    "task": task_text,
+                    "status": args.task_status,
+                    "source": "cli",
+                },
+            )
+        for employee_id, employee_name in args.add_staff or []:
+            team_state.register_employee(employee_id, employee_name, role=args.staff_role)
+        for task_index, role in args.assign_task or []:
+            team_state.update_project_queue_item(project_id, int(task_index), {"assignedRole": role})
+        for task_index, employee_id in args.assign_staff or []:
+            updates = {"assignedEmployee": employee_id}
+            for employee in team_state.get_employees():
+                if employee.get("id") == employee_id:
+                    updates["assignedRole"] = employee.get("role", "worker")
+                    break
+            team_state.update_project_queue_item(project_id, int(task_index), updates)
+        if args.task_start is not None:
+            team_state.update_project_queue_item(project_id, args.task_start, {"status": "running"})
+        if args.task_done is not None:
+            team_state.update_project_queue_item(project_id, args.task_done, {"status": "done"})
+    except Exception as error:
+        parser.error(str(error))
+
+    project = team_state.get_project(project_id) or {}
+    print(
+        json.dumps(
+            {
+                "ok": True,
+                "projectId": project_id,
+                "displayName": project.get("displayName", display_name or project_id),
+                "mission": team_state.get_project_mission(project_id),
+                "tasks": team_state.get_project_queue(project_id),
+                "employees": team_state.get_employees(),
+                "clearedTasks": cleared_tasks,
+                "activeModelProfile": team_state.get_active_model_profile_id(),
+                "teamModelPreset": team_state.get_team_model_preset_id(),
+                "roleModelPlan": team_state.list_role_model_plan(),
+                "roleModelEnv": _role_model_env_for_status(team_state),
+                "roleModelEnvClear": _role_model_env_clear_for_status(team_state),
+                "teamModelSavings": team_state.estimate_team_model_savings(),
+                "teamState": str(team_state.state_file),
+            },
+            indent=2,
+        )
+    )
+    return True
+
 
 def main() -> None:
     parser = argparse.ArgumentParser()
@@ -1412,6 +1780,85 @@ def main() -> None:
     parser.add_argument("--config", default=str(DEFAULT_REGISTRY), help="Project assignment registry path")
     parser.add_argument("--project-id", help="Project id from the registry")
     parser.add_argument("--list-projects", action="store_true", help="List registered projects and exit")
+    parser.add_argument("--list-model-profiles", action="store_true", help="List model profiles and exit")
+    parser.add_argument(
+        "--model",
+        help="Set the active model profile by id or alias: closed/gpt/claude, open-sota/sota, local, value, free",
+    )
+    parser.add_argument("--model-status", action="store_true", help="Test the active model profile and exit")
+    parser.add_argument("--use-model-profile", help="Set the active model profile and exit")
+    parser.add_argument("--set-model-profile", help="Create or update a model profile id and exit")
+    parser.add_argument(
+        "--set-role-model",
+        nargs=2,
+        metavar=("ROLE", "PROFILE"),
+        help="Assign a model profile to scout, coordinator, or lead",
+    )
+    parser.add_argument("--clear-role-model", metavar="ROLE", help="Reset a role model profile to the team default")
+    parser.add_argument(
+        "--team-model-preset",
+        help="Apply a team model preset: save-credits, all-local, all-value, lead-sota",
+    )
+    parser.add_argument("--remove-model-profile", help="Remove a model profile id and exit")
+    parser.add_argument(
+        "--test-model-profile",
+        nargs="?",
+        const="",
+        default=None,
+        help="Run the selected model profile backend health check and exit",
+    )
+    parser.add_argument(
+        "--print-model-env",
+        nargs="?",
+        const="",
+        default=None,
+        help="Print PowerShell env lines for the selected model profile and exit",
+    )
+    parser.add_argument(
+        "--print-role-model-env",
+        metavar="ROLE",
+        help="Print PowerShell env lines for the selected scout, coordinator, or lead model and exit",
+    )
+    parser.add_argument(
+        "--print-team-model-env",
+        nargs="?",
+        const="",
+        default=None,
+        help="Print PowerShell env sections for scout, coordinator, and lead and exit",
+    )
+    parser.add_argument("--model-backend", default="hermes", help="Backend for --set-model-profile")
+    parser.add_argument("--model-provider", help="Provider for --set-model-profile")
+    parser.add_argument("--model-name", help="Model name for --set-model-profile")
+    parser.add_argument("--model-cost", default="high", choices=["free", "low", "high"], help="Cost hint")
+    parser.add_argument(
+        "--model-tier",
+        choices=["closed", "open-sota", "local", "value", "free"],
+        help="Hierarchy tier for --set-model-profile",
+    )
+    parser.add_argument("--goal", help="Set the project mission and enqueue it as the first waiting task")
+    parser.add_argument("--mission", default=None, help="Set the project mission and exit")
+    parser.add_argument("--clear-mission", action="store_true", help="Clear the project mission and exit")
+    parser.add_argument("--add-task", action="append", help="Add a waiting task card to the project queue and exit")
+    parser.add_argument("--task-status", default="waiting", choices=["waiting", "running", "done"], help="Status for --add-task")
+    parser.add_argument("--add-staff", nargs=2, action="append", metavar=("ID", "NAME"), help="Register a staff member")
+    parser.add_argument(
+        "--staff-role",
+        default="worker",
+        choices=["scout", "coordinator", "lead", "worker"],
+        help="Role for --add-staff",
+    )
+    parser.add_argument("--assign-task", nargs=2, action="append", metavar=("INDEX", "ROLE"), help="Assign a task index to a role")
+    parser.add_argument(
+        "--assign-staff",
+        nargs=2,
+        action="append",
+        metavar=("INDEX", "STAFF_ID"),
+        help="Assign a task index to a staff member",
+    )
+    parser.add_argument("--task-start", type=int, metavar="INDEX", help="Mark a task index as running")
+    parser.add_argument("--task-done", type=int, metavar="INDEX", help="Mark a task index as done")
+    parser.add_argument("--clear-tasks", action="store_true", help="Clear all task cards for the selected project and exit")
+    parser.add_argument("--work-status", action="store_true", help="Print current mission and task cards and exit")
     parser.add_argument("--state-file", default=None, help="Optional external project state JSON file")
     parser.add_argument(
         "--layout-file", default=str(DEFAULT_LAYOUT_FILE), help="Optional project entity layout JSON file"
@@ -1444,12 +1891,16 @@ def main() -> None:
     parser.add_argument("--y", type=int)
     parser.add_argument("--no-topmost", action="store_true")
     parser.add_argument("--click-through", action="store_true")
+    parser.add_argument("--workroom", action="store_true", help="Open the Project Hub as a normal Workroom app window")
     parser.add_argument(
         "--foreground", action="store_true", help="Keep the widget attached to this console for debugging"
     )
     parser.add_argument("--render-once", help="Write one rendered full-size frame to PNG and exit")
     parser.add_argument("--render-project-once", help="Write one project-selected full-size frame to PNG and exit")
     args = parser.parse_args()
+
+    if handle_model_profile_cli(args, parser):
+        return
 
     # Auto-detect project from workspace if --project-id not given and not listing/rendering
     if not args.project_id and not args.list_projects and not args.render_once and not args.render_project_once:
@@ -1482,13 +1933,33 @@ def main() -> None:
         kit_path = project.kit_manifest
         project_id = project.project_id
         state = args.state or project.default_state
+    elif args.workroom:
+        try:
+            projects = list_projects(args.config)
+        except ProjectRegistryError as error:
+            parser.error(str(error))
+        if not projects:
+            parser.error("No projects are registered.")
+        selected_project = projects[0]
+        kit_path = selected_project.kit_manifest
+        project_id = selected_project.project_id
+        state = args.state or selected_project.default_state
     elif args.kit:
         kit_path = resolve_kit_path(args.kit)
     else:
         parser.error("Provide --kit or --project-id.")
 
+    if handle_workroom_cli(
+        args,
+        parser,
+        project_id,
+        selected_project.display_name if selected_project is not None else None,
+    ):
+        return
+
     gui_launch = is_gui_launch(args)
-    if gui_launch and not args.foreground and focus_existing_widget_window():
+    launch_title = WORKROOM_TITLE if args.workroom else WINDOW_TITLE
+    if gui_launch and not args.foreground and focus_existing_widget_window(launch_title):
         return
 
     if should_relaunch_background(args) and relaunch_background(sys.argv[1:]):
@@ -1496,9 +1967,9 @@ def main() -> None:
 
     widget_lock = None
     if gui_launch and not args.foreground:
-        widget_lock = acquire_widget_lock()
+        widget_lock = acquire_widget_lock(DEFAULT_WORKROOM_LOCK if args.workroom else DEFAULT_WIDGET_LOCK)
         if widget_lock is None:
-            focus_existing_widget_window()
+            focus_existing_widget_window(launch_title)
             return
 
     render_once = args.render_project_once or args.render_once
@@ -1542,6 +2013,20 @@ def main() -> None:
     if project_id and selected_project is not None:
         workspace_path = selected_project.workspace_paths[0] if selected_project.workspace_paths else Path.cwd()
         write_active_project(DEFAULT_ACTIVE_PROJECT_FILE, project_id, workspace_path)
+
+    if args.workroom:
+        try:
+            launch_workroom(
+                args.config,
+                project_id,
+                state,
+                state_file,
+                display_name=selected_project.display_name if selected_project is not None else None,
+            )
+        finally:
+            if widget_lock is not None:
+                widget_lock.close()
+        return
 
     widget = ProjectRoomWidget(
         kit_path=kit_path,

@@ -61,5 +61,9 @@ class ScriptBackend:
     def health_check(self) -> bool:
         return True
 
+    def deliver_packet(self, packet: dict[str, Any]) -> dict[str, Any]:
+        """Script backend — no-op delivery."""
+        return {"status": "logged", "output": str(packet)}
+
     def __repr__(self) -> str:
         return f"<ScriptBackend name={self.name}>"

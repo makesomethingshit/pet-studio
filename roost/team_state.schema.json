@@ -1,8 +1,7 @@
 {
   "$schema": "pet-studio-team-state",
-  "version": "0.6.0",
-  "updatedAt": "2026-06-17T00:00:00Z",
-
+  "version": "0.8.0-dev",
+  "updatedAt": "2026-06-20T00:00:00Z",
   "roost": {
     "status": "idle",
     "backend": "script",
@@ -15,7 +14,6 @@
       "projectInsights": {}
     }
   },
-
   "projects": {
     "project-id": {
       "displayName": "Project Name",
@@ -28,30 +26,103 @@
       "eventLog": []
     }
   },
-
   "employees": {
     "pool": [
       {
         "id": "employee-1",
-        "model": "anthropic/claude-sonnet-4",
+        "model": "local",
         "status": "idle",
         "assignedProject": null,
-        "skills": ["read", "write", "code", "search"],
+        "skills": ["read", "summarize", "search"],
         "tokenUsage": {"input": 0, "output": 0}
       }
     ]
   },
-
   "leads": {
     "pool": [
       {
         "id": "lead-1",
-        "agent": "codex",
+        "agent": "selected-agent",
         "status": "idle",
         "assignedProject": null,
         "skills": ["all"],
         "securityLevel": 0
       }
     ]
+  },
+  "trust": {},
+  "approvals": [],
+  "endpoints": {
+    "local/fast": {"backend": "script", "cost": "free"},
+    "remote/sota": {"backend": "hermes", "cost": "high"},
+    "fusion/local": {"backend": "gateway", "cost": "low"}
+  },
+  "model_profiles": {
+    "codex/default": {
+      "backend": "codex",
+      "provider": "codex",
+      "model": "default",
+      "cost": "high",
+      "tier": "closed"
+    },
+    "closed/claude": {
+      "backend": "hermes",
+      "provider": "openrouter",
+      "model": "claude",
+      "cost": "high",
+      "tier": "closed"
+    },
+    "openrouter/sota": {
+      "backend": "hermes",
+      "provider": "openrouter",
+      "model": "sota",
+      "cost": "high",
+      "tier": "open-sota"
+    },
+    "local/default": {
+      "backend": "script",
+      "provider": "local",
+      "model": "local",
+      "cost": "free",
+      "tier": "local"
+    },
+    "openrouter/fast": {
+      "backend": "hermes",
+      "provider": "openrouter",
+      "model": "fast",
+      "cost": "low",
+      "tier": "value"
+    },
+    "openrouter/cheap": {
+      "backend": "hermes",
+      "provider": "openrouter",
+      "model": "cheap",
+      "cost": "free",
+      "tier": "free"
+    },
+    "fusion/local": {
+      "backend": "gateway",
+      "provider": "openrouter",
+      "model": "fusion",
+      "cost": "low",
+      "tier": "value"
+    }
+  },
+  "active_model_profile": "openrouter/sota",
+  "role_model_profiles": {
+    "scout": "local/default",
+    "coordinator": "openrouter/fast"
+  },
+  "role_backends": {
+    "scout": "local/fast",
+    "coordinator": "remote/sota",
+    "lead": "remote/sota"
+  },
+  "skills": {
+    "file-scan": {"enabled": true, "endpoint": "local/fast"},
+    "log-summary": {"enabled": true, "endpoint": "local/fast"},
+    "draft-packet": {"enabled": true, "endpoint": "local/fast"},
+    "deploy": {"enabled": false, "endpoint": "remote/sota"},
+    "team-reconfigure": {"enabled": false, "endpoint": "remote/sota"}
   }
 }

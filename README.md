@@ -5,14 +5,15 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml)
 
-**Pet Studio** is a local Windows desktop widget that shows project status as a
-small pet room.
+**Pet Studio** is a local-first Windows workroom for AI-assisted project work.
+Pick a project, type a mission, and watch the current flow in the Workroom or
+the companion pet widget.
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
 ## Quick Start
 
-Install and launch:
+Install:
 
 ```powershell
 git clone https://github.com/makesomethingshit/pet-studio.git
@@ -20,16 +21,16 @@ cd pet-studio
 .\install.cmd
 ```
 
-Optional Codex adapter:
+Open the Workroom app:
 
 ```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+.\tools\pet_studio_workroom.cmd --project-id gakju-archive-demo
 ```
 
-Optional live hook bridge for Codex events:
+Open the companion pet widget:
 
 ```powershell
-.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
+.\tools\pet_studio_widget.cmd --project-id gakju-archive-demo --scale 1.25
 ```
 
 Create a room interactively:
@@ -38,30 +39,103 @@ Create a room interactively:
 .\tools\pet_studio_python.cmd tools\create_room_interactive.py
 ```
 
+Optional Codex adapter:
+
+```powershell
+.\tools\pet_studio_python.cmd tools\install_pet_studio_skill.py
+.\tools\pet_studio_python.cmd tools\install_pet_studio_codex_integration.py --project-id your-project-id
+```
+
 ## What Works
 
-- Layered desktop room widget: room, props, main pet, helper pets, speech bubbles
-- Project registry, saved layout/window/session, state file bridge
-- Manual states: `running`, `waiting`, `review`, `blocked`, `failed`, `done`
-- Workspace auto-detection and project switching
-- Tray icon, status bar, context menu controls
-- Optional Codex skill install and hook adapter
-- Room creation, validation, preview sheets, and QA packs
-- Room preset export/import through `roost.preset`
-- Roost project queues, event logs, security levels, and script/Hermes classifiers
-- Team Room popup: approvals, staff status, queue
-- Error toast system: on-screen error/warn/info messages
+- Workroom app with a Daily view for project selection, mission input, and task cards
+- Advanced Workroom settings for Team Room, Endpoints, role routes, and model profiles
+- Mission dispatch through script fallback plus optional Codex, Hermes, OpenRouter, or gateway adapters
+- Credit-aware role model plan: Scout and Coordinator can use cheaper routes, while Lead can use the active model
+- Companion desktop pet widget with room rendering, status/bubble display, and quick mission entry
+- Shared Tk design tokens for the Workroom in `pet-studio-widget/ui/design_system.py`
+- Project registry, saved layout/window/session, workspace auto-detection, and project switching
+- File-based state bridge using the existing `project-room-*` compatibility files
+- Room creation, validation, preview sheets, QA packs, and preset export/import
+- Roost project queues, event logs, L0-L3 security levels, team memory approval, and classifiers
+- Optional Codex skill and hook bridge, plus Work Packet export/import for tasks, staff assignments, approved memory, model policy, role env, and relative credit estimate
 - Korean CLI repair hints via `--lang ko` or `PET_STUDIO_LANG=ko`
+
+Switch the active model profile:
+
+```powershell
+.\tools\pet_studio_model.cmd closed
+.\tools\pet_studio_model.cmd open-sota
+.\tools\pet_studio_model.cmd local
+.\tools\pet_studio_model.cmd value
+.\tools\pet_studio_model.cmd free
+.\tools\pet_studio_model.cmd status
+.\tools\pet_studio_model.cmd plan
+.\tools\pet_studio_model.cmd team
+.\tools\pet_studio_model.cmd env team
+.\tools\pet_studio_model.cmd env coordinator
+.\tools\pet_studio_model.cmd save-credits
+.\tools\pet_studio_model.cmd all-local
+.\tools\pet_studio_model.cmd all-value
+.\tools\pet_studio_model.cmd lead-sota
+.\tools\pet_studio_model.cmd --set-role-model coordinator local
+.\tools\pet_studio_model.cmd coordinator local
+.\tools\pet_studio_model.cmd reset-role lead
+```
+
+Model profiles are shown in this order: closed models such as GPT/Claude,
+open-model SOTA, local model routes, value models, then free models. The
+default local route uses the script fallback until a local model adapter is
+configured. `plan` and `team` both show the role model plan. The team plan
+keeps routine Scout and Coordinator work on cheaper routes; the active model is
+the Lead route unless you explicitly override role profiles. Task `assignedRole`
+values also steer dispatcher model selection, so moving a task to Coordinator
+keeps that work on the Coordinator route. Team presets such as `save-credits`,
+`all-local`, `all-value`, and `lead-sota` switch all roles at once.
+`env team` prints the full team env plan, while `env scout|coordinator|lead`
+prints PowerShell env lines for one role. The team env output is a plan: copy
+one role section at a time because each role uses the same env variable names.
+Those role env lines clear stale provider-specific model variables before
+setting the selected route.
+`reset-role` returns one role to the default policy. **Advanced > Endpoints**
+shows and edits this plan, including a relative Lead-only savings estimate based
+on profile cost hints and copy buttons for selected-role env or the team env
+plan.
+Work Packet export also includes role-specific env overrides and provider env
+cleanup hints for Scout, Coordinator, and Lead handoff. It is not provider
+billing data.
+
+Send team work into the Workroom:
+
+```powershell
+.\tools\pet_studio_work.cmd goal "Ship a usable workroom" --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd task "Review model workflow" --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd staff scout-1 "Scout One" --staff-role scout --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd assign-role 1 coordinator --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd assign-staff 1 scout-1 --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd start 1 --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd done 1 --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd status --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd clear --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd clear-mission --project-id gakju-archive-demo
+.\tools\pet_studio_work.cmd memory add "Prefer cheap Scout routes" --scope team
+.\tools\pet_studio_work.cmd memory list
+```
+
+`status` includes the current mission, tasks, staff, role model plan, role env,
+team preset, and relative Lead-only savings estimate.
 
 Still experimental:
 
-- Visual quality depends on source art and manual QA.
-- Windows is the primary tested widget host.
-- Some runtime files still use `project-room-*` compatibility names.
+- Team Room and Endpoints are Advanced settings, not the main daily workflow.
+- Role dispatch is lightweight; full autonomous agent-to-agent delegation is not implemented.
 - Hermes classification requires Hermes Agent; script mode is the fallback.
+- Visual quality depends on source art and manual QA.
+- Windows is the primary tested host.
+- Some runtime files intentionally keep `project-room-*` names for compatibility.
 
 Not included: cloud sync, hosted dashboard, macOS/Linux widget host, full game
-simulation, Project Hub UI, Task Cards, trust-score auto-approval.
+simulation, trust-score auto-approval.
 
 ## Create A Room
 
@@ -79,6 +153,7 @@ Then verify:
 
 ```powershell
 .\tools\pet_studio_python.cmd tools\pet_studio_preflight.py --project-id my-room
+.\tools\pet_studio_workroom.cmd --project-id my-room
 .\tools\pet_studio_widget.cmd --project-id my-room --scale 1.25
 .\tools\pet_studio_python.cmd tools\pet_studio_create_qa_pack.py --project-id my-room
 ```
@@ -116,21 +191,22 @@ Backends:
 
 - `ScriptBackend`: rule-based, no LLM
 - `HermesBackend`: optional Hermes Agent subprocess
+- `GatewayBackend`: optional OpenAI-compatible local gateway, defaulting to `http://127.0.0.1:8787/v1`
+- `CodexBackend`: optional Codex CLI subprocess for locally authenticated Codex users
 
 Security levels are per project: L0 allow, L1 warn, L2 ask, L3 deny.
 
-### Team Room Panel
+### Advanced Team Room
 
-Right-click the widget → "Team Room" to open the popup.
-Shows pending approvals (with approve/reject buttons), staff status, and roost queue.
+Open the Workroom, then use **Advanced > Team Room** for pending approvals,
+staff status, and the Roost queue.
 
 ```python
 from roost.state import TeamState
 
 state = TeamState()
 state.register_project("my-project", "My Project", security_level=2)
-# L2 actions auto-enqueue approval requests
-state.add_approval_request("my-project", "deploy")
+approval_id = state.add_approval_request("my-project", "deploy")
 state.resolve_approval(approval_id, approved=True)
 ```
 

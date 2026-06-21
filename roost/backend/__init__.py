@@ -24,7 +24,9 @@ class RoostBackend(ABC):
         return f"<{self.__class__.__name__} name={self.name}>"
 
 
+from roost.backend.codex import CodexBackend  # noqa: E402
+from roost.backend.gateway import GatewayBackend  # noqa: E402
 from roost.backend.hermes import HermesBackend  # noqa: E402
 from roost.backend.script import ScriptBackend  # noqa: E402
 
-__all__ = ["RoostBackend", "ScriptBackend", "HermesBackend"]
+__all__ = ["RoostBackend", "ScriptBackend", "HermesBackend", "CodexBackend", "GatewayBackend"]
