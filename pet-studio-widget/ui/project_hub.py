@@ -10,6 +10,8 @@ from collections.abc import Mapping
 from tkinter import ttk
 from typing import Any
 
+from ui.design_system import DS_FONTS, configure_hub_ttk, hub_colors, role_color, status_color
+
 from roost.model_profile import (
     model_profile_powershell_env_lines,
     model_profile_tier,
@@ -20,19 +22,7 @@ from roost.packet import export_work_packet
 # Lazy import to avoid circular dependency
 _api_key_wizard = None
 
-HUB_COLORS = {
-    "bg": "#111318",
-    "panel": "#181b22",
-    "panel_2": "#20242d",
-    "line": "#2c3340",
-    "text": "#eef2f8",
-    "muted": "#9aa6b5",
-    "subtle": "#6f7b8b",
-    "accent": "#6aa6ff",
-    "accent_2": "#66d9a6",
-    "danger": "#ff6b7a",
-    "input": "#0c0f14",
-}
+HUB_COLORS = hub_colors()
 
 
 def _get_api_key_wizard():
@@ -187,52 +177,7 @@ def _workroom_geometry(saved: dict[str, int] | None) -> str:
 
 
 def _configure_hub_style(hub: tk.Toplevel) -> None:
-    style = ttk.Style(hub)
-    try:
-        style.theme_use("clam")
-    except tk.TclError:
-        pass
-    style.configure("TNotebook", background=HUB_COLORS["bg"], borderwidth=0, tabmargins=(8, 6, 8, 0))
-    style.configure(
-        "TNotebook.Tab",
-        background=HUB_COLORS["panel"],
-        foreground=HUB_COLORS["muted"],
-        padding=(14, 7),
-        borderwidth=0,
-        font=("Segoe UI", 9),
-    )
-    style.map(
-        "TNotebook.Tab",
-        background=[("selected", HUB_COLORS["panel_2"])],
-        foreground=[("selected", HUB_COLORS["text"])],
-    )
-    style.configure(
-        "Treeview",
-        background=HUB_COLORS["input"],
-        fieldbackground=HUB_COLORS["input"],
-        foreground=HUB_COLORS["text"],
-        borderwidth=0,
-        rowheight=26,
-        font=("Segoe UI", 9),
-    )
-    style.configure(
-        "Treeview.Heading",
-        background=HUB_COLORS["panel_2"],
-        foreground=HUB_COLORS["muted"],
-        relief=tk.FLAT,
-        font=("Segoe UI", 8, "bold"),
-    )
-    style.map("Treeview", background=[("selected", "#26435f")], foreground=[("selected", HUB_COLORS["text"])])
-    style.configure(
-        "TCombobox",
-        fieldbackground=HUB_COLORS["input"],
-        background=HUB_COLORS["panel_2"],
-        foreground=HUB_COLORS["text"],
-        arrowcolor=HUB_COLORS["muted"],
-        bordercolor=HUB_COLORS["line"],
-        lightcolor=HUB_COLORS["line"],
-        darkcolor=HUB_COLORS["line"],
-    )
+    configure_hub_ttk(hub)
 
 
 def _summary_lines(widget: Any) -> tuple[str, str]:
@@ -322,7 +267,7 @@ def show_project_hub(widget: Any) -> None:
         text="Pet Studio Workroom" if is_workroom else "Project Hub",
         fg=HUB_COLORS["text"],
         bg=HUB_COLORS["panel"],
-        font=("Segoe UI", 14, "bold"),
+        font=DS_FONTS["brand"],
     ).pack(anchor=tk.W)
 
     summary_label = tk.Label(
@@ -330,14 +275,14 @@ def show_project_hub(widget: Any) -> None:
         text="",
         fg=HUB_COLORS["muted"],
         bg=HUB_COLORS["panel"],
-        font=("Segoe UI", 9),
+        font=DS_FONTS["body"],
     )
     meta_label = tk.Label(
         header_text,
         text="",
         fg=HUB_COLORS["subtle"],
         bg=HUB_COLORS["panel"],
-        font=("Segoe UI", 8),
+        font=DS_FONTS["caption"],
     )
     summary_label.pack(anchor=tk.W, pady=(4, 0))
     meta_label.pack(anchor=tk.W)
@@ -811,9 +756,9 @@ def _build_tasks_tab(
     columns_frame.rowconfigure(0, weight=1)
 
     COLORS = {
-        "waiting": ("#1a1e2e", "#89b4fa"),
-        "running": ("#1a2e1a", "#a6e3a1"),
-        "done": ("#1e1e2e", "#6c7086"),
+        "waiting": (HUB_COLORS["panel_2"], status_color("waiting")),
+        "running": (HUB_COLORS["panel"], status_color("running")),
+        "done": (HUB_COLORS["bg"], status_color("done")),
     }
     COL_HEADERS = {"waiting": "Waiting", "running": "Running", "done": "Done"}
 
@@ -1086,7 +1031,7 @@ def _build_team_room_tab(
 
     ROLE_ORDER = ("scout", "coordinator", "lead")
     ROLE_LABELS = {"scout": "Scout", "coordinator": "Coordinator", "lead": "Lead"}
-    ROLE_COLORS = {"scout": "#89b4fa", "coordinator": "#f9e2af", "lead": "#a6e3a1"}
+    ROLE_COLORS = {role: role_color(role) for role in ROLE_ORDER}
     role_boxes: dict[str, tk.Listbox] = {}
     for role in ROLE_ORDER:
         inner_h = 66

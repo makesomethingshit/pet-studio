@@ -1218,14 +1218,16 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
     def test_project_hub_uses_app_sized_shell_and_ttk_styles(self) -> None:
         text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
+        design_system = (WIDGET_DIR / "ui" / "design_system.py").read_text(encoding="utf-8")
 
         self.assertIn('hub.geometry("820x580")', text)
         self.assertIn("hub.minsize(760, 520)", text)
         self.assertIn('width = saved.get("width", 980)', text)
         self.assertIn('height = saved.get("height", 680)', text)
         self.assertIn("def _configure_hub_style", text)
-        self.assertIn('"TNotebook.Tab"', text)
-        self.assertIn('"Treeview"', text)
+        self.assertIn("configure_hub_ttk(hub)", text)
+        self.assertIn('"TNotebook.Tab"', design_system)
+        self.assertIn('"Treeview"', design_system)
 
     def test_local_auth_file_is_ignored_and_wizard_is_clean(self) -> None:
         gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
