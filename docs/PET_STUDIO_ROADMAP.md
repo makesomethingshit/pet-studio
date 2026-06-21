@@ -9,34 +9,36 @@
 |---|---|---|---|
 | 0.7 | Project Hub + Mission + Task Cards | 한눈에 보이는 상태 | Done |
 | 0.8 | Token Roles + Endpoint UI + Model Presets | 역할 자동 분배 | Done |
-| 0.9 | 사용성 마비 — 비전공자 30초 안에 시작 | 설정 없이 시작 | 진행중 |
+| 0.9 | 30초 첫 미션 — 실행과 상태 이해 | 설정 없이 시작 | 진행중 |
 | 1.0 | 안정적 릴리스 — 에러 없이, 설명 없이 쓸 수 있음 | 안전한 실행 | 다음 |
 
 ---
 
-## v0.9: 사용성 마비 (Usability Parity)
+## v0.9: 30초 첫 미션
 
-**목표:** 비전공자가 설치 후 30초 안에 첫 미션을 입력하고 AI를 실행할 수 있어야 한다.
+**목표:** 비전공자가 설치 후 30초 안에 첫 미션을 입력하고, AI 연결 또는 fallback 실행 상태를 이해할 수 있어야 한다.
 
 ### 설정 없이 시작
 
 - [ ] **원클릭 설치** — `pip install` 또는 `.cmd` 더블클릭으로 설치 완료
-- [ ] **API 키 연결 마법사** — 첫 실행 시 "어떤 AI를 쓰시겠어요?" → OpenRouter/Codex/Hermes 선택 → API 키 입력 → 끝
-- [ ] **기본 프리셋 자동 적용** — `save-credits` 프리셋이 기본. 사용자가 모르게 최적 설정 적용
-- [ ] **빈 상태 안내** — 프로젝트가 없을 때 "새 프로젝트 만들기" 버튼 하나만 보이게
+- [ ] **첫 실행 기본 프로젝트** — 프로젝트가 없으면 기본 demo 또는 새 프로젝트 생성만 보이게
+- [ ] **AI 연결 마법사** — OpenRouter/Codex/Hermes/gateway 중 하나 선택 → 키 또는 URL 입력 → 연결 확인
+- [ ] **Fallback 체험** — AI 연결 전에도 script fallback으로 mission/task/status 흐름을 볼 수 있게
+- [ ] **기본 프리셋 자동 적용** — `save-credits` 프리셋이 기본. Scout/Coordinator는 저렴한 route 우선
 
 ### 한눈에 보이는 상태
 
-- [ ] **실시간 상태 표시** — 태스크가 진행 중일 때 진행률/상태 텍스트 표시
-- [ ] **패킷 전달 피드백** — 전달 성공/실패를 토스트가 아닌 상태바에 지속 표시
-- [ ] **에러 메시지 번역** — 기술적 에러 대신 "AI 연결을 확인해주세요" 같은 사용자 친화적 메시지
-- [ ] **Staff 역할별 색상 구분** — Scout(파랑), Coordinator(노랑), Lead(초록) 색상 라벨
+- [ ] **Daily 화면 고정** — 기본 화면은 프로젝트, Mission Console, Task Board만 표시
+- [ ] **Widget quick mission** — widget에서 바로 mission 입력/실행 가능
+- [ ] **실행 상태 표시** — running/waiting/done/failed와 최근 결과를 Workroom과 widget에 같이 표시
+- [ ] **친절한 실패 상태** — API 키 없음, gateway 끊김, Hermes 없음 등을 사용자 언어로 표시
 
 ### 역할 자동 분배
 
-- [ ] **미션 입력 → 자동 태스크 분해** — "리팩토링해줘" 입력 시 Scout가 파일 스캔 → Coordinator가 계획 → Lead가 실행
+- [ ] **미션 입력 → task 생성** — 첫 단계는 mission을 Coordinator task로 만들고 실행 상태를 보여줌
+- [ ] **자동 태스크 분해 준비** — Scout/Coordinator/Lead 분해는 현재 queue/task 구조 위에 얹을 수 있게 유지
 - [ ] **프리셋 기반 팀 구성** — 기본 3인 팀(Scout/Coordinator/Lead) 자동 생성
-- [ ] **커스텀 팀 가능** — 고급 사용자가 역할 추가/제거 가능 (기본은 숨김)
+- [ ] **Advanced 설정 유지** — Team Room, Endpoints, Model Profiles는 Advanced 안에 유지
 
 ### 안전한 실행
 
@@ -48,6 +50,7 @@
 
 - [ ] 비전공자 3인 이상 테스트 — 설명 없이 설치 → 미션 입력 → 실행 → 결과 확인
 - [ ] 에러 시나리오 테스트 — API 키 없음, 네트워크 끊김, 잘못된 미션
+- [ ] Widget quick mission 테스트 — Workroom을 열지 않아도 mission 입력 → task 생성 → 상태 표시
 - [ ] 284 기존 테스트 전부 통과
 
 ---
@@ -103,10 +106,10 @@
 - Staff 역할별 그룹 분리
 
 ### v0.9.0 (사용성)
-- 설치 마법사
-- 에러 메시지 번역
-- 실시간 상태 표시
-- 패킷 전달 피드백
+- 30초 첫 미션
+- AI 연결 마법사
+- 친절한 실패 상태
+- Widget quick mission
 
 ### v0.9.5 (안정성)
 - 자동 저장 + 크래시 복구

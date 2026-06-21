@@ -9,6 +9,7 @@ import tempfile
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image
 
@@ -1053,15 +1054,22 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("task_indexes", text)
         self.assertIn("update_project_queue_item", text)
         self.assertIn("from roost.dispatcher import dispatch", text)
+        self.assertIn("from roost.workflow import start_mission_workflow", text)
+        self.assertIn("start_mission_workflow(widget._team_state, pid, mission)", text)
+        self.assertIn("_refresh_project_hub_tasks", text)
         self.assertIn("AI dispatch:", text)
-        self.assertIn("Select a task, then:", text)
-        self.assertIn('text="Assign:"', text)
-        self.assertIn('text="Assign staff"', text)
-        self.assertIn('text="Scout"', text)
-        self.assertIn('text="Coordinator"', text)
-        self.assertIn('text="Lead"', text)
+        self.assertIn("Mission Console", text)
+        self.assertIn("Run Mission", text)
+        self.assertIn("Task Board", text)
+        self.assertIn("Select a task:", text)
+        self.assertIn('text="Assign Scout"', text)
+        self.assertIn('text="Assign Coordinator"', text)
+        self.assertIn('text="Assign Lead"', text)
         self.assertIn('text="Start"', text)
         self.assertIn('text="Done"', text)
+        self.assertIn("daily_tab.columnconfigure(0, weight=0)", text)
+        self.assertIn('projects_tab = tk.Frame(daily_tab, bg=HUB_COLORS["bg"], width=260)', text)
+        self.assertIn("cozy ai studio", text)
         self.assertIn("Model Profiles (closed -> open-sota -> local -> value -> free)", text)
         self.assertIn("Credit Plan", text)
         self.assertIn("Edit connection", text)
@@ -1087,14 +1095,12 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn("Role model reset", text)
         self.assertIn("apply_team_model_preset", text)
         self.assertIn("get_team_model_preset_id", text)
-        self.assertIn("프리셋이 적용되었습니다", text)
         self.assertIn("_refresh_project_hub_credit_plan", text)
         self.assertIn("Preset: custom", text)
         self.assertIn("Save credits", text)
         self.assertIn("All local", text)
         self.assertIn("All value", text)
         self.assertIn("Lead SOTA", text)
-        self.assertIn("역할이 저장되었습니다", text)
         self.assertIn('"tier"', text)
         self.assertIn('text="Tier"', text)
         self.assertIn("closed", text)
@@ -1149,6 +1155,163 @@ class ProjectRoomSceneTests(unittest.TestCase):
 
         self.assertIn("idle", meta)
         self.assertIn("open-sota openrouter/sota", meta)
+
+    def test_project_hub_dispatch_queue_item_runs_ai_and_updates_task(self) -> None:
+        from ui.project_hub import _dispatch_queue_item_to_ai
+
+        from roost.state import TeamState
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state = TeamState(Path(tmp) / "team_state.json")
+            state.register_project("demo", "Demo", security_level=1, mission="Ship the room")
+            state.enqueue_project(
+                "demo",
+                {"id": "mission-1", "type": "mission", "task": "Ship the room", "status": "waiting"},
+            )
+
+            with patch(
+                "roost.dispatcher.dispatch",
+                return_value={"classification": {"source": "codex", "priority": "normal"}},
+            ) as dispatch:
+                ok, message = _dispatch_queue_item_to_ai(state, "demo", 0)
+
+            self.assertTrue(ok)
+            self.assertIn("AI dispatch: codex", message)
+            dispatch.assert_called_once()
+            dispatched_task = dispatch.call_args.args[0]
+            self.assertEqual(dispatched_task["project_id"], "demo")
+            queue_item = state.get_project_queue("demo")[0]
+            self.assertEqual(queue_item["status"], "running")
+            self.assertEqual(queue_item["classification"]["source"], "codex")
+            self.assertIn("lastDispatch", queue_item)
+            self.assertEqual(queue_item["dispatchSource"], "codex")
+            self.assertEqual(queue_item["dispatchMessage"], "AI connected: codex / normal")
+
+    def test_project_hub_daily_first_mission_flow_matches_vision(self) -> None:
+        text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
+
+        self.assertIn("def _ai_connection_status(", text)
+        self.assertIn("AI: Needs setup", text)
+        self.assertIn("AI: Fallback mode", text)
+        self.assertIn("AI: Connected", text)
+        self.assertIn("Start with demo project", text)
+        self.assertIn("Add a mission to start.", text)
+        self.assertIn("mission_frame.pack(fill=tk.X", text)
+        self.assertNotIn("mission_frame.pack_forget()", text)
+        self.assertIn("Connect AI", text)
+        self.assertIn("dispatchMessage", text)
+        self.assertIn("start_mission_workflow", text)
+
+    def test_project_hub_publishes_widget_state_bridge(self) -> None:
+        from ui.project_hub import _publish_widget_state, _widget_state_for_task_status
+
+        class Widget:
+            project_id = "demo"
+
+            def __init__(self, state_file: Path) -> None:
+                self.state_file = state_file
+                self.state = "idle"
+                self.message = None
+                self.state_source = None
+
+            def set_state(self, state: str, message: str, state_source: str) -> None:
+                self.state = state
+                self.message = message
+                self.state_source = state_source
+
+        with tempfile.TemporaryDirectory() as tmp:
+            state_file = Path(tmp) / "project-room-state.json"
+            widget = Widget(state_file)
+
+            _publish_widget_state(widget, "demo", "running", "Dispatching task to AI...")
+
+            payload = json.loads(state_file.read_text(encoding="utf-8"))
+            self.assertEqual(payload["projectId"], "demo")
+            self.assertEqual(payload["state"], "running")
+            self.assertEqual(payload["message"], "Dispatching task to AI...")
+            self.assertEqual(widget.state, "running")
+            self.assertEqual(widget.state_source, "workroom")
+            self.assertEqual(_widget_state_for_task_status("completed"), "done")
+
+    def test_widget_draws_small_flow_indicator_from_team_state(self) -> None:
+        import project_room_widget
+
+        class TeamState:
+            def get_project_queue(self, project_id: str) -> list[dict]:
+                assert project_id == "demo"
+                return [
+                    {
+                        "status": "running",
+                        "task": "Build the left rail",
+                        "dispatchMessage": "AI connected: codex / normal",
+                    },
+                    {"status": "waiting", "task": "Review"},
+                    {"status": "done", "task": "Old"},
+                ]
+
+            def get_project_mission(self, project_id: str) -> str:
+                assert project_id == "demo"
+                return "Ship"
+
+        class Widget:
+            project_id = "demo"
+            _team_state = TeamState()
+
+        lines = project_room_widget.ProjectRoomWidget._flow_lines(Widget())
+
+        self.assertEqual(lines[:3], ["studio", "run 1", "wait 1"])
+        self.assertEqual(lines[3], "Build the left rai")
+        self.assertEqual(lines[4], "AI connected: co")
+
+    def test_widget_context_menu_can_run_mission_without_workroom(self) -> None:
+        text = (WIDGET_DIR / "project_room_widget.py").read_text(encoding="utf-8")
+
+        self.assertIn('label="Run mission..."', text)
+        self.assertIn("command=self.show_mission_bar", text)
+        self.assertIn("def dispatch_widget_mission(", text)
+        self.assertIn("def show_mission_bar(", text)
+        self.assertIn("def submit_mission_bar(", text)
+        self.assertIn("place(", text)
+        self.assertIn('self.root.bind("m"', text)
+        self.assertIn('self.root.bind("M"', text)
+
+    def test_widget_dispatch_mission_enqueues_and_runs_ai(self) -> None:
+        import project_room_widget
+
+        class TeamState:
+            def __init__(self) -> None:
+                self.mission = ""
+                self.queue: list[dict] = []
+
+            def set_project_mission(self, project_id: str, mission: str) -> None:
+                assert project_id == "demo"
+                self.mission = mission
+
+            def get_project_queue(self, project_id: str) -> list[dict]:
+                assert project_id == "demo"
+                return self.queue
+
+            def enqueue_project(self, project_id: str, task: dict) -> None:
+                assert project_id == "demo"
+                self.queue.append(task)
+
+        class Widget:
+            project_id = "demo"
+
+            def __init__(self) -> None:
+                self._team_state = TeamState()
+
+        widget = Widget()
+        with patch("project_room_widget._publish_widget_state") as publish, patch(
+            "project_room_widget.start_mission_workflow",
+            return_value=(True, "Workflow ready: Scout -> Coordinator -> Lead"),
+        ) as workflow:
+            ok, message = project_room_widget.dispatch_widget_mission(widget, "Ship from widget")
+
+        self.assertTrue(ok)
+        self.assertEqual(message, "Workflow ready: Scout -> Coordinator -> Lead")
+        workflow.assert_called_once_with(widget._team_state, "demo", "Ship from widget")
+        self.assertEqual(publish.call_count, 2)
 
     def test_project_hub_formats_profile_env_for_powershell(self) -> None:
         from ui.project_hub import _powershell_env_lines_for_profile, _powershell_env_lines_for_role_plan
@@ -1226,6 +1389,23 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertEqual(project_room_widget.fixed_window_geometry(480, 320, 20, 40), "480x320+20+40")
         self.assertEqual(project_room_widget.fixed_window_geometry(0, -1), "1x1")
 
+    def test_widget_scale_is_clamped_on_startup_and_resize_keeps_status_bar(self) -> None:
+        import project_room_widget
+
+        scale, _x, _y = project_room_widget.resolve_startup_window(
+            {"scale": 99, "x": 1, "y": 2},
+            {},
+            False,
+            None,
+            None,
+            None,
+        )
+
+        self.assertEqual(scale, 2.0)
+        text = Path(project_room_widget.__file__).read_text(encoding="utf-8")
+        self.assertIn("def clamp_widget_scale", text)
+        self.assertIn("self.canvas.configure(width=canvas_width, height=canvas_height + STATUS_BAR_HEIGHT)", text)
+
     def test_project_hub_uses_app_sized_shell_and_ttk_styles(self) -> None:
         text = (WIDGET_DIR / "ui" / "project_hub.py").read_text(encoding="utf-8")
         design_system = (WIDGET_DIR / "ui" / "design_system.py").read_text(encoding="utf-8")
@@ -1236,6 +1416,9 @@ class ProjectRoomSceneTests(unittest.TestCase):
         self.assertIn('height = saved.get("height", 680)', text)
         self.assertIn("def _configure_hub_style", text)
         self.assertIn("configure_hub_ttk(hub)", text)
+        self.assertIn('"page": "#191611"', design_system)
+        self.assertIn('"accent": "#8fd7c2"', design_system)
+        self.assertIn('hub.option_add("*Button.Background"', text)
         self.assertIn('"TNotebook.Tab"', design_system)
         self.assertIn('"Treeview"', design_system)
 

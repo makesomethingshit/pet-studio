@@ -5,8 +5,9 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml/badge.svg)](https://github.com/makesomethingshit/pet-studio/actions/workflows/ci.yml)
 
-**Pet Studio** is a local-first Windows workroom for AI-assisted project work,
-with an optional tiny pet widget for at-a-glance status.
+**Pet Studio** is a local-first Windows workroom for AI-assisted project work.
+Pick a project, type a mission, and watch the current flow in the Workroom or
+the companion pet widget.
 
 ![Pet Studio project room reacting with a pet, props, helper creature, and speech bubble](docs/images/pet-studio-demo.gif)
 
@@ -47,18 +48,16 @@ Optional Codex adapter:
 
 ## What Works
 
-- Workroom app window with Projects, Tasks, Team Room, and Endpoints tabs
-- Mission input and Task Cards split into waiting, running, and done columns
-- Team Room tab for approvals, staff status, and Roost queue
-- Endpoint registry with role mappings for Scout, Coordinator, and Lead
-- Credit-aware role model plan: Scout uses local/free routes, Coordinator uses value routes, Lead follows the active model
-- Model profiles for switching between Codex, Hermes, OpenRouter, and local gateway routes from the Workroom or CLI
-- Companion desktop pet widget with layered room, props, pets, speech bubbles, status bar, and toast messages
+- Workroom app with a Daily view for project selection, mission input, and task cards
+- Advanced Workroom settings for Team Room, Endpoints, role routes, and model profiles
+- Mission dispatch through script fallback plus optional Codex, Hermes, OpenRouter, or gateway adapters
+- Credit-aware role model plan: Scout and Coordinator can use cheaper routes, while Lead can use the active model
+- Companion desktop pet widget with room rendering, status/bubble display, and quick mission entry
 - Shared Tk design tokens for the Workroom in `pet-studio-widget/ui/design_system.py`
 - Project registry, saved layout/window/session, workspace auto-detection, and project switching
 - File-based state bridge using the existing `project-room-*` compatibility files
 - Room creation, validation, preview sheets, QA packs, and preset export/import
-- Roost project queues, event logs, L0-L3 security levels, team memory approval, and script/Hermes/gateway/Codex classifiers
+- Roost project queues, event logs, L0-L3 security levels, team memory approval, and classifiers
 - Optional Codex skill and hook bridge, plus Work Packet export/import for tasks, staff assignments, approved memory, model policy, role env, and relative credit estimate
 - Korean CLI repair hints via `--lang ko` or `PET_STUDIO_LANG=ko`
 
@@ -98,7 +97,7 @@ prints PowerShell env lines for one role. The team env output is a plan: copy
 one role section at a time because each role uses the same env variable names.
 Those role env lines clear stale provider-specific model variables before
 setting the selected route.
-`reset-role` returns one role to the default policy. The Workroom's Endpoints tab
+`reset-role` returns one role to the default policy. **Advanced > Endpoints**
 shows and edits this plan, including a relative Lead-only savings estimate based
 on profile cost hints and copy buttons for selected-role env or the team env
 plan.
@@ -128,8 +127,8 @@ team preset, and relative Lead-only savings estimate.
 
 Still experimental:
 
-- Team Room is a Workroom tab, not a fully reusable room with its own memory and avatar yet.
-- Role dispatch is lightweight; full agent-to-agent delegation is not implemented.
+- Team Room and Endpoints are Advanced settings, not the main daily workflow.
+- Role dispatch is lightweight; full autonomous agent-to-agent delegation is not implemented.
 - Hermes classification requires Hermes Agent; script mode is the fallback.
 - Visual quality depends on source art and manual QA.
 - Windows is the primary tested host.
@@ -197,9 +196,9 @@ Backends:
 
 Security levels are per project: L0 allow, L1 warn, L2 ask, L3 deny.
 
-### Team Room
+### Advanced Team Room
 
-Open the Workroom and select the **Team Room** tab. It shows pending approvals,
+Open the Workroom, then use **Advanced > Team Room** for pending approvals,
 staff status, and the Roost queue.
 
 ```python

@@ -1,8 +1,4 @@
-"""Pet Studio UI design tokens.
-
-The hub is a dense local workroom, not a marketing surface. Keep the tokens
-small, quiet, and easy to reuse from Tk widgets.
-"""
+"""Pet Studio UI design tokens."""
 
 from __future__ import annotations
 
@@ -10,21 +6,21 @@ import tkinter as tk
 from tkinter import ttk
 
 DS_COLORS = {
-    "page": "#0f0f0f",
-    "surface": "#171717",
-    "surface_raised": "#202020",
-    "field": "#141414",
-    "line": "#303030",
-    "line_strong": "#454545",
-    "text": "#e8e8e8",
-    "muted": "#a8a8a8",
-    "quiet": "#737373",
-    "accent": "#f0f0f0",
-    "accent_text": "#111111",
-    "success": "#8fcf9f",
-    "warning": "#d7b56d",
-    "danger": "#d16a5f",
-    "selection": "#2c2c2c",
+    "page": "#191611",
+    "surface": "#241f18",
+    "surface_raised": "#30281f",
+    "field": "#15120e",
+    "line": "#4a3d2f",
+    "line_strong": "#6d5742",
+    "text": "#f7ead7",
+    "muted": "#d7bfa3",
+    "quiet": "#9b8064",
+    "accent": "#8fd7c2",
+    "accent_text": "#12231d",
+    "success": "#9dd6a5",
+    "warning": "#e1b66f",
+    "danger": "#e07b70",
+    "selection": "#463728",
 }
 
 DS_SPACING = {
@@ -37,8 +33,8 @@ DS_SPACING = {
 }
 
 DS_FONTS = {
-    "brand": ("Segoe UI", 14, "bold"),
-    "section": ("Segoe UI", 10, "bold"),
+    "brand": ("Segoe UI Semibold", 16, "bold"),
+    "section": ("Segoe UI Semibold", 10, "bold"),
     "body": ("Segoe UI", 9),
     "label": ("Segoe UI", 8),
     "label_bold": ("Segoe UI", 8, "bold"),
@@ -46,14 +42,14 @@ DS_FONTS = {
 }
 
 ROLE_COLORS = {
-    "scout": DS_COLORS["text"],
+    "scout": DS_COLORS["muted"],
     "coordinator": DS_COLORS["warning"],
     "lead": DS_COLORS["success"],
 }
 
 STATUS_COLORS = {
-    "waiting": DS_COLORS["text"],
-    "running": DS_COLORS["success"],
+    "waiting": DS_COLORS["muted"],
+    "running": DS_COLORS["accent"],
     "done": DS_COLORS["quiet"],
     "failed": DS_COLORS["danger"],
     "blocked": DS_COLORS["warning"],

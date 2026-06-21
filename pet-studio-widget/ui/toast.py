@@ -11,15 +11,15 @@ STATUS_BAR_HEIGHT = 20
 STATUS_BAR_FONT = "Segoe UI"
 
 TOAST_COLORS = {
-    "error": "#f38ba8",
-    "warn": "#f9e2af",
-    "info": "#89b4fa",
+    "error": "#e07b70",
+    "warn": "#e1b66f",
+    "info": "#8fd7c2",
 }
 
 TOAST_BG = {
-    "error": "#4c1c24",
-    "warn": "#4c4420",
-    "info": "#1c2e4c",
+    "error": "#44221f",
+    "warn": "#3d3120",
+    "info": "#20352d",
 }
 
 

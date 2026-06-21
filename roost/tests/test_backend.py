@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from roost.backend import CodexBackend, GatewayBackend, HermesBackend, ScriptBackend
+from roost.auth_config import apply_auth_config_env
 from roost.model_profile import build_model_profile_env
 
 
@@ -182,6 +183,29 @@ class TestCodexBackend(unittest.TestCase):
 
         self.assertEqual(env["OPENROUTER_API_KEY"], "env-key")
         self.assertEqual(env["CODEX_OAUTH_TOKEN"], "stored-oauth")
+
+    def test_auth_env_loads_codex_oauth_without_copying_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            codex_auth = Path(tmp) / "auth.json"
+            codex_auth.write_text(
+                '{"tokens":{"access_token":"oauth-access"},"OPENAI_API_KEY":"openai-key"}',
+                encoding="utf-8",
+            )
+            with patch("roost.auth_config.DEFAULT_CODEX_AUTH_CONFIG", codex_auth):
+                env = apply_auth_config_env({})
+
+        self.assertEqual(env["CODEX_OAUTH_TOKEN"], "oauth-access")
+        self.assertEqual(env["CODEX_AUTH_TOKEN"], "oauth-access")
+        self.assertEqual(env["OPENAI_API_KEY"], "openai-key")
+
+    def test_explicit_env_wins_over_codex_oauth_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            codex_auth = Path(tmp) / "auth.json"
+            codex_auth.write_text('{"tokens":{"access_token":"oauth-access"}}', encoding="utf-8")
+            with patch("roost.auth_config.DEFAULT_CODEX_AUTH_CONFIG", codex_auth):
+                env = apply_auth_config_env({"CODEX_OAUTH_TOKEN": "manual"})
+
+        self.assertEqual(env["CODEX_OAUTH_TOKEN"], "manual")
 
 
 class TestGatewayBackend(unittest.TestCase):

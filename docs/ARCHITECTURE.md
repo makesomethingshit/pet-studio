@@ -23,7 +23,7 @@ Desktop widget host:
 - Canvas rendering (room, pet, props, speech bubble)
 - Saved layout, window, and session files
 - Context menu and bubble presentation
-- Workroom window with Projects, Tasks, Team Room, and Endpoints tabs
+- Workroom window with Daily and Advanced tabs
 - Shared Tk design tokens in `ui/design_system.py`
 - Toast notifications
 - Status bar
@@ -83,9 +83,9 @@ User-facing CLI commands:
 
 ```
 User Mission (text)
-    -> Workroom / Project Hub
+    -> Workroom Daily
         -> Task Cards (waiting/running/done)
-            -> Team Room roles
+            -> Advanced role routing
                 -> Scout (read-only, cheap/local)
                 -> Coordinator (compress, draft, value route)
                 -> Lead (final, user-selected active model)
